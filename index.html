@@ -997,6 +997,7 @@ function enterSpace(){
   document.getElementById('screen-home').classList.add('active');
   navStack=['chat'];navRoot='chat';
   history.replaceState({d:1},'');
+  history.pushState({d:1},'');
   updateHome();
   updateTabBar();
   refreshAllBadges();
@@ -1119,6 +1120,7 @@ function switchTab(tab){
   }
   saveScrollTop();
   navStack=[pageId];navRoot=pageId;
+  history.pushState({d:1},'');
   renderNav();
   enterPage(pageId);
 }
@@ -1144,8 +1146,6 @@ function goHome(){
   navStack=[];
   navRoot=navRoot;                       // 保留 tab 高亮参考
   closeAppUI();
-  skipPops=n;
-  for(let i=0;i<n;i++)history.back();
   history.replaceState({d:0},'');
   history.pushState({d:0},'');
 }
@@ -1203,14 +1203,22 @@ function renderNav(){
   document.getElementById('tabbar').classList.remove('hidden');
   updateMiniPlayer();
 }
-/* 返回上一层（手机返回逻辑：先关浮层 → 再退页面 → 再回桌面 → 二次确认退出） */
+/* 返回上一层（按钮返回：先关浮层 → 再退页面 → 最终回桌面，全程不依赖浏览器历史） */
 function goBack(){
   if(document.getElementById('ctx-menu').classList.contains('show')){closeCtxMenu();return;}
   if(document.getElementById('img-viewer')){closeImageViewer();return;}
   if(emojiOpen){toggleEmojiPanel();return;}
   if(document.getElementById('modal').classList.contains('show')){closeModal();return;}
   if(state.callActive){endCall('hangup');return;}
-  history.back();
+  if(navStack.length>1){
+    navStack.pop();
+    renderNav();
+    const body=document.querySelector('#app-'+navStack[navStack.length-1]+' .app-body');
+    if(body&&body._savedTop)body.scrollTop=body._savedTop;
+    if(navStack[navStack.length-1]==='chat')renderChat(false);
+    return;
+  }
+  closeApp();
 }
 /* 关闭所有页面（回到桌面） */
 function closeAppUI(){
@@ -1225,10 +1233,7 @@ function closeAppUI(){
   updateHome();
 }
 function closeApp(){
-  const n=Math.max(0,navStack.length-1);
   closeAppUI();
-  skipPops=n;
-  for(let i=0;i<n;i++)history.back();
   history.replaceState({d:0},'');
   history.pushState({d:0},'');
 }
