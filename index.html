@@ -2907,7 +2907,7 @@ function gameFortune(){
 }
 
 /* ===== MUSIC PLAYER（桌面小组件 + 悬浮迷你播放器：播放后才悬浮、可拖动/贴边/收起） ===== */
-let musicIndex=-1,musicPlaying=false,musicTimer=null,musicAudio=null;
+let musicIndex=-1,musicPlaying=false,musicTimer=null,musicAudio=null,musicMode='list';
 let musicState={playlists:[{name:'默认歌单',items:[]}],active:0};
 function loadMusicState(){
   try{
@@ -3071,7 +3071,7 @@ function openMusicPlayer(){
   }
 }
 
-/* 迷你播放器：拖动/* 迷你播放器：拖动 / 贴边 / 双击收起成小圆球 */
+/* 迷你播放器：拖动 / 贴边 / 双击收起成小圆球 */
 function updateMiniPlayer(){
   const mp=document.getElementById('mini-player');
   if(!mp)return;
