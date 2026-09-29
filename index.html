@@ -83,7 +83,7 @@ body{position:fixed;inset:0;width:100%}
 .widget-sign{font-size:12px;color:var(--sub);max-width:80%;text-align:center;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 
 /* ===== APP GRID ===== */
-.app-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px 12px;padding:12px calc(var(--sal) + 18px) 20px calc(var(--sal) + 18px);flex:1;align-content:start;overflow-y:auto;-webkit-overflow-scrolling:touch}
+.app-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:24px 16px;padding:10px calc(var(--sal) + 18px) 20px calc(var(--sal) + 18px);flex:1;align-content:start;overflow-y:auto;-webkit-overflow-scrolling:touch}
 .app-item{display:flex;flex-direction:column;align-items:center;gap:6px;cursor:pointer;transition:.15s;user-select:none}
 .app-item:active{transform:scale(.9);opacity:.75}
 .app-icon{width:56px;height:56px;border-radius:16px;display:flex;align-items:center;justify-content:center;font-size:22px;color:#fff;font-weight:600;box-shadow:0 3px 10px rgba(0,0,0,.12);position:relative}
@@ -114,7 +114,8 @@ body{position:fixed;inset:0;width:100%}
 .app-header{display:flex;align-items:center;padding:calc(var(--sat) + 10px) 12px 10px;background:var(--card);border-bottom:1px solid var(--input);gap:6px;position:relative;z-index:10;flex-shrink:0}
 .app-header .back{width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:21px;color:var(--text);cursor:pointer;flex-shrink:0;position:relative;z-index:20}
 .app-header .back:active{background:var(--input)}
-.app-header h1{flex:1;text-align:center;font-size:17px;font-weight:600;margin:0 -40px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.app-header h1{flex:1;text-align:center;font-size:17px;font-weight:600;margin:0 -40px;display:flex;flex-direction:column;align-items:center;line-height:1.3}
+.chat-presence{font-size:10px;font-weight:400;color:#07c160;letter-spacing:1px;margin-top:1px}
 .app-header .act{width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:19px;color:var(--text);cursor:pointer;flex-shrink:0;text-align:center}
 .app-header .act:active{background:var(--input)}
 .app-body{flex:1;overflow-y:auto;padding:14px calc(var(--sar) + 14px) calc(var(--sab) + 24px) calc(var(--sal) + 14px);-webkit-overflow-scrolling:touch}
@@ -131,11 +132,14 @@ body{position:fixed;inset:0;width:100%}
 .chat-content{flex:1;overflow-y:auto;padding:10px 12px 16px;background:#ededed;-webkit-overflow-scrolling:touch;overscroll-behavior:contain}
 .chat-date{text-align:center;font-size:11px;color:rgba(0,0,0,.55);background:rgba(0,0,0,.06);border-radius:4px;padding:3px 10px;margin:14px auto;width:fit-content}
 .chat-unread{text-align:center;font-size:11px;color:#c0392b;background:rgba(192,57,43,.08);border-radius:4px;padding:3px 10px;margin:12px auto;width:fit-content;cursor:pointer}
-.msg-row{display:flex;margin:12px 0;align-items:flex-end;position:relative}
+.msg-row{display:flex;margin:12px 0;align-items:flex-start;position:relative}
+.msg-avatar-col{display:flex;flex-direction:column;align-items:center;gap:3px;margin:0 7px;flex-shrink:0}
+.msg-time{font-size:10px;color:rgba(0,0,0,.38);line-height:1}
+.msg-row.me .msg-time{color:rgba(255,255,255,.5)}
 .msg-row.me{flex-direction:row-reverse}
 .msg-row.flash .msg-bubble{animation:msgFlash 1.4s ease}
 @keyframes msgFlash{0%,60%{background:#fff3a8}100%{}}
-.msg-avatar{width:38px;height:38px;border-radius:4px;background:#9c9c9c;color:#fff;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:600;flex-shrink:0;user-select:none;overflow:hidden;box-shadow:inset 0 0 0 1px rgba(255,255,255,.35)}
+.msg-avatar{width:38px;height:38px;border-radius:50%;background:#9c9c9c;color:#fff;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:600;flex-shrink:0;user-select:none;overflow:hidden;box-shadow:inset 0 0 0 1px rgba(255,255,255,.35)}
 .msg-avatar img{width:100%;height:100%;object-fit:cover}
 .msg-row.me .msg-avatar{background:#555}
 .msg-body{display:flex;flex-direction:column;max-width:68%;margin:0 8px;min-width:0}
@@ -213,10 +217,9 @@ body{position:fixed;inset:0;width:100%}
 .ctx-sheet{width:100%;background:#1c1c1c;padding:8px 0 calc(var(--sab) + 14px);border-radius:14px 14px 0 0;transform:translateY(100%);transition:.26s cubic-bezier(.32,.72,0,1);max-height:76vh;overflow-y:auto}
 .ctx-menu.show .ctx-sheet{transform:translateY(0)}
 .ctx-title{color:rgba(255,255,255,.5);font-size:11px;padding:6px 20px 10px;text-align:center;max-height:88px;overflow:hidden}
-.ctx-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;padding:0 6px}
-.ctx-item{display:flex;flex-direction:column;align-items:center;gap:6px;padding:12px 2px;border-radius:8px;cursor:pointer;color:#fff;font-size:11px;transition:.15s}
+.ctx-grid{display:flex;flex-direction:column;gap:2px;padding:0 8px}
+.ctx-item{padding:12px 10px;border-radius:8px;cursor:pointer;color:#fff;font-size:15px;text-align:center;transition:.15s}
 .ctx-item:active{background:rgba(255,255,255,.1)}
-.ctx-item .ctx-ico{font-size:21px;line-height:1}
 .ctx-item.danger{color:#ff6b6b}
 .ctx-cancel{margin:10px 12px 0;padding:12px;border-radius:10px;background:#333;color:#fff;text-align:center;font-size:15px;cursor:pointer}
 
@@ -230,6 +233,7 @@ body{position:fixed;inset:0;width:100%}
 /* ===== CHAT INPUT BAR（微信风格） ===== */
 .chat-inputbar{display:flex;align-items:flex-end;gap:2px;padding:6px 8px calc(6px + var(--sab));background:#f7f7f7;border-top:1px solid #e0e0e0;position:relative;flex-shrink:0;z-index:96}
 .chat-inputbar .ic-btn{width:36px;height:36px;border:none;background:transparent;font-size:22px;cursor:pointer;display:flex;align-items:center;justify-content:center;color:#333;flex-shrink:0;border-radius:5px}
+.chat-inputbar .ic-btn svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
 .chat-inputbar .ic-btn:active{opacity:.55}
 .chat-inputbar .ic-btn.off{color:#c9c9c9}
 .chat-inputbar textarea{flex:1;height:36px;max-height:96px;border:none;border-radius:5px;padding:8px 10px;font-size:15px;line-height:20px;background:#fff;outline:none;min-width:0;resize:none;font-family:inherit;overflow-y:auto}
@@ -500,7 +504,7 @@ mark{background:#ffe58f;color:inherit;border-radius:2px;padding:0 1px}
   <div class="status-bar">
     <span class="time" id="status-time">22:55</span>
     <span class="notch-spacer"></span>
-    <span class="sb-right"><span id="sb-signal">&#9645;&#9645;&#9645;</span><span>&#128267;</span><span id="sb-batt">&#128267;</span></span>
+    <span class="sb-right"><span id="sb-signal"></span></span>
   </div>
   <div class="widget-area">
     <div class="widget-avatars" id="widget-avatars">
@@ -516,8 +520,8 @@ mark{background:#ffe58f;color:inherit;border-radius:2px;padding:0 1px}
     <div class="app-item" onclick="openApp('entertain')"><div class="app-icon" style="background:var(--c-gold)">乐</div><div class="app-label">娱乐</div></div>
     <div class="app-item" onclick="openApp('sense')"><div class="app-icon" style="background:var(--c-rose)">感</div><div class="app-label">房间</div></div>
     <div class="app-item" onclick="openApp('cards')"><div class="app-icon" style="background:var(--c-blue)">卡</div><div class="app-label">字卡</div></div>
+    <div class="app-item" onclick="openApp('diary')"><div class="app-icon" style="background:#8c7aa9">记</div><div class="app-label">日记</div></div>
     <div class="app-item" onclick="openApp('emoji')"><div class="app-icon" style="background:var(--c-green)">表</div><div class="app-label">表情包</div></div>
-    <div class="app-item" onclick="openApp('music')"><div class="app-icon" style="background:#5c5c5c">音</div><div class="app-label">音乐</div></div>
     <div class="app-item" onclick="openApp('memory')"><div class="app-icon" style="background:#8c8c8c">忆</div><div class="app-label">回忆录</div></div>
     <div class="app-item" onclick="openApp('theme')"><div class="app-icon" style="background:#a3a3a0">观</div><div class="app-label">外观</div></div>
   </div>
@@ -525,7 +529,6 @@ mark{background:#ffe58f;color:inherit;border-radius:2px;padding:0 1px}
   <div class="tabbar" id="tabbar">
     <div class="tab-item" data-tab="chat" onclick="switchTab('chat')"><span class="tab-ico" data-ico="chat"></span><span class="tab-name">聊天</span><span class="badge" id="tab-badge-chat" style="display:none">0</span></div>
     <div class="tab-item" data-tab="mailbox" onclick="switchTab('mailbox')"><span class="tab-ico" data-ico="mail"></span><span class="tab-name">信箱</span><span class="badge" id="tab-badge-mailbox" style="display:none">0</span></div>
-    <div class="tab-item" data-tab="diary" onclick="switchTab('diary')"><span class="tab-ico" data-ico="book"></span><span class="tab-name">日记</span><span class="badge" id="tab-badge-diary" style="display:none">0</span></div>
     <div class="tab-item" data-tab="moments" onclick="switchTab('moments')"><span class="tab-ico" data-ico="moments"></span><span class="tab-name">动态</span><span class="badge" id="tab-badge-moments" style="display:none">0</span></div>
     <div class="tab-item" data-tab="me" onclick="switchTab('me')"><span class="tab-ico" data-ico="me"></span><span class="tab-name">我的</span></div>
   </div>
@@ -538,7 +541,7 @@ mark{background:#ffe58f;color:inherit;border-radius:2px;padding:0 1px}
 <div id="app-chat" class="app-page chat-page">
   <div class="app-header">
     <div class="back" onclick="goBack()">&#8249;</div>
-    <h1 id="chat-title">TA</h1>
+    <h1 id="chat-title">TA<span class="chat-presence" id="chat-presence">在线</span></h1>
     <div class="act" onclick="openApp('chatinfo')">&#8942;</div>
   </div>
   <div class="chat-quote-area">
@@ -561,11 +564,11 @@ mark{background:#ffe58f;color:inherit;border-radius:2px;padding:0 1px}
     <div class="qi-close" onclick="cancelQuoteInput()">&#10005;</div>
   </div>
   <div class="chat-inputbar">
-    <button class="ic-btn" id="btn-voice" onclick="toggleVoiceMode()">&#127908;</button>
+    <button class="ic-btn" id="btn-voice" onclick="toggleVoiceMode()"><svg viewBox="0 0 24 24"><path d="M12 3a4 4 0 0 1 4 4v5a4 4 0 0 1-8 0V7a4 4 0 0 1 4-4Z"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg></button>
     <textarea id="chat-input" rows="1" placeholder="发消息…"></textarea>
-    <button class="talk-btn" id="talk-btn">按住 说话</button>
-    <button class="ic-btn" id="btn-emoji" onclick="toggleEmojiPanel()">&#9786;</button>
-    <button class="ic-btn" id="btn-plus" onclick="showPlusMenu()">&#43;</button>
+    <button class="talk-btn" id="talk-btn">点击 开始录音</button>
+    <button class="ic-btn" id="btn-emoji" onclick="toggleEmojiPanel()"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M8 14.2s1.6 2 4 2 4-2 4-2"/><circle cx="9" cy="10" r="1.1"/><circle cx="15" cy="10" r="1.1"/></svg></button>
+    <button class="ic-btn" id="btn-plus" onclick="showPlusMenu()"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button>
     <button class="send-btn" id="send-btn" onclick="sendMessage()">发送</button>
   </div>
 </div>
@@ -898,7 +901,11 @@ async function refreshAllBadges(){
   const moments=await dbGetAll('moments');
   updateTabBadge('moments',moments.filter(m=>m.owner==='other'&&!m.read).length);
 }
-setInterval(()=>{const now=new Date();document.getElementById('status-time').textContent=String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0');},1000);
+function renderSignal(){
+  const el=document.getElementById('sb-signal');if(!el)return;
+  el.innerHTML='<svg viewBox="0 0 22 12" width="22" height="12" style="display:block"><rect x="0" y="8" width="3" height="4" rx="1"/><rect x="5" y="5.5" width="3" height="6.5" rx="1"/><rect x="10" y="3" width="3" height="9" rx="1"/><rect x="15" y="1" width="3" height="11" rx="1"/></svg>';
+}
+setInterval(()=>{const now=new Date();document.getElementById('status-time').textContent=String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0');renderSignal();},1000);
 
 /* ===== 线稿图标（tab bar，24x24 视图，stroke 用 currentColor 跟随选中态） ===== */
 const LINE_ICONS={
@@ -1109,7 +1116,11 @@ const DEFAULT_REPLIES=[
   '你说得对，我有点想你。','要不要听听我今天遇到的事？'
 ];
 const EMOJIS=['😀','😁','😂','🤣','😊','😘','😍','🥰','😜','🤗','🤔','😴','😭','😅','😤','🥺','👍','👎','🙏','👌','💪','❤️','💔','💕','✨','🌙','⭐','🔥','🍀','🌹','🎵','☕','🐱','🐶','🍜'];
-function updateChatHeader(){const t=document.getElementById('chat-title');if(t)t.textContent=state.other.name;document.getElementById('chat-quote').textContent=state.quote;}
+function updateChatHeader(){
+  const t=document.getElementById('chat-title');
+  if(t){t.firstChild.nodeValue=state.other.name||'TA';const p=document.getElementById('chat-presence');if(p)p.textContent=state.other.status==='离线'?'离线':'在线';}
+  document.getElementById('chat-quote').textContent=state.quote;
+}
 function editQuote(){appPrompt('编辑顶部文字',state.quote,q=>{if(q!==null&&q!==state.quote){state.quote=q||'遇你，与你，予你，余你';saveKey('quote');document.getElementById('chat-quote').textContent=state.quote;showToast('顶部文字已修改');}});}
 function fmtChatDate(t){
   const d=new Date(t),now=new Date();
@@ -1135,6 +1146,18 @@ function msgPreviewText(m){
     case 'file':return '[文件] '+(m.content||'');
     default:return m.content||'';
   }
+}
+function openMeProfile(){
+  showModal('我的资料',`<div style="text-align:center;padding:6px 0 12px"><div style="width:64px;height:64px;border-radius:50%;margin:0 auto 10px;background:#e8e6e0;display:flex;align-items:center;justify-content:center;font-size:26px;overflow:hidden;color:#666">${avatarHtml('me')}</div><div style="font-size:16px;font-weight:600">${esc(state.me.name||'我')}</div><div style="font-size:12px;color:#9a9a9a;margin-top:4px">在线</div></div>`,
+    '<div class="modal-item" onclick="closeModal();editMeProfile()">修改资料</div>'
+    +'<div class="modal-item" onclick="closeModal()">取消</div>');
+}
+function editMeProfile(){
+  appPrompt('修改昵称',state.me.name||'我',v=>{
+    if(v===null||v===undefined)return false;
+    state.me.name=v.trim()||'我';saveKey('me');showToast('昵称已更新');
+    const w=document.getElementById('home-name-me');if(w)w.textContent=state.me.name;
+  });
 }
 function avatarHtml(who){
   const p=who==='me'?state.me:state.other;
@@ -1199,8 +1222,12 @@ async function renderChat(scrollBottom){
     const isMe=m.sender==='me';
     const row=document.createElement('div');
     row.className='msg-row '+(isMe?'me':'other');row.dataset.mid=m.id;
+    const acol=document.createElement('div');acol.className='msg-avatar-col';
     const av=document.createElement('div');av.className='msg-avatar';av.innerHTML=avatarHtml(m.sender);
     if(!isMe){av.style.cursor='pointer';av.title='双击拍一拍';av.ondblclick=e=>{e.stopPropagation();pokeChat();};}
+    acol.appendChild(av);
+    const ts=document.createElement('span');ts.className='msg-time';ts.textContent=fmtChatTime(m.time);
+    acol.appendChild(ts);
     const body=document.createElement('div');body.className='msg-body';
     body.innerHTML=bubbleInnerHtml(m);
     const meta=document.createElement('div');meta.className='msg-meta';
@@ -1211,9 +1238,8 @@ async function renderChat(scrollBottom){
       meta.appendChild(st);
     }
     if(m.fav){const f=document.createElement('span');f.textContent='★';f.style.color='#c0392b';meta.appendChild(f);}
-    const ts=document.createElement('span');ts.textContent=fmtChatTime(m.time);meta.appendChild(ts);
     body.appendChild(meta);
-    row.appendChild(av);row.appendChild(body);
+    row.appendChild(acol);row.appendChild(body);
     bindMsgGestures(row,m);
     el.appendChild(row);
   }
@@ -1251,15 +1277,14 @@ async function openCtxMenu(id){
   const isMe=m.sender==='me';
   const canRecall=isMe&&!m.recalled&&(Date.now()-m.time)<(state.chat.recallSec||120)*1000;
   const items=[];
-  if(m.type==='text')items.push({ico:'&#128203;',label:'复制',fn:()=>copyMsg(m)});
-  items.push({ico:'&#128172;',label:'引用',fn:()=>startQuote(m)});
-  if(!m.recalled)items.push({ico:'&#128279;',label:'转发',fn:()=>forwardMsg(m)});
-  items.push({ico:'&#11088;',label:m.fav?'取消收藏':'收藏',fn:()=>toggleFav(m)});
-  items.push({ico:'&#128465;',label:'删除',fn:()=>deleteMsg(m),danger:true});
-  if(canRecall)items.push({ico:'&#8617;',label:'撤回',fn:()=>recallMsg(m)});
+  if(m.type==='text')items.push({label:'复制',fn:()=>copyMsg(m)});
+  items.push({label:'引用',fn:()=>startQuote(m)});
+  items.push({label:m.fav?'取消收藏':'收藏',fn:()=>toggleFav(m)});
+  items.push({label:'删除',fn:()=>deleteMsg(m),danger:true});
+  if(canRecall)items.push({label:'撤回',fn:()=>recallMsg(m)});
   const sheet=document.getElementById('ctx-sheet');
   sheet.innerHTML=`<div class="ctx-title">${esc(who(m.sender))} · ${fmtFull(m.time)}<br>${esc(msgPreviewText(m)||TYPE_LABEL[m.type]||'')}</div>`
-    +'<div class="ctx-grid">'+items.map((it,i)=>`<div class="ctx-item${it.danger?' danger':''}" onclick="ctxDo(${i})"><span class="ctx-ico">${it.ico}</span><span>${it.label}</span></div>`).join('')+'</div>'
+    +'<div class="ctx-grid">'+items.map((it,i)=>`<div class="ctx-item${it.danger?' danger':''}" onclick="ctxDo(${i})">${it.label}</div>`).join('')+'</div>'
     +'<div class="ctx-cancel" onclick="closeCtxMenu()">取消</div>';
   sheet._items=items;
   document.getElementById('ctx-menu').classList.add('show');
@@ -1391,32 +1416,38 @@ function toggleVoiceMode(){
   const input=document.getElementById('chat-input'),talk=document.getElementById('talk-btn'),btn=document.getElementById('btn-voice');
   if(input){input.style.display=voiceMode?'none':'';if(voiceMode)input.blur();}
   if(talk)talk.classList.toggle('show',voiceMode);
-  if(btn)btn.innerHTML=voiceMode?'&#9000;':'&#127908;';
+  if(btn)btn.innerHTML=voiceMode?'<svg viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="2"/><path d="M10 9l4 6M14 9l-4 6"/></svg>':'<svg viewBox="0 0 24 24"><path d="M12 3a4 4 0 0 1 4 4v5a4 4 0 0 1-8 0V7a4 4 0 0 1 4-4Z"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg>';
   if(voiceMode)closeEmojiPanel();
 }
 function initVoiceTalk(){
   const talk=document.getElementById('talk-btn');if(!talk)return;
-  const stop=async cancel=>{
-    if(!recording)return;recording=false;
+  talk.addEventListener('click',async ()=>{
+    if(!voiceMode)return;
+    if(Date.now()<state.muteEndTime){showToast('对方已被禁言');return;}
+    if(!recording){
+      recording=true;recordStart=Date.now();
+      talk.classList.add('recording');talk.textContent='点击 结束录音';
+      startRealRecord(talk);
+      return;
+    }
+    recording=false;
     clearInterval(recTimer);
-    talk.classList.remove('recording');talk.textContent='按住 说话';
+    talk.classList.remove('recording');talk.textContent='点击 开始录音';
     const sec=(Date.now()-recordStart)/1000;
-    if(cancel||sec<0.8){stopRealRecord();showToast(cancel?'已取消':'说话时间太短');return;}
+    if(sec<0.8){stopRealRecord();showToast('说话时间太短');return;}
     const vsec=Math.max(1,Math.min(60,Math.round(sec)));
     const audio=await stopRealRecord();
-    await sendMsgObj({type:'voice',sec:vsec,audio:audio||null});
-    showToast(audio?'语音已发送（真实录音）':'语音已发送（模拟音）');
-  };
-  talk.addEventListener('pointerdown',async e=>{
-    e.preventDefault();
-    if(Date.now()<state.muteEndTime){showToast('对方已被禁言');return;}
-    recording=true;recordStart=Date.now();
-    talk.classList.add('recording');talk.textContent='松开 结束';
-    startRealRecord(talk);
+    pendingVoiceAudio=audio;
+    showModal('发送语音',`时长 ${vsec} 秒${audio?'（真实录音）':'（模拟音）'}，确认发送？`,
+      '<div class="modal-item" onclick="closeModal();doSendVoice('+vsec+')">发送</div>'
+      +'<div class="modal-item" onclick="closeModal();pendingVoiceAudio=null">取消</div>');
   });
-  talk.addEventListener('pointerup',()=>stop(false));
-  talk.addEventListener('pointercancel',()=>stop(true));
-  talk.addEventListener('pointerleave',()=>{if(recording)stop(false);});
+}
+let pendingVoiceAudio=null;
+async function doSendVoice(vsec){
+  const audio=pendingVoiceAudio;pendingVoiceAudio=null;
+  await sendMsgObj({type:'voice',sec:vsec,audio:audio||null});
+  showToast(audio?'语音已发送（真实录音）':'语音已发送（模拟音）');
 }
 function startRealRecord(talk){
   recTimer=setTimeout(()=>{if(recording)talk.textContent='松开 结束 · 00:0'+(Math.floor((Date.now()-recordStart)/1000)%10);},1000);
@@ -1682,13 +1713,11 @@ function clearChat(){
   });
 }
 function muteOther(){
-  appPrompt('禁言时长（秒，最多180）','60',dur=>{
-    if(!dur)return false;
-    const sec=parseInt(dur);
-    if(isNaN(sec)||sec<=0||sec>180){showToast('最多180秒');return false;}
-    state.muteEndTime=Date.now()+sec*1000;state.muteRequest=null;saveKey('muteEndTime');showMuteBanner(sec);showToast(`已禁言 ${sec} 秒`);
-  });
+  const opts=[[15,'15 秒'],[30,'30 秒'],[60,'1 分钟'],[120,'2 分钟'],[180,'3 分钟']];
+  showModal('禁言 TA',opts.map(([v,t])=>`<div class="modal-item" onclick="closeModal();doMute(${v})">${t}</div>`).join('')
+    +'<div class="modal-item" onclick="closeModal()">取消</div>');
 }
+function doMute(sec){state.muteEndTime=Date.now()+sec*1000;state.muteRequest=null;saveKey('muteEndTime');showMuteBanner(sec);showToast(`已禁言 ${sec} 秒`);}
 function requestUnmute(){if(Date.now()>=state.muteEndTime)return;state.muteRequest={status:'pending',time:Date.now()};saveKey('muteRequest');showToast('已发送解除申请');showMuteBanner(Math.ceil((state.muteEndTime-Date.now())/1000));}
 function agreeUnmute(){if(Date.now()>=state.muteEndTime)return;state.muteEndTime=0;state.muteRequest=null;saveKey('muteEndTime');saveKey('muteRequest');if(muteBannerInterval)clearInterval(muteBannerInterval);document.getElementById('mute-banner').classList.remove('show');pushSys('对方同意了你的解除申请，禁言已解除');showToast('对方同意解除禁言');renderChat();}
 function rejectUnmute(){if(!state.muteRequest||Date.now()>=state.muteEndTime)return;state.muteRequest={status:'rejected',time:Date.now()};saveKey('muteRequest');showToast('对方拒绝了解除申请');showMuteBanner(Math.ceil((state.muteEndTime-Date.now())/1000));}
@@ -1737,9 +1766,7 @@ function renderChatInfo(){
       <div class="cs-item" onclick="openApp('calllog')"><span class="cs-ico">&#128222;</span><span class="cs-label">通话记录</span><span class="cs-val">${(state.callLogs||[]).length} 条</span><span class="cs-arrow">&#8250;</span></div>
     </div>
     <div class="cs-group">
-      <div class="cs-item" onclick="callOutgoing('voice')"><span class="cs-ico">&#128222;</span><span class="cs-label">语音通话</span><span class="cs-arrow">&#8250;</span></div>
       <div class="cs-item" onclick="callOutgoing('video')"><span class="cs-ico">&#128249;</span><span class="cs-label">视频通话</span><span class="cs-arrow">&#8250;</span></div>
-      <div class="cs-item" onclick="simulateIncomingCall()"><span class="cs-ico">&#128241;</span><span class="cs-label">模拟来电</span><span class="cs-val">只在聊天内</span><span class="cs-arrow">&#8250;</span></div>
       <div class="cs-item" onclick="pokeChat()"><span class="cs-ico">&#129308;</span><span class="cs-label">拍一拍</span><span class="cs-arrow">&#8250;</span></div>
     </div>
     <div class="cs-group">
