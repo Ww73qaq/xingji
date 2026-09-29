@@ -644,20 +644,20 @@ body{-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;letter
   </div>
   <!-- 应用网格：只放「不在底部标签栏」的模块，避免入口重复 -->
   <div class="app-grid" id="app-grid">
-    <div class="app-item" onclick="openApp('companion')"><div class="app-icon" style="background:var(--c-purple)">伴</div><div class="app-label">陪伴</div></div>
-    <div class="app-item" onclick="openApp('entertain')"><div class="app-icon" style="background:var(--c-gold)">乐</div><div class="app-label">娱乐</div></div>
-    <div class="app-item" onclick="openApp('sense')"><div class="app-icon" style="background:var(--c-rose)">感</div><div class="app-label">房间</div></div>
-    <div class="app-item" onclick="openApp('cards')"><div class="app-icon" style="background:var(--c-blue)">卡</div><div class="app-label">字卡</div></div>
+    <div class="app-item" onclick="openApp('interact')"><div class="app-icon" style="background:var(--c-purple)">动</div><div class="app-label">互动空间</div></div>
+    <div class="app-item" onclick="openApp('cardshome')"><div class="app-icon" style="background:var(--c-blue)">卡</div><div class="app-label">字卡</div></div>
+    <div class="app-item" onclick="openApp('companion')"><div class="app-icon" style="background:var(--c-gold)">伴</div><div class="app-label">陪伴</div></div>
+    <div class="app-item" onclick="openApp('sense')"><div class="app-icon" style="background:var(--c-rose)">感</div><div class="app-label">感应房间</div></div>
     <div class="app-item" onclick="openApp('diary')"><div class="app-icon" style="background:#8c7aa9">记</div><div class="app-label">日记</div></div>
     <div class="app-item" onclick="openApp('emoji')"><div class="app-icon" style="background:var(--c-green)">表</div><div class="app-label">表情包</div></div>
     <div class="app-item" onclick="openApp('memory')"><div class="app-icon" style="background:#8c8c8c">忆</div><div class="app-label">回忆录</div></div>
-    <div class="app-item" onclick="openApp('theme')"><div class="app-icon" style="background:#a3a3a0">观</div><div class="app-label">外观</div></div>
+    <div class="app-item" onclick="openApp('music')"><div class="app-icon" style="background:#a3a3a0">音</div><div class="app-label">音乐</div></div>
   </div>
   <!-- 手机底部标签栏（4 个一级入口，与网格互斥） -->
   <div class="tabbar" id="tabbar">
     <div class="tab-item" data-tab="chat" onclick="switchTab('chat')"><span class="tab-ico" data-ico="chat"></span><span class="tab-name">聊天</span><span class="badge" id="tab-badge-chat" style="display:none">0</span></div>
-    <div class="tab-item" data-tab="mailbox" onclick="switchTab('mailbox')"><span class="tab-ico" data-ico="mail"></span><span class="tab-name">信箱</span><span class="badge" id="tab-badge-mailbox" style="display:none">0</span></div>
-    <div class="tab-item" data-tab="moments" onclick="switchTab('moments')"><span class="tab-ico" data-ico="moments"></span><span class="tab-name">朋友圈</span><span class="badge" id="tab-badge-moments" style="display:none">0</span></div>
+    <div class="tab-item" data-tab="interact" onclick="switchTab('interact')"><span class="tab-ico" data-ico="mail"></span><span class="tab-name">互动</span><span class="badge" id="tab-badge-interact" style="display:none">0</span></div>
+    <div class="tab-item" data-tab="cards" onclick="switchTab('cards')"><span class="tab-ico" data-ico="book"></span><span class="tab-name">字卡</span><span class="badge" id="tab-badge-cards" style="display:none">0</span></div>
     <div class="tab-item" data-tab="me" onclick="switchTab('me')"><span class="tab-ico" data-ico="me"></span><span class="tab-name">我的</span></div>
   </div>
 </div>
@@ -718,13 +718,11 @@ body{-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;letter
 
 <!-- MAILBOX -->
 <div id="app-mailbox" class="app-page">
-  <div class="app-header"><div class="back" onclick="goBack()">&#8249;</div><h1>信箱</h1><div class="act" style="opacity:.25">&#8942;</div></div>
+  <div class="app-header"><div class="back" onclick="goBack()">&#8249;</div><h1>信箱</h1><div class="chat-head-actions"><div class="act" onclick="writeLetterModal()" title="写信">&#9998;</div><div class="act" onclick="mailboxMore()" title="更多">&#8943;</div></div></div>
   <div class="app-body" id="mailbox-body">
     <div class="tabs">
       <button class="tab active" onclick="switchMailboxTab('inbox',this)">收到的信</button>
       <button class="tab" onclick="switchMailboxTab('sent',this)">寄出的信</button>
-      <button class="tab" onclick="switchMailboxTab('write',this)">写封信</button>
-      <button class="tab" onclick="switchMailboxTab('data',this)">信件数据</button>
     </div>
     <div id="mailbox-list"></div>
   </div>
@@ -736,6 +734,18 @@ body{-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;letter
   <div class="app-body" id="diary-body">
     <div id="diary-list"></div>
   </div>
+</div>
+
+<!-- INTERACT HOME（互动空间聚合页） -->
+<div id="app-interact" class="app-page">
+  <div class="app-header"><div class="back" onclick="goBack()">&#8249;</div><h1>互动</h1><div class="act" style="opacity:.25">&#8942;</div></div>
+  <div class="app-body" id="interact-body"></div>
+</div>
+
+<!-- CARDS HOME（字卡聚合页） -->
+<div id="app-cardshome" class="app-page">
+  <div class="app-header"><div class="back" onclick="goBack()">&#8249;</div><h1>字卡</h1><div class="act" style="opacity:.25">&#8942;</div></div>
+  <div class="app-body" id="cardshome-body"></div>
 </div>
 
 <!-- MOMENTS -->
@@ -804,7 +814,7 @@ body{-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;letter
 
 <!-- PROBABILITY -->
 <div id="app-probability" class="app-page">
-  <div class="app-header"><div class="back" onclick="goBack()">&#8249;</div><h1>概率工坊</h1><div class="act" style="opacity:.25">&#8942;</div></div>
+  <div class="app-header"><div class="back" onclick="goBack()">&#8249;</div><h1>回复设置</h1><div class="act" style="opacity:.25">&#8942;</div></div>
   <div class="app-body" id="probability-body"></div>
 </div>
 
@@ -889,7 +899,7 @@ body{-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;letter
 let state = {
   me:{name:'我',avatar:'',status:'在线'}, other:{name:'TA',avatar:'',status:'在线'},
   skin:{themeId:'ink',primary:'#1a1a1a',light:'#3f3f3f',bg:'#f7f6f3',chatBg:''},
-  pin:{code:'0000',enabled:1}, prob:{fastSec:10,slowSec:60,c1:70,c2:25,c3:5,quote:20,emoji:30},
+  pin:{code:'0000',enabled:1}, prob:{fastSec:10,slowSec:60,c1:70,c2:20,c3:7,c4:2,c5:1,quote:20,emoji:30,pokeProb:15,emojiProb:20,quoteProb:15,heartProb:5,qaProb:5,proactive:1,proactiveCooldown:30,repeatExclude:5,pollProb:10,momentProb:25},
   meetTime:null, quote:'遇你，与你，予你，余你', splashText:'谢绝一切内外意识体进入本网站，暂不开放！\n（本网站是专属于·时停该独立意识体的传讯网站，目前暂不开放，也包括不对时停开放）', muteEndTime:0, muteRequest:null,
   letters:[], diaries:[], moments:[], currentApp:null, callActive:false, callLogs:[],
   chat:{lastReadAt:0, chatBg:'', recallSec:120, showQuote:true},
@@ -990,6 +1000,27 @@ function enterSpace(){
   updateHome();
   updateTabBar();
   refreshAllBadges();
+  startProactive();
+}
+
+/* ===== 互动 / 字卡 聚合页 ===== */
+function renderInteractHome(){
+  const body=document.getElementById('interact-body');if(!body)return;
+  countUnreadLetters().then(unread=>{
+    body.innerHTML='<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:12px;padding:16px 12px">'
+    +[['mailbox','信箱',unread,'&#128231;'],['moments','朋友圈',0,'&#128172;'],['companion','陪伴',0,'&#128242;'],['sense','感应房间',0,'&#128373;'],['memory','回忆录',0,'&#128214;'],['calllog','通话记录',0,'&#128222;']]
+      .map(([id,label,n,ic])=>`<div class="plus-item" style="padding:22px 8px" onclick="openApp('${id}')"><div class="plus-icon">${ic}</div><div class="plus-label">${label}${n?' <b style="color:var(--c-rose)">'+n+'</b>':''}</div></div>`).join('')
+    +'</div>';
+  });
+}
+function renderCardsHome(){
+  const body=document.getElementById('cardshome-body');if(!body)return;
+  body.innerHTML='<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:12px;padding:16px 12px">'
+  +[['cards','字卡库','&#128220;'],['emoji','表情包','&#9786;'],['probability','回复设置','&#128202;'],['theme','外观','&#127912;']]
+    .map(([id,label,ic])=>`<div class="plus-item" style="padding:22px 8px" onclick="openApp('${id}')"><div class="plus-icon">${ic}</div><div class="plus-label">${label}</div></div>`).join('')
+  +'</div>'
+  +'<div style="padding:0 12px"><button class="btn-pill ghost" style="width:100%" onclick="managePokes()">&#128133; 拍一拍字卡</button></div>'
+  +'<div style="padding:0 12px;margin-top:8px"><button class="btn-pill ghost" style="width:100%" onclick="addCard()">&#10133; 添加字卡</button></div>';
 }
 
 /* ===== HOME ===== */
@@ -1000,7 +1031,7 @@ function updateHome(){
   paintAvatar(document.getElementById('home-avatar-other'),state.other);
   if(state.meetTime){const d=Math.floor((Date.now()-state.meetTime)/86400000);document.getElementById('home-sign').textContent=`已相伴 ${d} 天`;}
   else{document.getElementById('home-sign').textContent='你在左边 我紧靠右';}
-  updateTabBadge('mailbox',0);countUnreadLetters().then(n=>updateTabBadge('mailbox',n));
+  updateTabBadge('interact',0);countUnreadLetters().then(n=>updateTabBadge('interact',n));
   updateTabBar();
 }
 function updateTabBar(){
@@ -1013,14 +1044,14 @@ function updateTabBadge(tab,count){
   b.style.display=count>0?'flex':'none';b.textContent=count>99?'99+':count;
 }
 async function refreshAllBadges(){
-  updateTabBadge('mailbox',await countUnreadLetters());
+  updateTabBadge('interact',await countUnreadLetters());
   const msgs=await dbGetAll('messages');
   const unread=msgs.filter(m=>m.sender==='other'&&!m.read).length;
   updateTabBadge('chat',unread);
   const diaries=await dbGetAll('diaries');
   updateTabBadge('diary',diaries.filter(d=>d.owner==='other'&&!d.read).length);
   const moments=await dbGetAll('moments');
-  updateTabBadge('moments',moments.filter(m=>m.owner==='other'&&!m.read).length);
+  updateTabBadge('cards',moments.filter(m=>m.owner==='other'&&!m.read).length);
 }
 /* 信号强弱：动态跳动，模拟链接强度；每 2.5 秒随机一次强弱 */
 function renderSignal(){
@@ -1070,12 +1101,12 @@ function paintTabIcons(){
 paintTabIcons();
 
 /* ===== 手机导航栈（push / pop + 系统返回键 + 边缘滑动手势） ===== */
-const TAB_PAGE={chat:'chat',mailbox:'mailbox',diary:'diary',moments:'moments',me:'profile'};
+const TAB_PAGE={chat:'chat',interact:'interact',cards:'cardshome',me:'profile'};
 let navStack=[];        // 当前打开的页面 id 栈（栈底始终是根页面）
 let navRoot='chat';     // 栈底页面（对应底部标签栏）
 let navLock=false;      // 防止 history.back() 触发的 popstate 递归
 let lastBackAt=0;
-const PAGE_TITLES={chat:'聊天',chatinfo:'聊天信息',chatsearch:'聊天记录',mailbox:'信箱',diary:'日记',moments:'动态',companion:'陪伴',entertain:'娱乐',profile:'我的',sense:'感应房间',music:'音乐',theme:'外观',probability:'概率工坊',cards:'字卡',emoji:'表情包',memory:'回忆录',data:'数据',calllog:'通话记录'};
+const PAGE_TITLES={chat:'聊天',chatinfo:'聊天信息',chatsearch:'聊天记录',mailbox:'信箱',diary:'日记',moments:'动态',companion:'陪伴',entertain:'娱乐',profile:'我的',sense:'感应房间',music:'音乐',theme:'外观',probability:'回复设置',cards:'字卡',emoji:'表情包',memory:'回忆录',data:'数据',calllog:'通话记录',interact:'互动',cardshome:'字卡'};
 
 function switchTab(tab){
   const pageId=TAB_PAGE[tab]||tab;
@@ -1149,6 +1180,7 @@ function enterPage(id){
     chat:()=>{renderChat();updateChatHeader();markRead();},
     chatinfo:renderChatInfo, chatsearch:renderChatSearch,
     mailbox:renderMailbox, diary:renderDiary, moments:renderMoments,
+    interact:renderInteractHome, cardshome:renderCardsHome,
     music:renderMusic, theme:renderTheme, probability:renderProbability,
     cards:renderCards, emoji:renderEmojis, memory:renderMemory,
     sense:initRoom, companion:renderCompanion, entertain:renderEntertain,
@@ -1293,6 +1325,7 @@ function msgPreviewText(m){
     case 'location':return '[位置] '+(m.name||'');
     case 'redpacket':return '[红包] '+(m.content||'')+' 元';
     case 'gift':return '[礼物] '+(m.content||'');
+    case 'heart':return '[心意卡] '+(m.content||'');
     case 'transfer':return '[转账] '+(m.content||'')+' 元';
     case 'file':return '[文件] '+(m.content||'');
     default:return m.content||'';
@@ -1337,6 +1370,8 @@ function bubbleInnerHtml(m){
       return q+`<div class="msg-bubble msg-card rp-card" style="min-width:0"><div style="padding:12px 14px"><div class="rp-amt">&#129505; ${esc(m.content)} 元</div><div class="rp-msg">${esc(m.sub||'恭喜发财，大吉大利')}</div></div></div>`;
     case 'gift':
       return q+`<div class="msg-bubble msg-card gift-card" style="min-width:0"><div style="display:flex;align-items:center;gap:10px;padding:12px 14px"><div style="font-size:30px">${esc(m.sub||'&#127873;')}</div><div><div class="msg-music-name">${esc(m.content||'礼物')}</div><div class="msg-music-artist">星迹心意</div></div></div></div>`;
+    case 'heart':
+      return q+`<div class="msg-bubble msg-card gift-card" style="min-width:0"><div style="display:flex;align-items:center;gap:10px;padding:12px 14px"><div style="font-size:30px">${esc(m.sub||'&#127870;')}</div><div><div class="msg-music-name">${esc(m.content||'心意卡')}</div><div class="msg-music-artist">星迹心意</div></div></div></div>`;
     case 'transfer':
       return q+`<div class="msg-bubble msg-card" style="min-width:0;border:1px solid var(--input)"><div style="padding:12px 14px"><div style="font-size:11px;color:var(--hint)">${esc(state.other.name)} 收款</div><div class="rp-amt" style="font-size:22px">${esc(m.content)} 元</div><div class="rp-msg" style="color:var(--hint)">${esc(m.sub||'转账')}</div></div></div>`;
     case 'location':
@@ -1544,10 +1579,86 @@ function hideTyping(){
   const t=document.getElementById('chat-title');if(t)t.textContent=state.other.name;
 }
 let replying=false, replyTimer=null;
-function getReplyCount(){const p=state.prob||{};const c1=Math.max(0,Number(p.c1)||70),c2=Math.max(0,Number(p.c2)||25),c3=Math.max(0,Number(p.c3)||5),total=c1+c2+c3||100,r=Math.random()*total;return r<c1?1:(r<c1+c2?2:3);}
+function getReplyCount(){const p=state.prob||{};const c=[1,2,3,4,5].map(i=>Math.max(0,Number(p['c'+i])||0));const total=c.reduce((a,b)=>a+b,0)||100;const r=Math.random()*total;let acc=0;for(let i=0;i<5;i++){acc+=c[i];if(r<acc)return i+1;}return 1;}
 function getReplyDelay(){const fast=Math.max(0,Number(state.prob?.fastSec)||10),slow=Math.max(fast,Number(state.prob?.slowSec)||60);return (fast+Math.random()*(slow-fast))*1000;}
 function continueReply(){if(Date.now()<state.muteEndTime){showToast('对方已被禁言');return;}if(replying){showToast('对方正在回复中');return;}scheduleReply(true);}
-function scheduleReply(immediate=false){if(replying){if(immediate)showToast('对方正在回复中');return;}replying=true;showTyping();const delay=immediate?0:getReplyDelay();replyTimer=setTimeout(async()=>{replyTimer=null;replying=false;hideTyping();if(Date.now()<state.muteEndTime)return;const cards=await dbGetAll('cards');const pool=cards.map(c=>c.text).filter(Boolean);const usable=pool.length?pool:DEFAULT_REPLIES;const n=getReplyCount();for(let i=0;i<n;i++){await new Promise(r=>setTimeout(r,i?900+Math.random()*1800:0));if(Date.now()<state.muteEndTime)return;const pokes=state.stats?.pokes||[];if(pokes.length&&Math.random()<0.15){const poke=pokes[Math.floor(Math.random()*pokes.length)];await dbPut('messages',{sender:'other',type:'text',content:`${state.other.name}拍了拍你：${poke}`,time:Date.now(),read:false,isPoke:true});}else{const text=usable[Math.floor(Math.random()*usable.length)];await dbPut('messages',{sender:'other',type:'text',content:text,time:Date.now(),read:false});}if(state.currentApp==='chat')renderChat(true);updateTabBadge('chat',1);}if(state.currentApp==='chat')renderChat();refreshAllBadges();},delay);}
+async function getUsableCardPool(){
+  const cards=await dbGetAll('cards');
+  const groups=await dbGetAll('cardGroups');
+  const dis=new Set(groups.filter(g=>g.enabled===false).map(g=>g.name));
+  const pool=cards.filter(c=>c.enabled!==false&&!dis.has(c.group||'默认')).map(c=>c.text).filter(Boolean);
+  return pool.length?pool:DEFAULT_REPLIES;
+}
+async function getRecentUsed(n){
+  const msgs=(await dbGetAll('messages')).filter(m=>m.sender==='other'&&m.type==='text'&&!m.isPoke).sort((a,b)=>b.time-a.time).slice(0,n||0);
+  return new Set(msgs.map(m=>m.content));
+}
+function scheduleReply(immediate=false){
+  if(replying){if(immediate)showToast('对方正在回复中');return;}
+  replying=true;showTyping();
+  const delay=immediate?0:getReplyDelay();
+  const run=()=>{replyTimer=null;replying=false;hideTyping();if(Date.now()<state.muteEndTime)return;finishReply();};
+  if(delay>0){
+    dbPut('settings',{key:'pendingReply',value:{at:Date.now()+delay}}).catch(()=>{});
+    replyTimer=setTimeout(run,delay);
+  }else{run();}
+}
+async function finishReply(){
+  let pool=await getUsableCardPool();
+  const exclude=Number(state.prob.repeatExclude)||5;
+  const used=await getRecentUsed(exclude);
+  if(used.size){const rest=pool.filter(t=>!used.has(t));if(rest.length)pool=rest;}
+  const p=state.prob||{};
+  const n=getReplyCount();
+  for(let i=0;i<n;i++){
+    await new Promise(r=>setTimeout(r,i?900+Math.random()*1800:0));
+    if(Date.now()<state.muteEndTime)return;
+    const pokes=allPokeTexts();
+    const r=Math.random()*100;
+    if(pokes.length&&r<(p.pokeProb??15)){const poke=pokes[Math.floor(Math.random()*pokes.length)];await dbPut('messages',{sender:'other',type:'text',content:`${state.other.name}拍了拍你：${poke}`,time:Date.now(),read:false,isPoke:true});}
+    else if(r<((p.pokeProb??15)+(p.emojiProb??20))){const em=EMOJIS[Math.floor(Math.random()*EMOJIS.length)];await dbPut('messages',{sender:'other',type:'text',content:em,time:Date.now(),read:false});}
+    else if(r<((p.pokeProb??15)+(p.emojiProb??20)+(p.heartProb??5))){const hi=Math.floor(Math.random()*HEARTS.length);await dbPut('messages',{sender:'other',type:'heart',content:HEART_NAMES[hi],sub:HEARTS[hi],time:Date.now(),read:false});}
+    else{const text=pool[Math.floor(Math.random()*pool.length)];await dbPut('messages',{sender:'other',type:'text',content:text,time:Date.now(),read:false});}
+    if(state.currentApp==='chat')renderChat(true);
+    updateTabBadge('chat',1);
+  }
+  if(state.currentApp==='chat')renderChat();
+  refreshAllBadges();
+}
+let proactiveTimer=null;
+function startProactive(){
+  if(proactiveTimer){clearInterval(proactiveTimer);proactiveTimer=null;}
+  if(!state.prob.proactive)return;
+  proactiveTimer=setInterval(async()=>{
+    const p=state.prob;
+    if(!p.proactive||Date.now()<state.muteEndTime||replying)return;
+    const cd=(p.proactiveCooldown??30)*60000;
+    if(Date.now()-(p._lastProactive||0)<cd)return;
+    if(Math.random()>(p.proactive===2?0.3:0.1))return;
+    p._lastProactive=Date.now();saveKey('prob');
+    const pool=await getUsableCardPool();
+    const line=TA_MOMENT_LINES[Math.floor(Math.random()*TA_MOMENT_LINES.length)];
+    const text=pool[Math.floor(Math.random()*pool.length)]||line;
+    await dbPut('messages',{sender:'other',type:'text',content:text,time:Date.now(),read:false});
+    if(state.currentApp==='chat')renderChat(true);
+    updateTabBadge('chat',1);
+    trySendNotify(text);
+  },45000);
+}
+async function initPendingReply(){
+  const v=await dbGetByKey('settings','pendingReply');
+  if(!v||!v.value)return;
+  const pr=v.value;
+  try{await dbDelete('settings',v.id);}catch(e){}
+  if(!pr.at)return;
+  if(pr.at>Date.now()){
+    replying=true;showTyping();
+    replyTimer=setTimeout(async()=>{replyTimer=null;replying=false;hideTyping();if(Date.now()<state.muteEndTime)return;finishReply();},pr.at-Date.now());
+  }else if(Date.now()-pr.at<120000){
+    replying=true;showTyping();
+    setTimeout(async()=>{replyTimer=null;replying=false;hideTyping();if(Date.now()<state.muteEndTime)return;finishReply();},1200);
+  }
+}
 
 function isAppVisible(){return navStack[navStack.length-1]==='chat'&&!document.hidden;}
 
@@ -1833,11 +1944,9 @@ function chatPickImage(multi){
 function showPlusMenu(){
   showModal('更多功能',`<div class="plus-grid">
     <div class="plus-item" onclick="closeModal();chatPickMedia()"><div class="plus-icon">&#128247;</div><div class="plus-label">相册</div></div>
-    <div class="plus-item" onclick="closeModal();openVideoCall()"><div class="plus-icon">&#128250;</div><div class="plus-label">视频通话</div></div>
-    <div class="plus-item" onclick="closeModal();sendLocation()"><div class="plus-icon">&#128205;</div><div class="plus-label">位置</div></div>
-    <div class="plus-item" onclick="closeModal();sendRedPacket()"><div class="plus-icon">&#129505;</div><div class="plus-label">红包</div></div>
+    <div class="plus-item" onclick="closeModal();sendLocation()"><div class="plus-icon">&#128205;</div><div class="plus-label">地点</div></div>
+    <div class="plus-item" onclick="closeModal();sendHeartCard()"><div class="plus-icon">&#127866;</div><div class="plus-label">心意卡</div></div>
     <div class="plus-item" onclick="closeModal();sendGift()"><div class="plus-icon">&#127873;</div><div class="plus-label">礼物</div></div>
-    <div class="plus-item" onclick="closeModal();sendTransfer()"><div class="plus-icon">&#10133;</div><div class="plus-label">转账</div></div>
     <div class="plus-item" onclick="closeModal();toggleVoiceMode()"><div class="plus-icon">&#127908;</div><div class="plus-label">语音输入</div></div>
     <div class="plus-item" onclick="closeModal();showGamesMenu()"><div class="plus-icon">&#127918;</div><div class="plus-label">游戏</div></div>
     <div class="plus-item" onclick="closeModal();openPollModal('single')"><div class="plus-icon">&#10003;</div><div class="plus-label">单选</div></div>
@@ -1855,19 +1964,14 @@ function chatPickPhoto(){
   };
   input.click();
 }
-function sendRedPacket(){
-  showModal('发红包',`<div style="text-align:center;padding:8px 0 6px;font-size:14px;font-weight:600">发一个红包</div>
-    <input class="app-input" id="rp-amt" type="number" placeholder="金额（元）" style="width:100%;text-align:center;font-size:20px;margin-bottom:10px">
-    <input class="app-input" id="rp-msg" placeholder="祝福语（默认：恭喜发财，大吉大利）" style="width:100%;margin-bottom:12px">
-    <button class="btn-pill primary" style="width:100%" onclick="doSendRedPacket()">塞钱进红包</button>`,'<div class="modal-item" style="color:var(--hint)" onclick="closeModal()">取消</div>');
+const HEARTS=['&#127870;','&#127799;','&#127856;','&#127873;','&#127769;','&#127808;'];
+const HEART_NAMES=['一杯咖啡','一束花','一块蛋糕','一份心意','一轮月亮','一片幸运'];
+function sendHeartCard(){
+  showModal('心意卡',`<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;padding:8px 2px">${HEARTS.map((g,i)=>`<div class="plus-item" style="padding:14px 0" onclick="closeModal();doSendHeartCard(${i})"><div style="width:46px;height:46px;border-radius:14px;background:var(--input);display:flex;align-items:center;justify-content:center;font-size:26px">${g}</div><div class="plus-label">${HEART_NAMES[i]}</div></div>`).join('')}</div>`,'<div class="modal-item" style="color:var(--hint)" onclick="closeModal()">取消</div>');
 }
-async function doSendRedPacket(){
-  const amt=(document.getElementById('rp-amt').value||'').trim();
-  const msg=(document.getElementById('rp-msg').value||'').trim()||'恭喜发财，大吉大利';
-  if(!amt||isNaN(parseFloat(amt))||parseFloat(amt)<=0){showToast('请输入金额');return;}
-  closeModal();
-  await sendMsgObj({type:'redpacket',content:parseFloat(amt).toFixed(2),sub:msg});
-  showToast('红包已发送');
+async function doSendHeartCard(i){
+  await sendMsgObj({type:'heart',content:HEART_NAMES[i],sub:HEARTS[i]});
+  showToast('心意卡已送出');
 }
 const GIFTS=['&#127800;','&#127801;','&#127802;','&#128158;','&#127873;','&#128151;'];
 const GIFT_NAMES=['一束花','玫瑰','郁金香','心动','礼物','爱心'];
@@ -1965,9 +2069,13 @@ const LOCATIONS=[
   {name:'公园长椅',addr:'看别人遛狗很治愈'}
 ];
 function sendLocation(){
-  const l=LOCATIONS[Math.floor(Math.random()*LOCATIONS.length)];
-  sendMsgObj({type:'location',name:l.name,addr:l.addr,content:l.name});
-  showToast('已发送位置');
+  showModal('地点卡',LOCATIONS.map((l,i)=>`<div class="modal-item" onclick="closeModal();doSendLocation(${i})">${esc(l.name)}<div style="font-size:11px;color:var(--hint)">${esc(l.addr)}</div></div>`).join('')
+    +'<div class="modal-item" style="color:var(--hint)" onclick="closeModal()">取消</div>');
+}
+async function doSendLocation(i){
+  const l=LOCATIONS[i];
+  await sendMsgObj({type:'location',name:l.name,addr:l.addr,content:l.name});
+  showToast('已发送地点');
 }
 
 /* 拍一拍：独立字库 / 分组 / 批量管理 / 随机触发 */
@@ -2185,7 +2293,7 @@ async function processPendingReplies(){
     await dbPut('letters',l);
   }
   if(due.length)showToast('收到 '+due.length+' 封新回信');
-  updateTabBadge('mailbox',await countUnreadLetters());
+  updateTabBadge('interact',await countUnreadLetters());
   return due.length;
 }
 function renderWriteLetter(list){
@@ -2255,17 +2363,28 @@ async function renderMailbox(){
     list.innerHTML+=`<div class="letter-card" onclick="viewLetter(${l.id})"><div style="display:flex;align-items:center;gap:8px"><span class="letter-status ${statusClass}">${statusText}</span><span style="flex:1;font-size:11px;color:var(--hint)">${l.sender==='me'?'寄出':'收到'} · ${fmtTime(l.time)}</span><span style="cursor:pointer;font-size:15px;padding:2px 6px" onclick="event.stopPropagation();editLetter(${l.id})">&#9998;</span></div><div class="list-card-title" style="margin-top:6px">${l.sender==='me'?'寄出的信':'TA 的回信'}</div><div class="list-card-sub">${esc(l.content?.slice(0,60)||'')}${(l.content?.length||0)>60?'...':''}</div></div>`;
   }
   if(!list.innerHTML)list.innerHTML='<div class="empty">暂无信件</div>';
-  updateTabBadge('mailbox',await countUnreadLetters());
+  updateTabBadge('interact',await countUnreadLetters());
 }
 async function sendLetter(){
   const content=document.getElementById('letter-content').value.trim();
   if(!content){showToast('内容不能为空');return;}
   const now=Date.now();const threadId='letter-'+now+'-'+Math.random().toString(36).slice(2,8);const replyAt=now+Math.floor(Math.random()*8*60*60*1000);await dbPut('letters',{sender:'me',title:'',content,time:now,status:'waiting',read:true,replyAt,threadId});
   const el=document.getElementById('letter-content');if(el)el.value='';
+  closeModal();
   showToast('信件已寄出，等待回信');
   renderMailbox();
 }
-async function viewLetter(id){const letters=await dbGetAll('letters');const l=letters.find(x=>x.id===id);if(!l)return;const tid=l.threadId||('letter-'+(l.replyTo||l.id));const thread=letters.filter(x=>(x.threadId||('letter-'+(x.replyTo||x.id)))===tid).sort((a,b)=>a.time-b.time);for(const x of thread)if(x.sender==='other'&&!x.read){x.read=true;await dbPut('letters',x);}updateTabBadge('mailbox',await countUnreadLetters());const html=thread.map(x=>`<div style="padding:12px 13px;background:${x.sender==='me'?'#1a1a1a':'#fff'};color:${x.sender==='me'?'#fff':'var(--text)'};border-radius:12px;margin-bottom:10px"><div style="font-size:11px;opacity:.58;margin-bottom:6px">${esc(x.sender==='me'?state.me.name:state.other.name)} · ${fmtFull(x.time)}${x.status==='waiting'?' · 等待回信':''}</div><div style="font-size:14px;line-height:1.9;white-space:pre-wrap">${esc(x.content)}</div></div>`).join('');showModal('往来信件',html+(l.sender==='other'?'<div class="modal-item" onclick="closeModal();replyLetter('+l.id+')">回复 TA</div>':'<div class="modal-item" onclick="closeModal();editLetter('+l.id+')">✎ 修改这封信</div>'));}
+function writeLetterModal(){
+  const list=document.createElement('div');
+  renderWriteLetter(list);
+  showModal('写封信',list.innerHTML,'<div class="modal-item" style="color:var(--hint)" onclick="closeModal()">取消</div>');
+}
+function mailboxMore(){
+  const list=document.createElement('div');
+  renderMailboxData(list);
+  showModal('信件数据',list.innerHTML,'<div class="modal-item" onclick="closeModal()">取消</div>');
+}
+async function viewLetter(id){const letters=await dbGetAll('letters');const l=letters.find(x=>x.id===id);if(!l)return;const tid=l.threadId||('letter-'+(l.replyTo||l.id));const thread=letters.filter(x=>(x.threadId||('letter-'+(x.replyTo||x.id)))===tid).sort((a,b)=>a.time-b.time);for(const x of thread)if(x.sender==='other'&&!x.read){x.read=true;await dbPut('letters',x);}updateTabBadge('interact',await countUnreadLetters());const html=thread.map(x=>`<div style="padding:12px 13px;background:${x.sender==='me'?'#1a1a1a':'#fff'};color:${x.sender==='me'?'#fff':'var(--text)'};border-radius:12px;margin-bottom:10px"><div style="font-size:11px;opacity:.58;margin-bottom:6px">${esc(x.sender==='me'?state.me.name:state.other.name)} · ${fmtFull(x.time)}${x.status==='waiting'?' · 等待回信':''}</div><div style="font-size:14px;line-height:1.9;white-space:pre-wrap">${esc(x.content)}</div></div>`).join('');showModal('往来信件',html+(l.sender==='other'?'<div class="modal-item" onclick="closeModal();replyLetter('+l.id+')">回复 TA</div>':'<div class="modal-item" onclick="closeModal();editLetter('+l.id+')">✎ 修改这封信</div>'));}
 async function editLetter(id){
   const letters=await dbGetAll('letters');const l=letters.find(x=>x.id===id);if(!l||l.sender!=='me')return;
   showModal('编辑寄出的信',`<textarea class="textarea-full" id="letter-content" style="min-height:120px">${esc(l.content)}</textarea><button class="btn-pill primary" style="width:100%;margin-top:12px" onclick="saveLetterEdit(${id})">保存</button>`);
@@ -2404,16 +2523,19 @@ async function ensureTaDiary(){
 /* ===== MOMENTS ===== */
 function openMomentsSettings(){
   const p=state.prob;
-  const postOn=state.stats.momentsAllowPost===0?'已关闭':'已开启';
-  const cOn=state.stats.momentsAllowComment===0?'已关闭':'已开启';
-  const eOn=state.stats.momentsAllowEmoji===0?'已关闭':'已开启';
-  showModal('朋友圈设置',`<div style="padding:4px 2px 10px;font-size:12px;color:var(--hint)">以下均为 TA 的随机行为，修改即时保存</div>
-    <div style="padding:10px 2px;font-size:14px">TA 产出朋友圈 / 日记概率 <b id="ms-prob">${p.momentProb??25}</b>%</div>
-    <input type="range" min="0" max="100" value="${p.momentProb??25}" oninput="document.getElementById('ms-prob').textContent=this.value;state.prob.momentProb=parseInt(this.value);saveKey('prob')" style="width:100%">
-    <div class="modal-item" onclick="toggleMomentsOpt('post')">允许 TA 发布朋友圈：${postOn}</div>
-    <div class="modal-item" onclick="toggleMomentsOpt('comment')">允许 TA 评论：${cOn}</div>
+  const postOn=state.stats.momentsAllowPost===0?'关闭':'开启';
+  const cOn=state.stats.momentsAllowComment===0?'关闭':'开启';
+  const eOn=state.stats.momentsAllowEmoji===0?'关闭':'开启';
+  const rateLabels=['很少发布','偶尔发布','经常发布'];
+  const rate=p.momentProb>=60?2:(p.momentProb>=25?1:0);
+  showModal('朋友圈设置',`<div style="padding:4px 2px 10px;font-size:12px;color:var(--hint)">TA 在朋友圈里的行为</div>
+    <div style="padding:10px 2px;font-size:14px">TA 多久发布一次：<b>${rateLabels[rate]}</b></div>
+    <div style="display:flex;gap:8px;margin-top:8px">${rateLabels.map((l,i)=>`<button class="btn-pill ${rate===i?'primary':'ghost'}" style="flex:1;padding:10px 0;font-size:12px" onclick="setMomentRate(${i})">${l}</button>`).join('')}</div>
+    <div class="modal-item" onclick="toggleMomentsOpt('post')">允许 TA 发布动态：${postOn}</div>
+    <div class="modal-item" onclick="toggleMomentsOpt('comment')">允许 TA 评论你的动态：${cOn}</div>
     <div class="modal-item" onclick="toggleMomentsOpt('emoji')">允许 TA 表情回应：${eOn}</div>`);
 }
+function setMomentRate(i){const v=[10,25,60][i]||25;state.prob.momentProb=v;saveKey('prob');openMomentsSettings();}
 function toggleMomentsOpt(k){
   if(k==='post')state.stats.momentsAllowPost=state.stats.momentsAllowPost===0?1:0;
   else if(k==='comment')state.stats.momentsAllowComment=state.stats.momentsAllowComment===0?1:0;
@@ -2441,7 +2563,7 @@ async function renderMoments(){
   moments=await dbGetAll('moments');
   // 标记 TA 动态已读
   for(const m of moments)if(m.owner==='other'&&!m.read){m.read=true;await dbPut('moments',m);}
-  updateTabBadge('moments',0);
+  updateTabBadge('cards',0);
   if(!moments.length){body.innerHTML='<div class="empty">还没有朋友圈<br>分享你的第一条动态吧</div>';}
   moments.sort((a,b)=>b.time-a.time);
   for(const m of moments){
@@ -3245,71 +3367,86 @@ function applyCustomTheme(){state.skin={themeId:'custom',primary:document.getEle
 let probAdjusting=false;
 function renderProbability(){
   const p=state.prob;
-  const body=document.getElementById('probability-body');body.innerHTML=`
+  const body=document.getElementById('probability-body');if(!body)return;
+  const counts=[p.c1||0,p.c2||0,p.c3||0,p.c4||0,p.c5||0];
+  const pure=counts.filter(v=>v>0).length===1;
+  const count=pure?(counts.indexOf(100)+1):(counts.reduce((a,v,i)=>v>counts[a]?i:a,0)+1);
+  const proLabels=['不主动','偶尔','经常'];
+  body.innerHTML=`
     <div class="list-card">
-      <div class="list-card-title">回复间隔（对方响应快慢）</div>
+      <div class="list-card-title">回复速度（TA 响应快慢）</div>
       <div style="margin-top:10px;font-size:12px;color:var(--sub)">最快 <b id="lb-fast">${p.fastSec}</b> 秒</div>
-      <input type="range" min="1" max="60" value="${p.fastSec}" oninput="setProb('fastSec',this.value,${p.slowSec},${p.slowSec})" style="width:100%">
+      <input type="range" min="1" max="60" value="${p.fastSec}" oninput="setProb('fastSec',this.value)" style="width:100%">
       <div style="margin-top:8px;font-size:12px;color:var(--sub)">最慢 <b id="lb-slow">${p.slowSec}</b> 秒</div>
-      <input type="range" min="5" max="600" value="${p.slowSec}" oninput="setProb('slowSec',this.value,${p.fastSec},${p.slowSec})" style="width:100%">
+      <input type="range" min="5" max="600" value="${p.slowSec}" oninput="setProb('slowSec',this.value)" style="width:100%">
       <div style="font-size:11px;color:var(--hint);margin-top:8px" id="prob-hint"></div>
     </div>
     <div class="list-card">
-      <div class="list-card-title">回复条数概率</div>
-      <div style="margin-top:10px;font-size:12px;color:var(--sub)">1 条 <b id="lb-c1">${p.c1}</b>%</div>
-      <input type="range" min="0" max="100" value="${p.c1}" oninput="setProb('c1',this.value,null,null)">
-      <div style="margin-top:8px;font-size:12px;color:var(--sub)">2 条 <b id="lb-c2">${p.c2}</b>%</div>
-      <input type="range" min="0" max="100" value="${p.c2}" oninput="setProb('c2',this.value,null,null)">
-      <div style="margin-top:8px;font-size:12px;color:var(--sub)">3 条 <b id="lb-c3">${p.c3}</b>%</div>
-      <input type="range" min="0" max="100" value="${p.c3}" oninput="setProb('c3',this.value,null,null)">
-      <div style="font-size:11px;color:var(--hint);margin-top:10px" id="prob-sum"></div>
-      <button class="btn-pill ghost" style="width:100%;margin-top:10px" onclick="resetProb()">恢复默认 (70 / 25 / 5)</button>
+      <div class="list-card-title">回复长度（一次回几句话）</div>
+      <div style="margin-top:10px;font-size:12px;color:var(--sub)">单次拼接 <b id="lb-count">${count}</b> 句</div>
+      <input type="range" min="1" max="5" value="${count}" oninput="setProb('count',this.value)" style="width:100%">
+      <div style="font-size:11px;color:var(--hint);margin-top:8px">每次回复由 1~5 句字卡拼接；「继续」会开启新一轮回复</div>
     </div>
     <div class="list-card">
-      <div class="list-card-title">题目 / 动态概率</div>
-      <div style="margin-top:10px;font-size:12px;color:var(--sub)">TA 主动提交题目 <b id="lb-poll">${p.pollProb??10}</b>%</div>
-      <input type="range" min="0" max="100" value="${p.pollProb??10}" oninput="setProb('pollProb',this.value,null,null)" style="width:100%">
-      <div style="margin-top:10px;font-size:12px;color:var(--sub)">TA 产出朋友圈 / 日记 <b id="lb-moment">${p.momentProb??25}</b>%</div>
-      <input type="range" min="0" max="100" value="${p.momentProb??25}" oninput="setProb('momentProb',this.value,null,null)" style="width:100%">
+      <div class="list-card-title">主动消息</div>
+      <div style="display:flex;gap:8px;margin-top:10px">${proLabels.map((l,i)=>`<button class="btn-pill ${p.proactive===i?'primary':'ghost'}" style="flex:1;padding:11px 0" onclick="setProb('proactive',${i})">${l}</button>`).join('')}</div>
+      <div style="font-size:11px;color:var(--hint);margin-top:8px">${p.proactive===0?'TA 不会主动找话题，等你先开口':(p.proactive===1?'TA 偶尔会主动发消息给你':'TA 会经常主动找你聊天')}</div>
+    </div>
+    <div class="list-card">
+      <div class="list-card-title">特殊互动</div>
+      ${[['pokeProb','拍一拍',p.pokeProb??15],['emojiProb','表情回应',p.emojiProb??20],['quoteProb','引用你的话',p.quoteProb??15],['heartProb','送你心意卡',p.heartProb??5],['qaProb','回答你的题目',p.qaProb??5]].map(([k,label,v])=>`<div style="margin-top:10px;font-size:12px;color:var(--sub)">${label} <b id="lb-${k}">${v}</b>%</div><input type="range" min="0" max="100" value="${v}" oninput="setProb('${k}',this.value)" style="width:100%">`).join('')}
+      <div style="font-size:11px;color:var(--hint);margin-top:8px">互动在每次回复时按概率触发</div>
+    </div>
+    <div class="list-card">
+      <div class="list-card-title">高级设置</div>
+      <details style="margin-top:4px"><summary style="font-size:12px;color:var(--sub);cursor:pointer;padding:6px 0">展开精确概率与冷却</summary>
+      ${[['c1','1 句'],['c2','2 句'],['c3','3 句'],['c4','4 句'],['c5','5 句']].map(([k,label])=>`<div style="margin-top:10px;font-size:12px;color:var(--sub)">${label} <b id="lb-${k}">${p[k]||0}</b>%</div><input type="range" min="0" max="100" value="${p[k]||0}" oninput="setProb('${k}',this.value)" style="width:100%">`).join('')}
+      <div style="font-size:11px;color:var(--hint);margin-top:8px" id="prob-sum"></div>
+      <div style="margin-top:12px;font-size:12px;color:var(--sub)">主动消息冷却 <b id="lb-cooldown">${p.proactiveCooldown??30}</b> 分钟</div>
+      <input type="range" min="1" max="240" value="${p.proactiveCooldown??30}" oninput="setProb('proactiveCooldown',this.value)" style="width:100%">
+      <div style="margin-top:12px;font-size:12px;color:var(--sub)">最近重复排除 <b id="lb-repeat">${p.repeatExclude??5}</b> 条</div>
+      <input type="range" min="0" max="20" value="${p.repeatExclude??5}" oninput="setProb('repeatExclude',this.value)" style="width:100%">
+      <button class="btn-pill ghost" style="width:100%;margin-top:12px" onclick="resetProb()">恢复默认设置</button></details>
     </div>`;
   updateProbHints();
 }
-function setProb(key,val,otherMin,otherMax){
+function setProb(key,val){
   if(probAdjusting)return;
   state.prob[key]=parseInt(val);
-  // 条数概率：联动归一化，保证总和 = 100
-  if(key==='c1'||key==='c2'||key==='c3'){
+  if(key==='count'){
     probAdjusting=true;
-    const keys=['c1','c2','c3'];
+    const n=Math.max(1,Math.min(5,parseInt(val)));
+    ['c1','c2','c3','c4','c5'].forEach((k,i)=>state.prob[k]=i+1===n?100:0);
+    probAdjusting=false;
+  }
+  if(key==='c1'||key==='c2'||key==='c3'||key==='c4'||key==='c5'){
+    probAdjusting=true;
+    const keys=['c1','c2','c3','c4','c5'];
     const others=keys.filter(k=>k!==key);
     const rest=Math.max(0,100-state.prob[key]);
-    const sum=others.reduce((s,k)=>s+state.prob[k],0);
-    if(sum>0){others.forEach(k=>state.prob[k]=Math.round(state.prob[k]/sum*rest));}
-    else{state.prob[others[0]]=rest;state.prob[others[1]]=0;}
-    // 修正取整误差
-    let diff=100-(state.prob.c1+state.prob.c2+state.prob.c3);
+    const sum=others.reduce((s,k)=>s+(state.prob[k]||0),0);
+    if(sum>0){others.forEach(k=>state.prob[k]=Math.round((state.prob[k]||0)/sum*rest));}
+    else{state.prob[others[0]]=rest;others.slice(1).forEach(k=>state.prob[k]=0);}
+    let diff=100-(state.prob.c1+state.prob.c2+state.prob.c3+state.prob.c4+state.prob.c5);
     let i=0;
-    while(diff!==0&&i<50){const k=keys[(keys.indexOf(key)+1+i%2)%3];const nv=state.prob[k]+Math.sign(diff);if(nv>=0&&nv<=100){state.prob[k]=nv;diff-=Math.sign(diff);}i++;}
+    while(diff!==0&&i<100){const k=keys[(keys.indexOf(key)+1+i%2)%5];const nv=state.prob[k]+Math.sign(diff);if(nv>=0&&nv<=100){state.prob[k]=nv;diff-=Math.sign(diff);}i++;}
     probAdjusting=false;
-    saveKey('prob');
-    renderProbability();
   }
-  // 间隔：保持 最慢 > 最快
   if(key==='fastSec'&&state.prob.fastSec>=state.prob.slowSec){state.prob.slowSec=state.prob.fastSec+1;}
   if(key==='slowSec'&&state.prob.slowSec<=state.prob.fastSec){state.prob.fastSec=Math.max(1,state.prob.slowSec-1);}
   saveKey('prob');
-  const m={fastSec:'lb-fast',slowSec:'lb-slow',c1:'lb-c1',c2:'lb-c2',c3:'lb-c3',pollProb:'lb-poll',momentProb:'lb-moment'};
+  const m={fastSec:'lb-fast',slowSec:'lb-slow',c1:'lb-c1',c2:'lb-c2',c3:'lb-c3',c4:'lb-c4',c5:'lb-c5',pokeProb:'lb-pokeProb',emojiProb:'lb-emojiProb',quoteProb:'lb-quoteProb',heartProb:'lb-heartProb',qaProb:'lb-qaProb',proactiveCooldown:'lb-cooldown',repeatExclude:'lb-repeat',count:'lb-count'};
   const e=document.getElementById(m[key]);if(e)e.textContent=state.prob[key];
   updateProbHints();
 }
 function updateProbHints(){
-  const sum=state.prob.c1+state.prob.c2+state.prob.c3;
+  const sum=(state.prob.c1||0)+(state.prob.c2||0)+(state.prob.c3||0)+(state.prob.c4||0)+(state.prob.c5||0);
   const s=document.getElementById('prob-sum');
   if(s)s.textContent=`合计 ${sum}%（自动保持 100%）`;
   const h=document.getElementById('prob-hint');
   if(h)h.textContent=state.prob.slowSec<=state.prob.fastSec?'⚠ 最慢需大于最快，已自动修正':'平均等待约 '+Math.round((state.prob.fastSec+state.prob.slowSec)/2)+' 秒';
 }
-function resetProb(){state.prob={...state.prob,c1:70,c2:25,c3:5};saveKey('prob');renderProbability();showToast('已恢复默认概率');}
+function resetProb(){state.prob={...state.prob,fastSec:10,slowSec:60,c1:70,c2:20,c3:7,c4:2,c5:1,pokeProb:15,emojiProb:20,quoteProb:15,heartProb:5,qaProb:5,proactive:1,proactiveCooldown:30,repeatExclude:5,pollProb:10,momentProb:25};saveKey('prob');renderProbability();showToast('已恢复默认设置');}
 
 /* ===== CARDS（字卡：分组 / 增删改查 / 批量导入 / 自动查重） ===== */
 let cardGroupFilter='全部',selectedCardIds=new Set();
@@ -3324,7 +3461,7 @@ async function renderCards(){
     <div class="tabs" style="overflow-x:auto;flex-wrap:nowrap">${names.map((n,i)=>`<button class="tab${cardGroupFilter===n?' active':''}" style="flex:0 0 auto;padding:8px 14px" onclick="pickCardGroup(${i})">${esc(n)}</button>`).join('')}
     <button class="tab" style="flex:0 0 auto;padding:8px 14px" onclick="addCardGroup()">+ 分组</button>
     <button class="tab" style="flex:0 0 auto;padding:8px 14px;color:#c0392b" onclick="delCardGroup()">&#128465;</button></div>
-    <div class="card-toolbar"><button class="btn-pill ghost" onclick="toggleSelectAllCards()">全选</button><button class="btn-pill ghost" onclick="deleteSelectedCards()">删除选中</button><button class="btn-pill ghost" onclick="optimizeCards()">自动优化</button><button class="btn-pill ghost" onclick="exportCards()">导出字卡</button></div>
+    <div class="card-toolbar"><button class="btn-pill ghost" onclick="toggleSelectAllCards()">全选</button><button class="btn-pill ghost" onclick="deleteSelectedCards()">删除选中</button><button class="btn-pill ghost" onclick="optimizeCards()">清理重复</button><button class="btn-pill ghost" onclick="toggleGroupReply()">分组开关</button><button class="btn-pill ghost" onclick="exportCards()">导出字卡</button></div>
     <div class="search-bar">&#128269;<input type="text" id="card-search" placeholder="搜索字卡" oninput="filterCards(this.value)"></div>
     <div style="display:flex;gap:8px;margin-bottom:12px">
       <button class="btn-pill ghost" style="flex:1" onclick="managePokes()">&#128133; 拍一拍字卡</button>
@@ -3335,11 +3472,26 @@ async function renderCards(){
 }
 let cardGroupNames=[];
 function pickCardGroup(i){cardGroupFilter=cardGroupNames[i]||'全部';renderCards();}
-function renderCardList(){dbGetAll('cards').then(all=>{const list=all.filter(c=>cardGroupFilter==='全部'||(c.group||'默认')===cardGroupFilter).sort((a,b)=>b.time-a.time);const box=document.getElementById('card-list');if(!list.length){box.innerHTML='<div class="empty">这个分组还没有字卡<br>点击下方 + 添加</div><div style="width:100%;height:56px;border:1.5px dashed #d0d0cd;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:22px;color:#b5b5b0;cursor:pointer;margin-top:10px" onclick="addCard()">+</div>';return;}box.innerHTML=list.map(c=>`<div class="list-card" style="display:flex;align-items:center;gap:10px" data-t="${esc(c.text||'')}"><input class="card-select" type="checkbox" ${selectedCardIds.has(c.id)?'checked':''} onchange="toggleCardSelect(${c.id},this.checked)"><div style="flex:1;min-width:0;cursor:pointer" onclick="sendCardPoke('${esc(c.text)}')"><div class="list-card-title">${esc(c.text)}</div><div class="list-card-sub">${esc(c.group||'默认')} · ${c.useCount||0} 次使用</div></div><button class="btn-pill ghost" style="padding:6px 10px" onclick="editCard(${c.id})">改</button><button class="btn-pill ghost" style="padding:6px 10px" onclick="delCard(${c.id})">删</button></div>`).join('')+'<div style="width:100%;height:56px;border:1.5px dashed #d0d0cd;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:22px;color:#b5b5b0;cursor:pointer;margin-top:10px" onclick="addCard()">+</div>';});}
+function renderCardList(){dbGetAll('cards').then(all=>{const list=all.filter(c=>cardGroupFilter==='全部'||(c.group||'默认')===cardGroupFilter).sort((a,b)=>b.time-a.time);const box=document.getElementById('card-list');if(!list.length){box.innerHTML='<div class="empty">这个分组还没有字卡<br>点击下方 + 添加</div><div style="width:100%;height:56px;border:1.5px dashed #d0d0cd;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:22px;color:#b5b5b0;cursor:pointer;margin-top:10px" onclick="addCard()">+</div>';return;}box.innerHTML=list.map(c=>`<div class="list-card" style="display:flex;align-items:center;gap:10px" data-t="${esc(c.text||'')}"><input class="card-select" type="checkbox" ${selectedCardIds.has(c.id)?'checked':''} onchange="toggleCardSelect(${c.id},this.checked)"><div style="flex:1;min-width:0;cursor:pointer" onclick="sendCardPoke('${esc(c.text)}')"><div class="list-card-title">${esc(c.text)}</div><div class="list-card-sub">${esc(c.group||'默认')} · ${c.useCount||0} 次使用</div></div><button class="btn-pill ghost" style="padding:6px 10px" onclick="editCard(${c.id})">改</button><button class="btn-pill ghost" style="padding:6px 10px;color:${c.enabled===false?'#c0392b':'var(--sub)'}" onclick="toggleCardEnabled(${c.id})">${c.enabled===false?'启用':'停用'}</button><button class="btn-pill ghost" style="padding:6px 10px" onclick="delCard(${c.id})">删</button></div>`).join('')+'<div style="width:100%;height:56px;border:1.5px dashed #d0d0cd;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:22px;color:#b5b5b0;cursor:pointer;margin-top:10px" onclick="addCard()">+</div>';});}
 function toggleCardSelect(id,on){if(on)selectedCardIds.add(id);else selectedCardIds.delete(id);}
+async function toggleCardEnabled(id){
+  const all=await dbGetAll('cards');const c=all.find(x=>x.id===id);if(!c)return;
+  c.enabled=c.enabled===false?1:false;await dbPut('cards',c);
+  renderCardList();showToast(c.enabled===false?'已停用，不再参与回复':'已启用，可参与回复');
+}
+async function toggleGroupReply(){
+  const groups=await dbGetAll('cardGroups');
+  showModal('分组参与回复',groups.map(g=>`<div class="modal-item" onclick="toggleGroupEnabled('${esc(g.name)}')">${esc(g.name)}：${g.enabled===false?'<span style="color:#c0392b">已停用</span>':'参与回复'}</div>`).join('')+'<div class="modal-item" onclick="closeModal()">取消</div>');
+}
+async function toggleGroupEnabled(name){
+  const gs=await dbGetAll('cardGroups');const g=gs.find(x=>x.name===name);if(!g)return;
+  g.enabled=g.enabled===false?1:false;await dbPut('cardGroups',g);
+  showToast(`「${name}」${g.enabled===false?'已停用，该组字卡不再参与回复':'已启用'}`);
+  toggleGroupReply();
+}
 async function toggleSelectAllCards(){const all=await dbGetAll('cards');const list=all.filter(c=>cardGroupFilter==='全部'||(c.group||'默认')===cardGroupFilter);const allSelected=list.length&&list.every(c=>selectedCardIds.has(c.id));list.forEach(c=>allSelected?selectedCardIds.delete(c.id):selectedCardIds.add(c.id));renderCardList();}
 async function deleteSelectedCards(){const ids=[...selectedCardIds];if(!ids.length){showToast('请先选择字卡');return;}appConfirm('删除选中字卡',`确定删除已选择的 ${ids.length} 张字卡吗？此操作不可恢复。`,async()=>{for(const id of ids)await dbDelete('cards',id);selectedCardIds.clear();renderCards();showToast('已删除选中字卡');});}
-async function optimizeCards(){const all=await dbGetAll('cards');const seen=new Set(),dupIds=[],changes=[];for(const c of all){const t=(c.text||'').replace(/\s+/g,' ').trim();if(!t){dupIds.push(c.id);continue;}if(seen.has(t)){dupIds.push(c.id);continue;}seen.add(t);if(c.text!==t)changes.push([c,t]);}const apply=async()=>{for(const id of dupIds)await dbDelete('cards',id);for(const [c,t] of changes){c.text=t;await dbPut('cards',c);}selectedCardIds.clear();renderCards();showToast(`自动优化完成${dupIds.length?'，删除重复/空卡 '+dupIds.length+' 张':''}`);};if(dupIds.length){appConfirm('检测到重复字卡',`发现 ${dupIds.length} 张重复或空白字卡。是否自动删除？`,apply);}else{await apply();}}
+async function optimizeCards(){const all=await dbGetAll('cards');const seen=new Set(),dupIds=[],changes=[];for(const c of all){const t=(c.text||'').replace(/\s+/g,' ').trim();if(!t){dupIds.push(c.id);continue;}if(seen.has(t)){dupIds.push(c.id);continue;}seen.add(t);if(c.text!==t)changes.push([c,t]);}const apply=async()=>{for(const id of dupIds)await dbDelete('cards',id);for(const [c,t] of changes){c.text=t;await dbPut('cards',c);}selectedCardIds.clear();renderCards();showToast(`清理重复完成${dupIds.length?'，删除重复/空卡 '+dupIds.length+' 张':''}`);};if(dupIds.length){appConfirm('检测到重复字卡',`发现 ${dupIds.length} 张重复或空白字卡。是否自动删除？`,apply);}else{await apply();}}
 function filterCards(q){
   q=(q||'').trim().toLowerCase();
   document.querySelectorAll('#card-list .list-card').forEach(el=>{
@@ -3534,7 +3686,7 @@ function renderProfile(){
       <div class="cs-item" onclick="openApp('theme')"><span class="cs-ico">&#127912;</span><span class="cs-label">外观</span><span class="cs-val">${(THEMES.find(t=>t.id===state.skin.themeId)||{}).name||'自定义'}</span><span class="cs-arrow">&#8250;</span></div>
       <div class="cs-item" onclick="openApp('cards')"><span class="cs-ico">&#128220;</span><span class="cs-label">字卡管理</span><span class="cs-arrow">&#8250;</span></div>
       <div class="cs-item" onclick="openApp('emoji')"><span class="cs-ico">&#9786;</span><span class="cs-label">表情包管理</span><span class="cs-arrow">&#8250;</span></div>
-      <div class="cs-item" onclick="openApp('probability')"><span class="cs-ico">&#128202;</span><span class="cs-label">概率工坊</span><span class="cs-arrow">&#8250;</span></div>
+      <div class="cs-item" onclick="openApp('probability')"><span class="cs-ico">&#128202;</span><span class="cs-label">回复设置</span><span class="cs-arrow">&#8250;</span></div>
       <div class="cs-item" onclick="openApp('calllog')"><span class="cs-ico">&#128222;</span><span class="cs-label">通话记录</span><span class="cs-val">${(state.callLogs||[]).length} 条</span><span class="cs-arrow">&#8250;</span></div>
     </div>
     <div class="cs-group">
@@ -3583,6 +3735,7 @@ function renderDataPage(){
     </div>
     <div class="cs-group">
       <div class="cs-item" onclick="nukeDB()" style="color:#c0392b"><span class="cs-ico">&#128465;</span><span class="cs-label">清空全部数据</span></div>
+      <div class="cs-item" onclick="factoryReset()" style="color:#c0392b"><span class="cs-ico">&#128267;</span><span class="cs-label">恢复出厂设置</span></div>
     </div>
     <div class="empty" style="font-size:12px;line-height:1.8;text-align:left">
       提示：网站为单文件 HTML，挂载在 GitHub Pages 后，用手机浏览器打开即可。<br>
@@ -3772,6 +3925,13 @@ function importCards(){
     }catch(err){showToast('字卡文件解析失败');}
   };
   input.click();
+}
+async function factoryReset(){
+  appConfirm('恢复出厂设置','将清空全部数据并恢复默认设置，且会清除所有自定义配置。<b>此操作不可恢复！</b>建议先导出备份。',async()=>{
+    for(const s of STORES){const all=await dbGetAll(s);for(const item of all)await dbDelete(s,item.id);}
+    try{localStorage.removeItem('xingji-room');}catch(e){}
+    location.reload();
+  });
 }
 function nukeDB(){
   appConfirm('清空全部数据','确定要清空所有数据吗？<b>此操作不可恢复！</b>建议先导出备份。',async()=>{
@@ -4094,6 +4254,8 @@ openDB().then(async()=>{
   refreshAllBadges();
   initChatEvents();
   ensureTaDiary&&ensureTaDiary();
+  initPendingReply();
+  startProactive();
 }).catch(e=>{console.error(e);showToast('数据库初始化失败');});
 setInterval(()=>{processPendingReplies().then(n=>{if(n&&navStack[navStack.length-1]==='mailbox')renderMailbox();refreshAllBadges();});},15000);
 document.addEventListener('visibilitychange',()=>{
