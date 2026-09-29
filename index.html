@@ -95,10 +95,10 @@ body{position:fixed;inset:0;width:100%}
 .widget-sign{font-size:12px;color:var(--sub);max-width:80%;text-align:center;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 
 /* ===== APP GRID ===== */
-.app-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:24px 16px;padding:10px calc(var(--sal) + 18px) 20px calc(var(--sal) + 18px);flex:1;align-content:start;overflow-y:auto;-webkit-overflow-scrolling:touch}
+.app-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:20px 6px;padding:4px calc(var(--sal) + 10px) calc(var(--tabbar-h) + var(--sab) + 12px) calc(var(--sal) + 10px);flex:1;align-content:end;overflow-y:auto;-webkit-overflow-scrolling:touch}
 .app-item{display:flex;flex-direction:column;align-items:center;gap:6px;cursor:pointer;transition:.15s;user-select:none}
 .app-item:active{transform:scale(.9);opacity:.75}
-.app-icon{width:56px;height:56px;border-radius:16px;display:flex;align-items:center;justify-content:center;font-size:22px;color:#fff;font-weight:600;box-shadow:0 3px 10px rgba(0,0,0,.12);position:relative}
+.app-icon{width:52px;height:52px;border-radius:15px;display:flex;align-items:center;justify-content:center;font-size:20px;color:#fff;font-weight:600;box-shadow:0 3px 10px rgba(0,0,0,.12);position:relative}
 .app-icon .badge{position:absolute;top:-5px;right:-5px;min-width:18px;height:18px;border-radius:9px;background:var(--c-ink);color:#fff;font-size:11px;font-weight:600;display:flex;align-items:center;justify-content:center;padding:0 5px;box-shadow:0 1px 4px rgba(0,0,0,.25)}
 .app-label{font-size:11px;color:var(--text);font-weight:500;text-shadow:0 1px 2px rgba(255,255,255,.8)}
 
@@ -224,10 +224,10 @@ body{position:fixed;inset:0;width:100%}
 .poke-toast.show{opacity:1}
 
 /* 消息长按操作面板（微信底部黑底动作条） */
-.ctx-menu{position:absolute;inset:0;background:rgba(0,0,0,.45);z-index:340;display:none;align-items:flex-end;justify-content:center;opacity:0;transition:.2s}
+.ctx-menu{position:absolute;inset:0;background:rgba(0,0,0,.45);z-index:340;display:none;align-items:center;justify-content:center;opacity:0;transition:.2s}
 .ctx-menu.show{display:flex;opacity:1}
-.ctx-sheet{width:100%;background:#1c1c1c;padding:8px 0 calc(var(--sab) + 14px);border-radius:14px 14px 0 0;transform:translateY(100%);transition:.26s cubic-bezier(.32,.72,0,1);max-height:76vh;overflow-y:auto}
-.ctx-menu.show .ctx-sheet{transform:translateY(0)}
+.ctx-sheet{width:88%;max-width:360px;background:#1c1c1c;padding:8px 14px calc(var(--sab) + 14px);border-radius:20px;transform:scale(.94) translateY(10px);opacity:0;transition:.22s cubic-bezier(.32,.72,0,1);max-height:76vh;overflow-y:auto;box-shadow:0 14px 44px rgba(0,0,0,.22)}
+.ctx-menu.show .ctx-sheet{transform:scale(1) translateY(0);opacity:1}
 .ctx-title{color:rgba(255,255,255,.5);font-size:11px;padding:6px 20px 10px;text-align:center;max-height:88px;overflow:hidden}
 .ctx-grid{display:flex;flex-direction:column;gap:2px;padding:0 8px}
 .ctx-item{padding:12px 10px;border-radius:8px;cursor:pointer;color:#fff;font-size:15px;text-align:center;transition:.15s}
@@ -336,10 +336,10 @@ mark{background:#ffe58f;color:inherit;border-radius:2px;padding:0 1px}
 .phone-overlay{position:absolute;inset:0;z-index:300;pointer-events:none;overflow:hidden}
 .phone-overlay>*{pointer-events:auto}
 /* ===== MODAL ===== */
-.modal{position:absolute;inset:0;background:rgba(0,0,0,.35);display:none;align-items:flex-end;justify-content:center;z-index:200}
+.modal{position:absolute;inset:0;background:rgba(0,0,0,.4);display:none;align-items:center;justify-content:center;z-index:200}
 .modal.show{display:flex}
-.modal-sheet{background:var(--card);width:100%;border-radius:var(--r) var(--r) 0 0;padding:20px 16px calc(var(--sab) + 22px);transform:translateY(100%);transition:.25s;max-height:86vh;overflow-y:auto}
-.modal.show .modal-sheet{transform:translateY(0)}
+.modal-sheet{background:var(--card);width:88%;max-width:360px;border-radius:20px;padding:20px 18px calc(var(--sab) + 18px);transform:scale(.94) translateY(10px);opacity:0;transition:.22s cubic-bezier(.32,.72,0,1);max-height:84vh;overflow-y:auto;box-shadow:0 14px 44px rgba(0,0,0,.22)}
+.modal.show .modal-sheet{transform:scale(1) translateY(0);opacity:1}
 .modal-title{font-size:16px;font-weight:600;margin-bottom:14px;text-align:center}
 .modal-item{padding:12px 0;border-bottom:1px solid var(--input);font-size:15px;cursor:pointer;display:flex;align-items:center;gap:10px}
 .modal-item:last-child{border-bottom:none}
@@ -490,7 +490,7 @@ body{-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;letter
 .tabs{display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap}
 .tab{border:1px solid rgba(0,0,0,.12);background:transparent;color:var(--sub);border-radius:999px;padding:8px 16px;font-size:13px;cursor:pointer;transition:all .18s}
 .tab.active{background:var(--text);color:var(--bg);border-color:var(--text);font-weight:600}
-.modal-sheet{background:var(--card);border-radius:18px;box-shadow:0 8px 40px rgba(0,0,0,.16)}
+.modal-sheet{background:var(--card);border-radius:20px;box-shadow:0 12px 40px rgba(0,0,0,.18)}
 .modal-title{font-size:16px;font-weight:700;letter-spacing:1px}
 .modal-item{border-radius:10px;transition:background .15s}
 .modal-item:active{background:var(--input)}
@@ -515,8 +515,12 @@ body{-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;letter
 .mw-name{font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .mw-artist{font-size:11px;color:var(--sub);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .mw-ctrl{font-size:16px;color:var(--text);padding:4px 8px}
-.mini-player{position:fixed;top:calc(var(--sat) + 56px);left:50%;transform:translateX(-50%);width:calc(100% - 32px);max-width:398px;display:none;align-items:center;gap:10px;background:rgba(255,255,255,.94);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border:1px solid rgba(0,0,0,.06);border-radius:16px;padding:9px 12px;box-shadow:0 6px 24px rgba(0,0,0,.14);z-index:120}
+.mini-player{position:fixed;top:calc(var(--sat) + 62px);right:12px;width:152px;display:none;align-items:center;gap:8px;background:rgba(255,255,255,.96);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border:1px solid rgba(0,0,0,.07);border-radius:14px;padding:7px 9px;box-shadow:0 6px 22px rgba(0,0,0,.16);z-index:120;cursor:grab;touch-action:none;transition:width .2s}
 .mini-player.show{display:flex}
+.mini-player.ball{width:44px;padding:7px;border-radius:50%;justify-content:center}
+.mini-player.ball .mp-info,.mini-player.ball .mp-ctrl,.mini-player.ball .mp-next{display:none}
+.mp-ball{display:none;font-size:18px}
+.mini-player.ball .mp-ball{display:block}
 .mp-cover{width:34px;height:34px;border-radius:9px;background:var(--text);color:var(--bg);display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0}
 .mp-info{flex:1;min-width:0}
 .mp-name{font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -529,6 +533,7 @@ body{-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;letter
 .poll-opt.sel{background:var(--text);color:var(--bg);border-color:var(--text)}
 .poll-ans{font-size:11px;color:#07c160;padding:8px 12px;background:rgba(7,193,96,.06)}
 .poll-wait{font-size:11px;color:var(--hint);padding:8px 12px;background:var(--input);cursor:pointer}
+.letter-paper{background:#fdfcf9;border:1px solid #e8e6e0;border-radius:14px;padding:16px 14px 14px;box-shadow:inset 0 0 30px rgba(0,0,0,.03)}
 </style>
 </head>
 <body>
@@ -602,7 +607,7 @@ body{-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;letter
   <div class="tabbar" id="tabbar">
     <div class="tab-item" data-tab="chat" onclick="switchTab('chat')"><span class="tab-ico" data-ico="chat"></span><span class="tab-name">聊天</span><span class="badge" id="tab-badge-chat" style="display:none">0</span></div>
     <div class="tab-item" data-tab="mailbox" onclick="switchTab('mailbox')"><span class="tab-ico" data-ico="mail"></span><span class="tab-name">信箱</span><span class="badge" id="tab-badge-mailbox" style="display:none">0</span></div>
-    <div class="tab-item" data-tab="moments" onclick="switchTab('moments')"><span class="tab-ico" data-ico="moments"></span><span class="tab-name">动态</span><span class="badge" id="tab-badge-moments" style="display:none">0</span></div>
+    <div class="tab-item" data-tab="moments" onclick="switchTab('moments')"><span class="tab-ico" data-ico="moments"></span><span class="tab-name">朋友圈</span><span class="badge" id="tab-badge-moments" style="display:none">0</span></div>
     <div class="tab-item" data-tab="me" onclick="switchTab('me')"><span class="tab-ico" data-ico="me"></span><span class="tab-name">我的</span></div>
   </div>
 </div>
@@ -679,17 +684,16 @@ body{-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;letter
   <div class="app-header"><div class="back" onclick="goBack()">&#8249;</div><h1>日记</h1><div class="act" style="opacity:.25">&#8942;</div></div>
   <div class="app-body">
     <div class="tabs">
-      <button class="tab active" onclick="switchDiaryTab('private',this)">我的</button>
-      <button class="tab" onclick="switchDiaryTab('share',this)">他的</button>
+      <button class="tab active" onclick="switchDiaryTab('private',this)">我的私密日志</button>
+      <button class="tab" onclick="switchDiaryTab('share',this)">他的日志</button>
     </div>
     <div id="diary-list"></div>
-    <button class="btn-pill primary" style="width:100%;margin-top:12px" onclick="openWriteDiary()">&#128221; 写日记</button>
   </div>
 </div>
 
 <!-- MOMENTS -->
 <div id="app-moments" class="app-page">
-  <div class="app-header"><div class="back" onclick="goBack()">&#8249;</div><h1>动态</h1><div class="act" style="opacity:.25">&#8942;</div></div>
+  <div class="app-header"><div class="back" onclick="goBack()">&#8249;</div><h1>朋友圈</h1><div class="act" onclick="openMomentsSettings()">&#8942;</div></div>
   <div class="app-body" id="moments-body"></div>
 </div>
 
@@ -721,30 +725,20 @@ body{-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;letter
 <div id="app-sense" class="app-page">
   <div class="room-header">
     <div class="back" onclick="goBack()" style="width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:21px;color:var(--text);cursor:pointer">&#8249;</div>
-    <div class="room-title" id="room-title">我的房间</div>
+    <div class="room-title" id="room-title">房间</div>
     <button class="room-add" onclick="showRoomPicker()">+</button>
   </div>
   <div class="room-toolbar">
-    <span class="room-tool-label">行</span>
-    <button class="room-add small" onclick="roomResize(-1,'rows')">&minus;</button>
-    <b id="room-rows-n">4</b>
-    <button class="room-add small" onclick="roomResize(1,'rows')">&plus;</button>
-    <span class="room-tool-label" style="margin-left:10px">列</span>
-    <button class="room-add small" onclick="roomResize(-1,'cols')">&minus;</button>
-    <b id="room-cols-n">6</b>
-    <button class="room-add small" onclick="roomResize(1,'cols')">&plus;</button>
-    <span class="room-tip">点击格子放置 / 编辑</span>
+    <b id="room-rows-n">4</b><span class="room-tool-label">行 × <b id="room-cols-n">6</b> 列 · 固定</span>
+    <span class="room-tip">点击空格放置 / 点击已有内容编辑</span>
   </div>
   <div class="room-grid" id="room-grid"></div>
   <div class="room-info">
-    <div class="room-info-title" id="room-info-title">我的房间</div>
-    <div class="room-info-sub" id="room-info-sub">点击空格放置内容，点击已有内容可编辑</div>
+    <div class="room-info-title" id="room-info-title">房间</div>
+    <div class="room-info-sub" id="room-info-sub">感应 TA 在哪里，看看 TA 此刻在干嘛</div>
     <div class="room-actions">
       <button class="btn-pill primary" onclick="saveRoomLayout()">保存布局</button>
-      <button class="btn-pill ghost" onclick="switchRoomPreset()">切换预设</button>
-      <button class="btn-pill ghost" onclick="saveRoomPreset()">保存为新预设</button>
-      <button class="btn-pill ghost" onclick="renameRoomPreset()">重命名</button>
-      <button class="btn-pill ghost" onclick="deleteRoomPreset()">删除预设</button>
+      <button class="btn-pill ghost" onclick="senseTA()">&#128269; 感应 TA 在哪里</button>
     </div>
   </div>
 </div>
@@ -797,11 +791,12 @@ body{-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;letter
 <div class="phone-overlay">
 
 <!-- 悬浮迷你播放器（进入页面后常驻，点击弹出播放器） -->
-<div class="mini-player" id="mini-player" onclick="openMusicPlayer()">
-  <div class="mp-cover">&#127925;</div>
-  <div class="mp-info"><div class="mp-name" id="mp-name">未在播放</div><div class="mp-artist" id="mp-artist"></div></div>
+<div class="mini-player" id="mini-player">
+  <div class="mp-cover" onclick="openMusicPlayer()">&#127925;</div>
+  <div class="mp-info" onclick="openMusicPlayer()"><div class="mp-name" id="mp-name">未在播放</div><div class="mp-artist" id="mp-artist"></div></div>
   <div class="mp-ctrl" onclick="event.stopPropagation();toggleMiniPlay()"><span id="mp-play">&#9654;</span></div>
   <div class="mp-next" onclick="event.stopPropagation();nextTrack()">&#8250;</div>
+  <div class="mp-ball" onclick="openMusicPlayer()">&#127925;</div>
 </div>
 
 <!-- MODAL（手机底部弹层） -->
@@ -809,6 +804,7 @@ body{-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;letter
   <div class="modal-sheet">
     <div class="modal-title" id="modal-title"></div>
     <div id="modal-body"></div>
+    <div id="modal-actions" style="display:none"></div>
     <div class="modal-close" onclick="closeModal()">取消</div>
   </div>
 </div>
@@ -854,11 +850,7 @@ let state = {
   stats:{diaryOpen:false,companionTime:0,companionStreak:0,diaryCount:0,momentCount:0,chatCount:0}
 };
 const THEMES=[
-  {id:'ink',name:'焦墨',primary:'#1a1a1a',light:'#3f3f3f',bg:'#f7f6f3'},
-  {id:'ink2',name:'浓墨',primary:'#333',light:'#555',bg:'#f7f6f3'},
-  {id:'ink3',name:'重墨',primary:'#4a4a4a',light:'#6b6b6b',bg:'#f7f6f3'},
-  {id:'ink4',name:'淡墨',primary:'#8c8c8c',light:'#a6a6a6',bg:'#f7f6f3'},
-  {id:'ink5',name:'清墨',primary:'#b8b8b8',light:'#d6d6d3',bg:'#fafaf8'}
+  {id:'ink',name:'黑白 · 焦墨',primary:'#1a1a1a',light:'#3f3f3f',bg:'#f7f6f3'}
 ];
 let DB, pinVal='', muteBannerInterval;
 
@@ -1105,7 +1097,7 @@ function renderNav(){
   // 底部标签栏高亮
   document.querySelectorAll('.tab-item').forEach(t=>t.classList.toggle('on',t.dataset.tab===navRoot));
   document.getElementById('tabbar').classList.remove('hidden');
-  const mp=document.getElementById('mini-player');if(mp)mp.classList.add('show');
+  updateMiniPlayer();
 }
 /* 返回上一层（手机返回逻辑：先关浮层 → 再退页面 → 再回桌面 → 二次确认退出） */
 function goBack(){
@@ -1123,7 +1115,7 @@ function closeAppUI(){
   state.currentApp=null;
   document.getElementById('app-pages').classList.remove('on');
   document.getElementById('tabbar').classList.remove('hidden');
-  const mp=document.getElementById('mini-player');if(mp)mp.classList.remove('show');
+  updateMiniPlayer();
   document.getElementById('edge-back').classList.remove('on');
   document.querySelectorAll('.tab-item').forEach(t=>t.classList.remove('on'));
   updateHome();
@@ -1217,7 +1209,7 @@ function fmtChatDate(t){
 }
 function fmtChatTime(t){const d=new Date(t);return String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');}
 /* ---- 消息渲染 ---- */
-const TYPE_LABEL={text:'[文字]',image:'[图片]',voice:'[语音]',music:'[音乐]',card:'[字卡]',location:'[位置]',file:'[文件]',poll:'[问卷]'};
+const TYPE_LABEL={text:'[文字]',image:'[图片]',voice:'[语音]',music:'[音乐]',card:'[字卡]',location:'[位置]',file:'[文件]',poll:'[题目]'};
 function msgPreviewText(m){
   if(m.recalled)return '';
   switch(m.type){
@@ -1510,6 +1502,7 @@ function toggleVoiceMode(){
   if(btn)btn.innerHTML=voiceMode?'<svg viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="2"/><path d="M10 9l4 6M14 9l-4 6"/></svg>':'<svg viewBox="0 0 24 24"><path d="M12 3a4 4 0 0 1 4 4v5a4 4 0 0 1-8 0V7a4 4 0 0 1 4-4Z"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg>';
   if(voiceMode)closeEmojiPanel();
 }
+let voiceRecTick=null;
 function initVoiceTalk(){
   const talk=document.getElementById('talk-btn');if(!talk)return;
   talk.addEventListener('click',async ()=>{
@@ -1517,22 +1510,34 @@ function initVoiceTalk(){
     if(Date.now()<state.muteEndTime){showToast('对方已被禁言');return;}
     if(!recording){
       recording=true;recordStart=Date.now();
-      talk.classList.add('recording');talk.textContent='点击 结束录音';
+      talk.classList.add('recording');talk.textContent='00:00 · 点击结束';
       startRealRecord(talk);
       return;
     }
-    recording=false;
-    clearInterval(recTimer);
-    talk.classList.remove('recording');talk.textContent='点击 开始录音';
-    const sec=(Date.now()-recordStart)/1000;
-    if(sec<0.8){stopRealRecord();showToast('说话时间太短');return;}
-    const vsec=Math.max(1,Math.min(60,Math.round(sec)));
-    const audio=await stopRealRecord();
-    pendingVoiceAudio=audio;
-    showModal('发送语音',`时长 ${vsec} 秒${audio?'（真实录音）':'（模拟音）'}，确认发送？`,
-      '<div class="modal-item" onclick="closeModal();doSendVoice('+vsec+')">发送</div>'
-      +'<div class="modal-item" onclick="closeModal();pendingVoiceAudio=null">取消</div>');
+    finishVoiceRecord(talk);
   });
+}
+async function finishVoiceRecord(talk){
+  recording=false;
+  clearInterval(recTimer);
+  if(voiceRecTick){clearInterval(voiceRecTick);voiceRecTick=null;}
+  talk.classList.remove('recording');talk.textContent='点击 开始录音';
+  const sec=(Date.now()-recordStart)/1000;
+  if(sec<0.8){stopRealRecord();showToast('说话时间太短');return;}
+  const vsec=Math.max(1,Math.min(60,Math.round(sec)));
+  const audio=await stopRealRecord();
+  pendingVoiceAudio=audio;
+  showModal('发送语音',`<div style="text-align:center;padding:10px 0 4px"><div style="font-size:38px">&#127908;</div><div style="font-size:16px;font-weight:600;margin-top:6px">${vsec} 秒${audio?' · 真实录音':' · 模拟音'}</div><div style="font-size:12px;color:var(--sub);margin-top:4px">${fmtTime(recordStart)}</div></div>
+    <button class="btn-pill ghost" style="width:100%;margin-top:12px" onclick="playPendingVoice()">&#9654; 先试听</button>`,
+    '<div class="modal-item" style="font-weight:600;color:var(--text)" onclick="closeModal();doSendVoice('+vsec+')">发送</div>'
+    +'<div class="modal-item" style="color:var(--hint)" onclick="closeModal();pendingVoiceAudio=null">取消</div>');
+}
+function playPendingVoice(){
+  if(!pendingVoiceAudio){showToast('没有可试听的音频');return;}
+  stopVoiceAudio();
+  voiceAudioEl=new Audio(pendingVoiceAudio);
+  voiceAudioEl.onended=()=>{voiceAudioEl=null;};
+  voiceAudioEl.play().catch(()=>showToast('试听失败'));
 }
 let pendingVoiceAudio=null;
 async function doSendVoice(vsec){
@@ -1541,7 +1546,16 @@ async function doSendVoice(vsec){
   showToast(audio?'语音已发送（真实录音）':'语音已发送（模拟音）');
 }
 function startRealRecord(talk){
-  recTimer=setTimeout(()=>{if(recording)talk.textContent='松开 结束 · 00:0'+(Math.floor((Date.now()-recordStart)/1000)%10);},1000);
+  const tick=()=>{
+    if(!recording)return;
+    const sec=Math.floor((Date.now()-recordStart)/1000);
+    const mm=String(Math.floor(sec/60)).padStart(2,'0'),ss=String(sec%60).padStart(2,'0');
+    talk.textContent=`${mm}:${ss} · 点击结束`;
+    if(sec>=60)finishVoiceRecord(talk);
+  };
+  tick();
+  voiceRecTick=setInterval(tick,1000);
+  recTimer=setTimeout(()=>{},0);
   if(!navigator.mediaDevices||!window.MediaRecorder)return;
   navigator.mediaDevices.getUserMedia({audio:true}).then(stream=>{
     if(!recording){stream.getTracks().forEach(t=>t.stop());return;}
@@ -1628,6 +1642,13 @@ function updateMusicIcon(){
   document.querySelectorAll('[id^="mplay-"]').forEach(el=>{el.innerHTML=musicPlayingId===el.id.slice(6)?'&#10074;&#10074;':'&#9654;';});
 }
 function stopMusicAudio(){if(musicAudioEl){try{musicAudioEl.pause();}catch(e){}musicAudioEl=null;}musicPlayingId=null;updateMusicIcon();}
+function appendEmojiPlus(body,fn){
+  const d=document.createElement('div');
+  d.className='emoji-item';d.style.border='1.5px dashed #d0d0cd';d.style.background='#fafafa';d.style.fontSize='20px';d.style.color='#b5b5b0';
+  d.innerHTML='&#43;';
+  d.onclick=fn;
+  body.appendChild(d);
+}
 /* 表情面板：表情 / 收藏 / 字卡 / 表情包 */
 let emojiOpen=false,emojiTab='emoji';
 function toggleEmojiPanel(){
@@ -1653,25 +1674,28 @@ function renderEmojiPanel(){
   body.innerHTML='';
   if(emojiTab==='emoji'){
     EMOJIS.forEach(em=>{const d=document.createElement('div');d.className='emoji-item';d.textContent=em;d.onclick=()=>{insertText(em);};body.appendChild(d);});
+    appendEmojiPlus(body,()=>{closeEmojiPanel();openApp('emoji');});
     return;
   }
   if(emojiTab==='sticker'){
     dbGetAll('emojis').then(list=>{
-      if(!list.length){body.innerHTML='<div class="emoji-empty">还没有表情包<br>去「表情包」页面上传</div>';return;}
+      if(!list.length){body.innerHTML='<div class="emoji-empty">还没有表情包<br>去「表情包」页面上传</div>';appendEmojiPlus(body,()=>{closeEmojiPanel();openApp('emoji');});return;}
       list.forEach(e=>{const d=document.createElement('div');d.className='emoji-item';d.title=e.name||'';
         if(e.src)d.innerHTML=`<img src="${e.src}">`;else d.textContent=e.name||'';
         d.onclick=()=>sendMsgObj({type:'image',images:[e.src],content:e.src,sticker:1});
         body.appendChild(d);});
+      appendEmojiPlus(body,()=>{closeEmojiPanel();openApp('emoji');});
     });
     return;
   }
   if(emojiTab==='card'){
     dbGetAll('cards').then(list=>{
-      if(!list.length){body.innerHTML='<div class="emoji-empty">还没有字卡<br>去「字卡」页面添加</div>';return;}
+      if(!list.length){body.innerHTML='<div class="emoji-empty">还没有字卡<br>去「字卡」页面添加</div>';appendEmojiPlus(body,()=>{closeEmojiPanel();openApp('cards');});return;}
       list.forEach(c=>{const d=document.createElement('div');d.className='emoji-item';d.style.width='auto';d.style.height='auto';d.style.padding='10px 14px';d.style.minWidth='58px';d.style.flexDirection='column';
         d.innerHTML=`<div style="font-size:14px;font-weight:600;color:#1a1a1a;white-space:nowrap">${esc(c.text)}</div><div style="font-size:9px;color:#aaa;margin-top:3px">${esc(c.group||'默认')}</div>`;
         d.onclick=()=>sendMsgObj({type:'card',content:c.text,sub:c.group||'星迹字卡'});
         body.appendChild(d);});
+      appendEmojiPlus(body,()=>{closeEmojiPanel();openApp('cards');});
     });
     return;
   }
@@ -1749,22 +1773,19 @@ function chatPickImage(multi){
 function showPlusMenu(){
   showModal('更多功能',`<div class="plus-grid">
     <div class="plus-item" onclick="closeModal();chatPickImage(true)"><div class="plus-icon">&#128247;</div><div class="plus-label">相册</div></div>
-    <div class="plus-item" onclick="closeModal();chatPickImage(false)"><div class="plus-icon">&#128247;</div><div class="plus-label">拍摄</div></div>
     <div class="plus-item" onclick="closeModal();sendLocation()"><div class="plus-icon">&#128205;</div><div class="plus-label">位置</div></div>
-    <div class="plus-item" onclick="closeModal();openPollModal('single')"><div class="plus-icon">&#10003;</div><div class="plus-label">问卷·单选</div></div>
-    <div class="plus-item" onclick="closeModal();openPollModal('multi')"><div class="plus-icon">&#10003;&#10003;</div><div class="plus-label">问卷·多选</div></div>
-    <div class="plus-item" onclick="closeModal();pokeChat()"><div class="plus-icon">&#129308;</div><div class="plus-label">拍一拍</div></div>
-    <div class="plus-item" onclick="closeModal();callOutgoing('video')"><div class="plus-icon">&#128249;</div><div class="plus-label">视频通话</div></div>
+    <div class="plus-item" onclick="closeModal();openPollModal('single')"><div class="plus-icon">&#10003;</div><div class="plus-label">单选</div></div>
+    <div class="plus-item" onclick="closeModal();openPollModal('multi')"><div class="plus-icon">&#10003;&#10003;</div><div class="plus-label">多选</div></div>
   </div>`);
 }
 /* ===== 问卷系统（单选 / 多选） ===== */
 function openPollModal(type){
   const multi=type==='multi';
-  showModal(multi?'发送多选问卷':'发送单选问卷',`<input class="app-input" id="poll-q" placeholder="题目" style="width:100%;margin-bottom:10px">
+  showModal(multi?'发送多选题':'发送单选题',`<input class="app-input" id="poll-q" placeholder="题目" style="width:100%;margin-bottom:10px">
     <textarea class="textarea-full" id="poll-opts" placeholder="选项，一行一个（最多 6 个）" style="min-height:110px"></textarea>
     <div style="display:flex;align-items:center;gap:10px;margin-top:10px;font-size:12px;color:var(--sub)">答题时间<select class="app-input" id="poll-time" style="padding:8px 10px;background:var(--input);border:none;border-radius:10px"><option value="60">60 秒</option><option value="120">2 分钟</option><option value="300">5 分钟</option></select></div>
     <div style="margin-top:10px;font-size:12px;color:var(--sub)">TA 主动提交概率 <b id="poll-pb">${state.prob.pollProb??10}</b>%<input type="range" min="0" max="100" value="${state.prob.pollProb??10}" oninput="document.getElementById('poll-pb').textContent=this.value" style="width:100%"></div>
-    <button class="btn-pill primary" style="width:100%;margin-top:14px" onclick="sendPoll(${multi?1:0})">发送问卷</button>`);
+    <button class="btn-pill primary" style="width:100%;margin-top:14px" onclick="sendPoll(${multi?1:0})">发送</button>`);
 }
 async function sendPoll(multi){
   const question=(document.getElementById('poll-q').value||'').trim();
@@ -1776,7 +1797,7 @@ async function sendPoll(multi){
   const m=await sendMsgObj({type:'poll',content:question,poll:{question,options:opts,multi:!!multi,timeLimit,submitProb}},true);
   closeModal();
   schedulePollAnswer(m.id);
-  showToast('问卷已发送，等待 TA 作答');
+  showToast('题目已发送，等待 TA 作答');
 }
 function schedulePollAnswer(id){
   const t=setTimeout(async()=>{
@@ -1789,7 +1810,7 @@ function schedulePollAnswer(id){
     const idxs=[];while(idxs.length<n){const i=Math.floor(Math.random()*p.options.length);if(idxs.indexOf(i)<0)idxs.push(i);}
     m.answer={sel:idxs,usedSec:Math.floor(Math.random()*((p.timeLimit||60)*0.5))+4};
     await dbPut('messages',m);
-    pushSys(`${state.other.name} 回答了你的问卷`);
+    pushSys(`${state.other.name} 回答了你的题目`);
     if(state.currentApp==='chat')renderChat(true);
   },4000+Math.random()*9000);
   pollAnswerTimers[id]=t;
@@ -1842,11 +1863,20 @@ function clearChat(){
   });
 }
 function muteOther(){
-  const opts=[[15,'15 秒'],[30,'30 秒'],[60,'1 分钟'],[120,'2 分钟'],[180,'3 分钟']];
+  const opts=[[0,'0 秒（解除）'],[15,'15 秒'],[30,'30 秒'],[60,'1 分钟'],[120,'2 分钟'],[180,'3 分钟']];
   showModal('禁言 TA',opts.map(([v,t])=>`<div class="modal-item" onclick="closeModal();doMute(${v})">${t}</div>`).join('')
     +'<div class="modal-item" onclick="closeModal()">取消</div>');
 }
-function doMute(sec){state.muteEndTime=Date.now()+sec*1000;state.muteRequest=null;saveKey('muteEndTime');showMuteBanner(sec);showToast(`已禁言 ${sec} 秒`);}
+function doMute(sec){
+  if(sec<=0){
+    state.muteEndTime=0;state.muteRequest=null;
+    saveKey('muteEndTime');saveKey('muteRequest');
+    if(muteBannerInterval)clearInterval(muteBannerInterval);
+    const b=document.getElementById('mute-banner');if(b)b.classList.remove('show');
+    showToast('已解除禁言');renderChat();return;
+  }
+  state.muteEndTime=Date.now()+sec*1000;state.muteRequest=null;saveKey('muteEndTime');showMuteBanner(sec);showToast(`已禁言 ${sec} 秒`);
+}
 function requestUnmute(){if(Date.now()>=state.muteEndTime)return;state.muteRequest={status:'pending',time:Date.now()};saveKey('muteRequest');showToast('已发送解除申请');showMuteBanner(Math.ceil((state.muteEndTime-Date.now())/1000));}
 function agreeUnmute(){if(Date.now()>=state.muteEndTime)return;state.muteEndTime=0;state.muteRequest=null;saveKey('muteEndTime');saveKey('muteRequest');if(muteBannerInterval)clearInterval(muteBannerInterval);document.getElementById('mute-banner').classList.remove('show');pushSys('对方同意了你的解除申请，禁言已解除');showToast('对方同意解除禁言');renderChat();}
 function rejectUnmute(){if(!state.muteRequest||Date.now()>=state.muteEndTime)return;state.muteRequest={status:'rejected',time:Date.now()};saveKey('muteRequest');showToast('对方拒绝了解除申请');showMuteBanner(Math.ceil((state.muteEndTime-Date.now())/1000));}
@@ -1901,10 +1931,6 @@ function renderChatInfo(){
       <div class="cs-item" onclick="openApp('chatsearch')"><span class="cs-ico">&#128269;</span><span class="cs-label">查找聊天记录</span><span class="cs-arrow">&#8250;</span></div>
       <div class="cs-item" onclick="setChatBg()"><span class="cs-ico">&#128444;</span><span class="cs-label">设置聊天背景</span><span class="cs-val">${bg?'已自定义':'默认'}</span><span class="cs-arrow">&#8250;</span></div>
       <div class="cs-item" onclick="openApp('calllog')"><span class="cs-ico">&#128222;</span><span class="cs-label">通话记录</span><span class="cs-val">${(state.callLogs||[]).length} 条</span><span class="cs-arrow">&#8250;</span></div>
-    </div>
-    <div class="cs-group">
-      <div class="cs-item" onclick="callOutgoing('video')"><span class="cs-ico">&#128249;</span><span class="cs-label">视频通话</span><span class="cs-arrow">&#8250;</span></div>
-      <div class="cs-item" onclick="pokeChat()"><span class="cs-ico">&#129308;</span><span class="cs-label">拍一拍</span><span class="cs-arrow">&#8250;</span></div>
     </div>
     <div class="cs-group">
       <div class="cs-item" onclick="muteOther()"><span class="cs-ico">&#128263;</span><span class="cs-label">禁言 TA</span>${Date.now()<state.muteEndTime?`<span class="cs-val">剩 ${Math.ceil((state.muteEndTime-Date.now())/1000)}s</span>`:''}<span class="cs-arrow">&#8250;</span></div>
@@ -2035,10 +2061,15 @@ async function renderMailbox(){
 }
 function openWriteLetter(){
   const taName=state.other.name||'TA',myName=state.me.name||'我';
-  showModal('写一封信',`<div style="padding:8px 2px 12px;font-size:13px;color:var(--sub);line-height:2">To ${esc(taName)}<br>见字如面，展信舒颜。</div>
-    <textarea class="textarea-full" id="letter-content" placeholder="写下想说的话…" style="min-height:150px"></textarea>
-    <div style="text-align:right;font-size:12px;color:var(--hint);margin:6px 2px 0">${esc(myName)} · ${fmtFull(Date.now())}</div>
-    <button class="btn-pill primary" style="width:100%;margin-top:14px" onclick="sendLetter()">寄出</button>`);
+  const today=fmtFull(Date.now());
+  showModal('写一封信',`<div class="letter-paper">
+    <div style="text-align:center;font-size:14px;font-weight:600;letter-spacing:2px;padding-bottom:8px">To ${esc(taName)}</div>
+    <div style="border-top:1px solid var(--input);margin-bottom:10px"></div>
+    <div style="font-size:13px;color:var(--hint);line-height:1.8;margin-bottom:6px">见字如面，展信舒颜。</div>
+    <textarea class="textarea-full" id="letter-content" placeholder="写下想说的话…" style="min-height:150px;background:transparent"></textarea>
+    <div style="text-align:right;font-size:12px;color:var(--hint);margin-top:10px">此致<br>${esc(myName)} · ${today}</div>
+  </div>
+  <button class="btn-pill primary" style="width:100%;margin-top:14px" onclick="sendLetter()">寄出</button>`);
 }
 async function sendLetter(){
   const content=document.getElementById('letter-content').value.trim();
@@ -2063,7 +2094,7 @@ async function viewLetter(id){
     <div style="font-size:14px;line-height:2;white-space:pre-wrap;color:var(--text)">${esc(l.content)}</div>
     <div style="text-align:right;font-size:12px;color:var(--hint);margin-top:14px">${esc(from)} · 展信舒颜</div>
   </div>`;
-  showModal('信',html+(l.sender==='me'?'':'<div class="modal-item" onclick="closeModal();replyLetter('+l.id+')">回复 TA</div>'));
+  showModal('信',html+(l.sender==='me'?'<div class="modal-item" onclick="closeModal();editLetter('+l.id+')">&#9998; 修改这封信</div>':'<div class="modal-item" onclick="closeModal();replyLetter('+l.id+')">回复 TA</div>'));
 }
 async function editLetter(id){
   const letters=await dbGetAll('letters');const l=letters.find(x=>x.id===id);if(!l||l.sender!=='me')return;
@@ -2184,6 +2215,24 @@ async function saveDiary(){
 }
 
 /* ===== MOMENTS ===== */
+function openMomentsSettings(){
+  const p=state.prob;
+  const postOn=state.stats.momentsAllowPost===0?'已关闭':'已开启';
+  const cOn=state.stats.momentsAllowComment===0?'已关闭':'已开启';
+  const eOn=state.stats.momentsAllowEmoji===0?'已关闭':'已开启';
+  showModal('朋友圈设置',`<div style="padding:4px 2px 10px;font-size:12px;color:var(--hint)">以下均为 TA 的随机行为，修改即时保存</div>
+    <div style="padding:10px 2px;font-size:14px">TA 产出朋友圈 / 日记概率 <b id="ms-prob">${p.momentProb??25}</b>%</div>
+    <input type="range" min="0" max="100" value="${p.momentProb??25}" oninput="document.getElementById('ms-prob').textContent=this.value;state.prob.momentProb=parseInt(this.value);saveKey('prob')" style="width:100%">
+    <div class="modal-item" onclick="toggleMomentsOpt('post')">允许 TA 发布朋友圈：${postOn}</div>
+    <div class="modal-item" onclick="toggleMomentsOpt('comment')">允许 TA 评论：${cOn}</div>
+    <div class="modal-item" onclick="toggleMomentsOpt('emoji')">允许 TA 表情回应：${eOn}</div>`);
+}
+function toggleMomentsOpt(k){
+  if(k==='post')state.stats.momentsAllowPost=state.stats.momentsAllowPost===0?1:0;
+  else if(k==='comment')state.stats.momentsAllowComment=state.stats.momentsAllowComment===0?1:0;
+  else state.stats.momentsAllowEmoji=state.stats.momentsAllowEmoji===0?1:0;
+  saveKey('stats');showToast('已更新');openMomentsSettings();
+}
 const TA_MOMENT_LINES=[
   '今天的晚霞，想和你一起看。','刚跑完步，微风吹过来的时候在想你。',
   '偶然听到一首歌，歌词里全是我们的影子。','咖啡店的猫今天一直蹭我，它好像知道我想你。',
@@ -2198,7 +2247,7 @@ async function renderMoments(){
   const body=document.getElementById('moments-body');body.innerHTML='';
   let moments=await dbGetAll('moments');
   const ta=Math.floor(moments.filter(m=>m.owner==='other').length);
-  if(ta<1&&Math.random()<((state.prob.momentProb??25)/100)){
+  if(ta<1&&state.stats.momentsAllowPost!==0&&Math.random()<((state.prob.momentProb??25)/100)){
     const line=TA_MOMENT_LINES[Math.floor(Math.random()*TA_MOMENT_LINES.length)];
     await dbPut('moments',{owner:'other',name:state.other.name,content:line,time:Date.now()-Math.floor(Math.random()*6)*3600000,likes:0,comments:[],read:true});
   }
@@ -2206,7 +2255,7 @@ async function renderMoments(){
   // 标记 TA 动态已读
   for(const m of moments)if(m.owner==='other'&&!m.read){m.read=true;await dbPut('moments',m);}
   updateTabBadge('moments',0);
-  if(!moments.length){body.innerHTML='<div class="empty">还没有动态<br>分享你的第一条动态吧</div>';}
+  if(!moments.length){body.innerHTML='<div class="empty">还没有朋友圈<br>分享你的第一条动态吧</div>';}
   moments.sort((a,b)=>b.time-a.time);
   for(const m of moments){
     const likeByMe=m.likedByMe?'已赞':'赞';
@@ -2300,22 +2349,13 @@ const ROOM_ACTIONS={
   '镜':['正在照镜子','对着镜子微笑','轻轻整理头发','镜中的眼神很温柔'],
   '毯':['裹在毯子里','轻轻拉起毯子','毯子里的身影很温暖','蜷缩在毯子里']
 };
-let roomState={preset:'我的房间',cols:6,rows:4,grid:Array(24).fill(null),taPos:-1};
-let roomPresets={'我的房间':{cols:6,rows:4,grid:['衣',null,'桌',null,'柜',null,null,null,'椅',null,'床',null,'窗',null,null,'门',null,'沙',null,'床',null,null,null,null]}};
+let roomState={preset:'房间',cols:6,rows:4,grid:Array(24).fill(null),taPos:-1};
+let roomPresets={'房间':{cols:6,rows:4,grid:Array(24).fill(null)}};
 let roomPickerOpen=false,dragFromIdx=-1;
 
 function initRoom(){
-  const saved=localStorage.getItem('xingji-room');
-  if(saved){
-    try{
-      const d=JSON.parse(saved);
-      roomPresets=d.presets||roomPresets;
-      roomState.preset=d.preset||'我的房间';
-      const p=roomPresets[roomState.preset];
-      roomState.cols=p.cols||6;roomState.rows=p.rows||4;
-      roomState.grid=[...(p.grid||Array(24).fill(null))];
-    }catch(e){roomState.grid=[...roomPresets['我的房间'].grid];roomState.cols=6;roomState.rows=4;}
-  }else{roomState.cols=6;roomState.rows=4;roomState.grid=[...roomPresets['我的房间'].grid];}
+  // 感应页：固定 4 行 × 6 列，默认全空，不预置任何内容
+  roomState.cols=6;roomState.rows=4;roomState.grid=Array(24).fill(null);roomState.taPos=-1;roomState.preset='房间';
   renderRoom();
 }
 function roomDims(){return{cols:roomState.cols,rows:roomState.rows,total:roomState.cols*roomState.rows};}
@@ -2338,10 +2378,6 @@ function roomResize(delta,type){
 function renderRoom(){
   const grid=document.getElementById('room-grid');if(!grid)return;
   let placed=false;
-  if(roomState.taPos===-1){
-    const idxs=roomState.grid.map((it,i)=>it?i:-1).filter(i=>i!==-1);
-    if(idxs.length){roomState.taPos=idxs[Math.floor(Math.random()*idxs.length)];placed=true;}
-  }
   grid.style.gridTemplateColumns=`repeat(${roomState.cols},1fr)`;
   grid.innerHTML='';
   roomState.grid.forEach((item,i)=>{
@@ -2465,6 +2501,15 @@ function deleteRoomPreset(){
   });
 }
 function doSense(){initRoom();}
+function senseTA(){
+  const idx=Math.floor(Math.random()*24);
+  roomState.taPos=idx;
+  const item=roomState.grid[idx];
+  const actions=item?ROOM_ACTIONS[item]:['在房间的某个角落','正在房间里走动','好像刚进房间','在房间发呆','在房间的窗边站着'];
+  const action=actions[Math.floor(Math.random()*actions.length)];
+  document.getElementById('room-info-sub').textContent='TA '+action;
+  saveRoom();renderRoom();showToast('感应完成');
+}
 function saveRoomLayout(){saveRoom();showToast('布局已保存');}
 
 /* ===== COMPANION ===== */
@@ -2547,13 +2592,14 @@ function fmtDuration(ms){
 const SMALL_GAMES=[
   {id:'dice',name:'掷骰子',desc:'掷一枚六面骰，TA 看到结果后会回应。',action:gameDice},
   {id:'coin',name:'抛硬币',desc:'正面或反面，和 TA 一起决定。',action:gameCoin},
-  {id:'fortune',name:'今日运势',desc:'抽一张运势签，两个人的运势都写在上面。',action:gameFortune}
+  {id:'fortune',name:'今日运势',desc:'抽一张运势签，两个人的运势都写在上面。',action:gameFortune},
+  {id:'rps',name:'猜拳',desc:'石头剪刀布，赢了 TA 会开心很久。',action:gameRPS}
 ];
 function renderEntertain(){
   const body=document.getElementById('entertain-body');body.innerHTML='';
-  body.innerHTML+=`<div class="list-card" onclick="openApp('music')"><div class="list-card-title">&#127925; 音乐</div><div class="list-card-sub">播放与分享音乐</div></div>`;
-  SMALL_GAMES.forEach(g=>{body.innerHTML+=`<div class="list-card" onclick="playGame('${g.id}')"><div class="list-card-title">&#127918; ${g.name}</div><div class="list-card-sub">${esc(g.desc)}</div></div>`;});
-  body.innerHTML+='<div class="empty" style="padding:22px 20px;font-size:12px">更多玩法在聊天的「+」面板里</div>';
+  body.innerHTML='<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:12px">';
+  SMALL_GAMES.forEach(g=>{body.innerHTML+=`<div class="list-card" style="margin:0;display:flex;flex-direction:column;align-items:center;gap:8px;padding:18px 10px;text-align:center;cursor:pointer" onclick="playGame('${g.id}')"><div style="font-size:34px">&#127918;</div><div class="list-card-title">${g.name}</div><div class="list-card-sub">${esc(g.desc)}</div></div>`;});
+  body.innerHTML+='</div><div class="empty" style="padding:20px 20px;font-size:12px">更多玩法在聊天的「+」面板里</div>';
 }
 function playGame(id){
   const g=SMALL_GAMES.find(x=>x.id===id);if(!g)return;
@@ -2575,6 +2621,14 @@ function gameCoin(){
   const replies={'正面':'你赢了，听你的。','反面':'那听我的咯。'};
   setTimeout(()=>{pushReply(replies[r]);closeModal();showToast(`${state.other.name} 回应了抛硬币`);},3000);
 }
+function gameRPS(){
+  const me=Math.floor(Math.random()*3),ta=Math.floor(Math.random()*3);
+  const names=['石头','剪刀','布'];
+  const box=document.getElementById('game-result');
+  box.innerHTML=`<div style="font-size:15px;color:var(--hint)">你出 ${names[me]} · TA 出 ${names[ta]}</div><div style="font-size:34px;font-weight:700;margin-top:8px">${me===ta?'平手':((me+1)%3===ta?'你赢了':'TA 赢了')}</div>`;
+  const txt=me===ta?'居然平手，心有灵犀。':((me+1)%3===ta?'你赢了，愿赌服输，听你的。':'我赢啦，但你开心就好。');
+  setTimeout(()=>{pushReply(txt);closeModal();showToast(`${state.other.name} 回应了猜拳`);},3000);
+}
 function gameFortune(){
   const fortunes=['吉','小吉','平','微末'];
   const f=fortunes[Math.floor(Math.random()*fortunes.length)];
@@ -2585,17 +2639,34 @@ function gameFortune(){
   setTimeout(()=>{pushReply(texts[f]);closeModal();showToast(`${state.other.name} 回应了运势签`);},3000);
 }
 
-/* ===== MUSIC PLAYER（桌面小组件 + 悬浮迷你播放器） ===== */
-let musicIndex=-1,musicPlaying=false,musicTimer=null;
+/* ===== MUSIC PLAYER（桌面小组件 + 悬浮迷你播放器：播放后才悬浮、可拖动/贴边/收起） ===== */
+let musicIndex=-1,musicPlaying=false,musicTimer=null,musicAudio=null;
+let musicState={playlists:[{name:'默认歌单',items:[]}],active:0};
+function loadMusicState(){
+  try{
+    const d=JSON.parse(localStorage.getItem('xingji-music')||'null');
+    if(d&&d.playlists&&d.playlists.length)musicState=d;
+  }catch(e){}
+}
+function saveMusicState(){localStorage.setItem('xingji-music',JSON.stringify(musicState));}
+function allMusicItems(){return (musicState.playlists[musicState.active]||{items:[]}).items||[];}
+function curTrack(){const it=allMusicItems();return musicIndex>=0&&musicIndex<it.length?it[musicIndex]:null;}
 function updateMusicUI(){
-  const cur=musicIndex>=0?MUSIC_LIST[musicIndex]:null;
-  const name=cur?cur.title:'未在播放',artist=cur?cur.artist:'星迹音乐';
+  const cur=curTrack();
+  const name=cur?cur.title:'未在播放',artist=cur?(cur.artist||'星迹音乐'):'星迹音乐';
   const set=(id,v)=>{const e=document.getElementById(id);if(e)e.textContent=v;};
   set('mw-name',name);set('mw-artist',cur?'点击播放音乐':'点击播放音乐');
   set('mp-name',name);set('mp-artist',artist);
   set('mw-play',musicPlaying?'&#10074;&#10074;':'&#9654;');
   set('mp-play',musicPlaying?'&#10074;&#10074;':'&#9654;');
   const big=document.getElementById('mp-big-play');if(big)big.textContent=musicPlaying?'&#10074;&#10074;':'&#9654;';
+  if(state.currentApp==='music')renderMusic();
+}
+function updateMiniPlayer(){
+  const mp=document.getElementById('mini-player');
+  if(!mp)return;
+  const inPage=document.getElementById('app-pages').classList.contains('on');
+  if(musicPlaying&&inPage)mp.classList.add('show');else mp.classList.remove('show');
 }
 function playToneSeq(freq){
   try{
@@ -2611,106 +2682,229 @@ function playToneSeq(freq){
     });
   }catch(e){}
 }
-function playIndex(i){
-  musicIndex=(i+MUSIC_LIST.length)%MUSIC_LIST.length;
-  musicPlaying=true;updateMusicUI();
-  playToneSeq(MUSIC_LIST[musicIndex].tone);
+function stopMusicAudio2(){
+  if(musicAudio){try{musicAudio.pause();}catch(e){}musicAudio=null;}
   clearTimeout(musicTimer);
-  musicTimer=setTimeout(()=>{if(musicPlaying)nextTrack();},3500);
+}
+function playIndex(i){
+  const it=allMusicItems();
+  if(!it.length){musicIndex=-1;musicPlaying=false;updateMusicUI();updateMiniPlayer();showToast('歌单还是空的，先去导入音乐');return;}
+  musicIndex=(i+it.length)%it.length;
+  musicPlaying=true;updateMusicUI();updateMiniPlayer();
+  const cur=curTrack();stopMusicAudio2();
+  if(cur&&cur.src){
+    musicAudio=new Audio(cur.src);
+    musicAudio.onended=()=>{if(musicPlaying)nextTrack();};
+    musicAudio.onerror=()=>{showToast('无法播放该音频（可能被平台限制）');stopMusicAudio2();musicPlaying=false;updateMusicUI();updateMiniPlayer();};
+    musicAudio.play().catch(()=>{showToast('播放被拦截，请点击播放器重试');stopMusicAudio2();musicPlaying=false;updateMusicUI();updateMiniPlayer();});
+  }else{
+    playToneSeq(cur&&cur.tone?cur.tone:261.6);
+    clearTimeout(musicTimer);
+    musicTimer=setTimeout(()=>{if(musicPlaying)nextTrack();},3400);
+  }
 }
 function toggleMiniPlay(){
+  const it=allMusicItems();
+  if(!it.length){openMusicPlayer();return;}
   if(musicIndex<0){playIndex(0);return;}
-  musicPlaying=!musicPlaying;
-  if(musicPlaying){playToneSeq(MUSIC_LIST[musicIndex].tone);clearTimeout(musicTimer);musicTimer=setTimeout(()=>{if(musicPlaying)nextTrack();},3500);}
-  else{clearTimeout(musicTimer);}
-  updateMusicUI();
+  musicPlaying=!musicPlaying;updateMusicUI();updateMiniPlayer();
+  const cur=curTrack();
+  if(musicPlaying){
+    if(cur&&cur.src){
+      if(!musicAudio){
+        musicAudio=new Audio(cur.src);
+        musicAudio.onended=()=>{if(musicPlaying)nextTrack();};
+        musicAudio.onerror=()=>{showToast('播放失败');stopMusicAudio2();musicPlaying=false;updateMusicUI();updateMiniPlayer();};
+      }
+      musicAudio.play().catch(()=>showToast('播放被拦截'));
+    }else{
+      playToneSeq(cur&&cur.tone?cur.tone:261.6);
+      clearTimeout(musicTimer);
+      musicTimer=setTimeout(()=>{if(musicPlaying)nextTrack();},3400);
+    }
+  }else{stopMusicAudio2();}
 }
-function nextTrack(){playIndex(musicIndex+1);}
-function prevTrack(){playIndex(musicIndex-1);}
+function nextTrack(){
+  const it=allMusicItems();
+  if(!it.length)return;
+  if(musicPlaying||musicIndex>=0)playIndex(musicIndex+1);else playIndex(0);
+}
+function prevTrack(){
+  const it=allMusicItems();
+  if(!it.length)return;
+  if(musicPlaying||musicIndex>=0)playIndex(musicIndex-1);else playIndex(0);
+}
 function openMusicPlayer(){
-  const cur=musicIndex>=0?MUSIC_LIST[musicIndex]:null;
-  showModal('音乐',`<div style="text-align:center;padding:14px 0 6px"><div style="width:116px;height:116px;border-radius:22px;background:var(--text);color:var(--bg);display:flex;align-items:center;justify-content:center;font-size:42px;margin:0 auto 14px">&#127925;</div><div style="font-size:17px;font-weight:600">${esc(cur?cur.title:'未在播放')}</div><div style="font-size:13px;color:var(--sub);margin-top:4px">${esc(cur?cur.artist:'星迹音乐')}</div></div>
-    <div style="display:flex;justify-content:center;align-items:center;gap:36px;padding:18px 0 12px;font-size:24px">
+  const cur=curTrack();
+  const it=allMusicItems();
+  const pl=musicState.playlists[musicState.active];
+  let prog='--:-- / --:--';
+  if(musicAudio&&musicAudio.duration)prog=Math.floor(musicAudio.currentTime)+' / '+Math.floor(musicAudio.duration);
+  else if(cur&&cur.dur)prog='0:00 / '+cur.dur;
+  showModal('音乐',`<div style="text-align:center;padding:14px 0 6px"><div style="width:116px;height:116px;border-radius:22px;background:var(--text);color:var(--bg);display:flex;align-items:center;justify-content:center;font-size:42px;margin:0 auto 14px">&#127925;</div><div style="font-size:17px;font-weight:600">${esc(cur?cur.title:'未在播放')}</div><div style="font-size:13px;color:var(--sub);margin-top:4px">${esc(cur?(cur.artist||'星迹音乐'):'歌单「'+esc(pl.name)+'」')}</div>
+    <div style="font-size:11px;color:var(--hint);margin-top:6px" id="mp-prog">${prog}</div></div>
+    <div style="display:flex;justify-content:center;align-items:center;gap:36px;padding:14px 0 10px;font-size:24px">
       <span style="cursor:pointer" onclick="prevTrack()">&#8249;</span>
       <span style="cursor:pointer;font-size:30px" onclick="toggleMiniPlay()" id="mp-big-play">&#9654;</span>
       <span style="cursor:pointer" onclick="nextTrack()">&#8250;</span>
     </div>
+    <div style="text-align:center;font-size:11px;color:var(--hint);margin-bottom:4px">歌单「${esc(pl.name)}」 · ${it.length} 首</div>
     <button class="btn-pill ghost" style="width:100%" onclick="closeModal();openApp('music')">打开音乐库</button>`);
   updateMusicUI();
+  if(musicAudio&&musicPlaying){
+    const pr=document.getElementById('mp-prog');
+    if(pr)musicAudio.ontimeupdate=()=>{if(musicAudio&&musicAudio.duration)pr.textContent=Math.floor(musicAudio.currentTime)+' / '+Math.floor(musicAudio.duration);};
+  }
 }
+/* 迷你播放器：拖动 / 贴边 / 双击收起成小圆球 */
+function bindMiniPlayer(){
+  const mp=document.getElementById('mini-player');if(!mp||mp._bound)return;mp._bound=1;
+  let sx=0,sy=0,dx=0,dy=0,dragging=false,moved=false;
+  const phone=()=>document.getElementById('phone').getBoundingClientRect();
+  const start=e=>{
+    const p=e.touches?e.touches[0]:e;
+    sx=p.clientX;sy=p.clientY;
+    const r=mp.getBoundingClientRect();
+    dx=r.left;dy=r.top;dragging=true;moved=false;
+  };
+  const move=e=>{
+    if(!dragging)return;
+    const p=e.touches?e.touches[0]:e;
+    const nx=dx+p.clientX-sx,ny=dy+p.clientY-sy;
+    if(Math.abs(p.clientX-sx)>4||Math.abs(p.clientY-sy)>4)moved=true;
+    mp.style.left=nx+'px';mp.style.right='auto';mp.style.top=ny+'px';
+  };
+  const end=()=>{
+    if(!dragging)return;dragging=false;
+    if(!moved){return;}
+    const r=mp.getBoundingClientRect(),w=phone().width;
+    if(r.left+r.width/2<w/2){mp.style.left='8px';mp.style.right='auto';}
+    else{mp.style.right='8px';mp.style.left='auto';}
+    if(r.top<40)mp.style.top='40px';
+  };
+  mp.addEventListener('touchstart',start,{passive:true});
+  mp.addEventListener('touchmove',move,{passive:true});
+  mp.addEventListener('touchend',end);
+  mp.addEventListener('mousedown',e=>{start(e);const mv=ev=>move(ev);const up=()=>{document.removeEventListener('mousemove',mv);document.removeEventListener('mouseup',up);end();};document.addEventListener('mousemove',mv);document.addEventListener('mouseup',up);});
+  mp.addEventListener('dblclick',()=>{mp.classList.toggle('ball');});
+}
+
 /* ===== MUSIC ===== */
-const MUSIC_LIST=[
-  {id:1,title:'晴天',artist:'周杰伦',tone:261.6},
-  {id:2,title:'起风了',artist:'买辣椒也用券',tone:293.7},
-  {id:3,title:'海底',artist:'一支榴莲',tone:220},
-  {id:4,title:'漠河舞厅',artist:'柳爽',tone:246.9}
-];
+const MUSIC_LIST=[]; // 已清空内置数据，音乐全部来自用户导入（链接 / 本地）
 let myAudio=null;
 function renderMusic(){
   const body=document.getElementById('music-body');body.innerHTML='';
-  body.innerHTML+='<div class="empty" style="padding:12px 4px 16px;text-align:left;font-size:12px;line-height:1.7">点 ▶ 用星迹内置音色试听；导入本地音频后可播放并分享进聊天。</div>';
-  MUSIC_LIST.forEach(m=>{
-    body.innerHTML+=`<div class="list-card" style="display:flex;align-items:center;gap:10px">
-      <div style="width:44px;height:44px;border-radius:10px;background:var(--c-pink);display:flex;align-items:center;justify-content:center;font-size:18px;color:#fff;flex-shrink:0">&#127925;</div>
-      <div style="flex:1;min-width:0"><div class="list-card-title">${esc(m.title)}</div><div class="list-card-sub">${esc(m.artist)}</div></div>
-      <button class="btn-pill ghost" style="padding:6px 10px;flex-shrink:0" onclick="previewTone(${m.tone},this)">&#9654;</button>
-      <button class="btn-pill ghost" style="padding:6px 10px;flex-shrink:0" onclick="shareMusic('${esc(m.title)}','${esc(m.artist)}')">分享</button></div>`;
-  });
-  body.innerHTML+='<button class="btn-pill primary" style="width:100%;margin-top:12px" onclick="importAudio()">&#128193; 导入本地音乐</button>';
-  const saved=state.skin.savedAudio;
-  if(saved&&saved.name){
-    body.innerHTML+=`<div class="list-card" style="margin-top:12px;display:flex;align-items:center;gap:10px">
-      <div class="msg-card-ico">&#128266;</div>
-      <div style="flex:1;min-width:0"><div class="list-card-title">${esc(saved.name)}</div><div class="list-card-sub">本地导入</div></div>
-      <button class="btn-pill primary" style="padding:6px 10px;flex-shrink:0" onclick="playLocalAudio(this)">&#9654;</button>
-      <button class="btn-pill ghost" style="padding:6px 10px;flex-shrink:0" onclick="removeLocalAudio()">移除</button></div>`;
+  const pls=musicState.playlists;
+  const pl=pls[musicState.active]||pls[0];
+  body.innerHTML=`
+    <div style="display:flex;gap:6px;align-items:center;margin-bottom:12px;flex-wrap:wrap">
+      ${pls.map((p,i)=>`<button class="tab${i===musicState.active?' active':''}" style="flex:0 0 auto;padding:7px 12px;font-size:12px" onclick="switchMusicPlaylist(${i})">${esc(p.name)}${p.items.length?' ('+p.items.length+')':''}</button>`).join('')}
+      <button class="tab" style="flex:0 0 auto;padding:7px 10px;font-size:12px" onclick="newPlaylist()">+ 新歌单</button>
+    </div>
+    <div id="music-list"></div>
+    <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap">
+      <button class="btn-pill primary" style="flex:1;min-width:46%" onclick="openImportMusic()">&#128279; 解析链接导入</button>
+      <button class="btn-pill ghost" style="flex:1;min-width:46%" onclick="importLocalAudio()">&#128193; 导入背景音乐</button>
+    </div>
+    <div style="font-size:11px;color:var(--hint);margin-top:10px;line-height:1.8">支持网易云 / 汽水音乐的公开分享链接（单曲）；本地音频也可导入。导入的数据仅存本机，可分享进聊天。</div>`;
+  renderMusicList();
+}
+function switchMusicPlaylist(i){
+  if(i<0||i>=musicState.playlists.length)return;
+  musicState.active=i;musicIndex=-1;saveMusicState();renderMusic();updateMusicUI();
+}
+function newPlaylist(){
+  showModal('新建歌单','<input class="app-input" id="pl-name" placeholder="歌单名称" style="width:100%">','<div class="modal-item" onclick="saveNewPlaylist()">创建</div>');
+}
+function saveNewPlaylist(){
+  const name=(document.getElementById('pl-name').value||'').trim();
+  if(!name){showToast('请输入名称');return;}
+  musicState.playlists.push({name,items:[]});
+  musicState.active=musicState.playlists.length-1;musicIndex=-1;
+  saveMusicState();closeModal();renderMusic();updateMusicUI();showToast('已创建歌单');
+}
+function renderMusicList(){
+  const box=document.getElementById('music-list');if(!box)return;
+  const it=allMusicItems();
+  if(!it.length){box.innerHTML='<div class="empty">歌单是空的<br>用「解析链接导入」或「导入背景音乐」添加</div>';return;}
+  box.innerHTML=it.map((m,i)=>`<div class="list-card" style="display:flex;align-items:center;gap:10px">
+    <div style="width:40px;height:40px;border-radius:10px;background:var(--text);color:var(--bg);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;cursor:pointer" onclick="playMusicIdx(${i})">${musicPlaying&&musicIndex===i?'&#10074;&#10074;':'&#9654;'}</div>
+    <div style="flex:1;min-width:0"><div class="list-card-title">${esc(m.title)}</div><div class="list-card-sub">${esc(m.artist||'未知歌手')} · ${m.src?'链接音频':(m.tone?'合成音':'本地')}</div></div>
+    <button class="btn-pill ghost" style="padding:5px 9px;flex-shrink:0" onclick="shareMusicItem(${i})">分享</button>
+    <span style="cursor:pointer;color:#c0392b;padding:2px 6px;flex-shrink:0" onclick="delMusicItem(${i})">&#10005;</span></div>`).join('');
+}
+function playMusicIdx(i){
+  if(musicPlaying&&musicIndex===i){musicPlaying=false;stopMusicAudio2();updateMusicUI();updateMiniPlayer();renderMusic();return;}
+  playIndex(i);renderMusic();
+}
+function openImportMusic(){
+  showModal('解析链接导入','<div style="font-size:12px;color:var(--sub);margin-bottom:8px">粘贴网易云 / 汽水音乐的公开分享链接（单曲即可）：</div><textarea class="textarea-full" id="import-link" placeholder="例如：https://music.163.com/#/song?id=186016" style="min-height:70px"></textarea><div style="font-size:11px;color:var(--hint);margin-top:6px">歌单链接请先打开网页版，把歌曲链接逐条粘贴进来；无法识别的链接会退回手动添加。</div>','<div class="modal-item" onclick="doImportMusic()">开始解析</div>');
+}
+async function doImportMusic(){
+  const raw=(document.getElementById('import-link').value||'').trim();
+  if(!raw){showToast('请先粘贴链接');return;}
+  const urls=raw.split(/\s+/).filter(Boolean);
+  let added=0,playlists=0;
+  for(const u of urls){
+    if(/playlist(?:\?id=|\/)\d+/i.test(u)){playlists++;continue;}
+    const ids=extractNeteaseIds(u);
+    if(ids&&ids.length){
+      for(const id of ids){
+        const src='https://music.163.com/song/media/outer/url?id='+id+'.mp3';
+        addMusicItem('网易云音乐 #'+id,'公开链接',src,0);
+        added++;
+      }
+    }else{
+      addMusicItem(u.slice(0,22)+'…','未识别链接',null,220+Math.floor(Math.random()*100));
+      added++;
+    }
   }
+  closeModal();renderMusic();updateMusicUI();
+  let msg='已导入 '+added+' 首'+(added?'（链接音频需联网播放）':'');
+  if(playlists)msg+='；检测到 '+playlists+' 个歌单链接，请逐条粘贴歌曲链接导入';
+  showToast(msg);
 }
-function previewTone(freq,btn){
-  if(btn&&btn.textContent==='⏸'){if(myAudio)myAudio.pause();if(btn)btn.textContent='\u25B6';return;}
-  if(btn)btn.textContent='⏸';
-  try{
-    if(!voiceAudioCtx)voiceAudioCtx=new (window.AudioContext||window.webkitAudioContext)();
-    const ctx=voiceAudioCtx;
-    [freq,freq*1.25,freq*1.5,freq*2].forEach((f,i)=>{
-      const o=ctx.createOscillator(),g=ctx.createGain();
-      o.type='triangle';o.frequency.value=f;
-      const t0=ctx.currentTime+i*0.28;
-      g.gain.setValueAtTime(0,t0);g.gain.linearRampToValueAtTime(.13,t0+.08);
-      g.gain.exponentialRampToValueAtTime(.001,t0+1.3);
-      o.connect(g);g.connect(ctx.destination);o.start(t0);o.stop(t0+1.4);
-    });
-    setTimeout(()=>{if(btn)btn.textContent='\u25B6';},3400);
-  }catch(e){showToast('当前环境不支持播放');}
+function extractNeteaseIds(url){
+  const ids=[];
+  const m=url.match(/song(?:\?id=|\/)(\d+)/);
+  if(m)ids.push(m[1]);
+  const all=(url.match(/(\d{6,})/g)||[]);
+  for(const a of all)if(!ids.includes(a))ids.push(a);
+  return ids.length?ids.slice(0,12):null;
 }
-function importAudio(){
+function addMusicItem(title,artist,src,tone){
+  const pl=musicState.playlists[musicState.active];
+  pl.items.push({id:'m'+Date.now()+Math.random().toString(36).slice(2,6),title,artist,src:src||null,tone:tone||0,time:Date.now()});
+  saveMusicState();
+}
+function delMusicItem(i){
+  const pl=musicState.playlists[musicState.active];
+  if(!pl||!pl.items[i])return;
+  if(musicIndex===i){stopMusicAudio2();musicPlaying=false;musicIndex=-1;updateMusicUI();updateMiniPlayer();}
+  pl.items.splice(i,1);
+  if(musicIndex>i)musicIndex--;
+  saveMusicState();renderMusic();
+}
+function shareMusicItem(i){
+  const pl=musicState.playlists[musicState.active];
+  const m=pl&&pl.items[i];if(!m)return;
+  sendMsgObj({type:'music',content:m.title,sub:m.artist||'星迹音乐',src:m.src||null});
+  showToast(`已分享《${m.title}》到聊天`);
+}
+function importLocalAudio(){
   const input=document.createElement('input');input.type='file';input.accept='audio/*';
-  input.onchange=async e=>{
+  input.onchange=e=>{
     const f=e.target.files[0];if(!f)return;
-    if(f.size>6*1024*1024){showToast('音频超过 6MB，请换一个小文件');return;}
-    showToast('正在导入音频…');
+    if(f.size>8*1024*1024){showToast('音频超过 8MB，请换一个小文件');return;}
+    showToast('正在导入…');
     const fr=new FileReader();
-    fr.onload=()=>{state.skin.savedAudio={name:f.name,src:fr.result};saveKey('skin');renderMusic();showToast('导入成功，可点击播放');};
+    fr.onload=()=>{addMusicItem(f.name.replace(/\.[^.]+$/,''),'本地导入',fr.result,0);renderMusic();updateMusicUI();showToast('导入成功');};
     fr.readAsDataURL(f);
   };
   input.click();
 }
-function playLocalAudio(btn){
-  if(btn&&btn.textContent==='⏸'){if(myAudio)myAudio.pause();if(btn)btn.textContent='\u25B6';return;}
-  const a=state.skin.savedAudio;if(!a||!a.src)return;
-  if(myAudio)myAudio.pause();
-  myAudio=new Audio(a.src);
-  myAudio.onended=()=>{if(btn)btn.textContent='\u25B6';};
-  myAudio.play().then(()=>{if(btn)btn.textContent='⏸';}).catch(()=>showToast('播放失败'));
-}
-function removeLocalAudio(){state.skin.savedAudio=null;saveKey('skin');renderMusic();showToast('已移除');}
-function shareMusic(title,artist){
-  const a=state.skin.savedAudio;
-  sendMsgObj({type:'music',content:title,sub:artist||'',src:a&&a.name===title?a.src:null});
-  showToast(`已分享《${title}》到聊天`);
-}
 
-/* ===== THEME ===== */
+/* ===== THEME ===== *//* ===== THEME ===== */
 function renderTheme(){
   const body=document.getElementById('theme-body');body.innerHTML='';
   THEMES.forEach(t=>{body.innerHTML+=`<div class="list-card" style="display:flex;align-items:center;gap:12px;cursor:pointer" onclick="applyTheme('${t.id}')"><div style="width:36px;height:36px;border-radius:50%;background:${t.primary}"></div><div style="flex:1"><div class="list-card-title">${t.name}</div></div>${state.skin.themeId===t.id?'&#10004;':''}</div>`;});
@@ -2744,8 +2938,8 @@ function renderProbability(){
       <button class="btn-pill ghost" style="width:100%;margin-top:10px" onclick="resetProb()">恢复默认 (70 / 25 / 5)</button>
     </div>
     <div class="list-card">
-      <div class="list-card-title">问卷 / 动态概率</div>
-      <div style="margin-top:10px;font-size:12px;color:var(--sub)">TA 主动提交问卷 <b id="lb-poll">${p.pollProb??10}</b>%</div>
+      <div class="list-card-title">题目 / 动态概率</div>
+      <div style="margin-top:10px;font-size:12px;color:var(--sub)">TA 主动提交题目 <b id="lb-poll">${p.pollProb??10}</b>%</div>
       <input type="range" min="0" max="100" value="${p.pollProb??10}" oninput="setProb('pollProb',this.value,null,null)" style="width:100%">
       <div style="margin-top:10px;font-size:12px;color:var(--sub)">TA 产出朋友圈 / 日记 <b id="lb-moment">${p.momentProb??25}</b>%</div>
       <input type="range" min="0" max="100" value="${p.momentProb??25}" oninput="setProb('momentProb',this.value,null,null)" style="width:100%">
@@ -2803,7 +2997,6 @@ async function renderCards(){
     <button class="tab" style="flex:0 0 auto;padding:8px 14px" onclick="addCardGroup()">+ 分组</button>
     <button class="tab" style="flex:0 0 auto;padding:8px 14px;color:#c0392b" onclick="delCardGroup()">&#128465;</button></div>
     <div style="display:flex;gap:8px;margin-bottom:12px">
-      <button class="btn-pill primary" style="flex:1" onclick="addCard()">+ 添加字卡</button>
       <button class="btn-pill ghost" style="flex:1" onclick="exportCards()">导出字卡</button>
     </div>
     <div class="search-bar">&#128269;<input type="text" id="card-search" placeholder="搜索字卡" oninput="filterCards(this.value)"></div>
@@ -2817,12 +3010,13 @@ function renderCardList(){
   dbGetAll('cards').then(all=>{
     const list=all.filter(c=>cardGroupFilter==='全部'||(c.group||'默认')===cardGroupFilter).sort((a,b)=>b.time-a.time);
     const box=document.getElementById('card-list');
-    if(!list.length){box.innerHTML='<div class="empty">这个分组还没有字卡<br>点上方「添加字卡」</div>';return;}
+    if(!list.length){box.innerHTML='<div class="empty">这个分组还没有字卡<br>点击下方 + 添加</div><div style="width:100%;height:56px;border:1.5px dashed #d0d0cd;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:22px;color:#b5b5b0;cursor:pointer;margin-top:10px" onclick="addCard()">+</div>';return;}
     box.innerHTML=list.map(c=>`<div class="list-card" style="display:flex;align-items:center;gap:10px;cursor:pointer" data-t="${esc((c.text||''))}" onclick="sendCardPoke('${esc(c.text)}')">
       <div style="flex:1;min-width:0"><div class="list-card-title">${esc(c.text)}</div>
       <div class="list-card-sub">${esc(c.group||'默认')} · ${c.useCount||0} 次使用 · 点击发拍一拍</div></div>
       <button class="btn-pill ghost" style="padding:6px 10px" onclick="event.stopPropagation();editCard(${c.id})">改</button>
-      <button class="btn-pill ghost" style="padding:6px 10px" onclick="event.stopPropagation();delCard(${c.id})">删</button></div>`).join('');
+      <button class="btn-pill ghost" style="padding:6px 10px" onclick="event.stopPropagation();delCard(${c.id})">删</button></div>`).join('')
+    +'<div style="width:100%;height:56px;border:1.5px dashed #d0d0cd;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:22px;color:#b5b5b0;cursor:pointer;margin-top:10px" onclick="addCard()">+</div>';
   });
 }
 function filterCards(q){
@@ -2870,9 +3064,23 @@ async function confirmDelGroup(name){
   if(cardGroupFilter===name)cardGroupFilter='全部';
   renderCards();showToast(`已删除分组「${name}」`);
 }
+let cardPokeText='';
 function sendCardPoke(text){
-  sendMsgObj({type:'text',content:`拍了拍 ${state.other.name}：「${text}」`});
-  showToast('已发送拍一拍');
+  cardPokeText=esc(text);
+  const n=esc(state.other.name);
+  showModal('字卡拍一拍','<div style="text-align:center;padding:8px 0 4px;font-size:16px;font-weight:600">「'+cardPokeText+'」</div><div style="text-align:center;font-size:12px;color:var(--sub);padding-bottom:8px">选择由谁发起</div>',
+    '<div class="modal-item" onclick="closeModal();sendCardPokeDo(1)">我拍 '+n+'</div>'
+    +'<div class="modal-item" onclick="closeModal();sendCardPokeDo(2)">'+n+' 拍我</div>');
+}
+function sendCardPokeDo(kind){
+  if(!cardPokeText)return;
+  if(kind===1){
+    sendMsgObj({type:'text',content:'你拍了拍 '+state.other.name+'：「'+cardPokeText+'」'});
+    showToast('已发送拍一拍');
+  }else{
+    sendMsgObj({type:'text',content:state.other.name+' 拍了拍你：「'+cardPokeText+'」'});
+    showToast('TA 拍了拍你');
+  }
 }
 async function editCard(id){
   const all=await dbGetAll('cards');const c=all.find(x=>x.id===id);if(!c)return;
@@ -2917,19 +3125,18 @@ async function renderEmojis(){
   body.innerHTML=`
     <div style="display:flex;gap:8px;margin-bottom:12px">
       <button class="btn-pill primary" style="flex:1" onclick="addSticker()">+ 上传表情包</button>
-      <button class="btn-pill ghost" style="flex:1" onclick="addStickerUrl()">用链接</button>
     </div>
     <div id="sticker-list"></div>`;
   renderStickerList(list);
 }
 function renderStickerList(list){
   const box=document.getElementById('sticker-list');
-  if(!list||!list.length){box.innerHTML='<div class="empty">还没有表情包<br>上传后可从聊天表情面板直接发送</div>';return;}
+  if(!list||!list.length){box.innerHTML='<div class="empty">还没有表情包<br>上传后可从聊天表情面板直接发送</div><div style="width:100%;height:56px;border:1.5px dashed #d0d0cd;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:22px;color:#b5b5b0;cursor:pointer;margin-top:10px" onclick="addSticker()">+</div>';return;}
   box.innerHTML=`<div class="emoji-body" style="background:#fff;border-radius:14px;padding:12px">`+list.map(e=>`
     <div class="emoji-item" style="position:relative;width:64px;height:64px" title="${esc(e.name||'')}">
       ${e.src?`<img src="${e.src}">`:`<span style="font-size:28px">${esc(e.name||'')}</span>`}
       <span style="position:absolute;top:-4px;right:-4px;width:20px;height:20px;border-radius:50%;background:#c0392b;color:#fff;font-size:12px;display:flex;align-items:center;justify-content:center;cursor:pointer" onclick="delSticker(${e.id})">&#10005;</span>
-    </div>`).join('')+`</div>`;
+    </div>`).join('')+`<div class="emoji-item" style="border:1.5px dashed #d0d0cd;background:#fafafa;font-size:22px;color:#b5b5b0" onclick="addSticker()">+</div></div>`;
 }
 function addSticker(){
   const input=document.createElement('input');input.type='file';input.accept='image/*';input.multiple=true;
@@ -3031,7 +3238,18 @@ function toggleNotify(){
   renderProfile();
 }
 function showNotifyHint(){
-  showModal('后台保活说明',`<div style="padding:8px 2px;font-size:13px;line-height:2;color:var(--sub)">· 开启通知后，聊天有新消息且页面在后台时会推送系统通知。<br>· 后台保活依赖浏览器行为：iOS 请「添加到主屏幕」使用（减少后台挂起）；Android Chrome 请在站点设置中允许后台运行。<br>· 页面回到前台时会自动刷新未读与消息。</div>`);
+  showModal('后台保持在线',`<div style="padding:4px 2px 10px;font-size:13px;line-height:2;color:var(--sub)">· 网页无法完全阻止手机杀后台，但可以尽量降低概率：<br>· iOS：添加到主屏幕，从主屏幕图标打开，后台驻留更久；<br>· Android Chrome：站点设置里允许后台运行。</div>`,
+    '<div class="modal-item" onclick="closeModal();copySiteUrl()">复制本站地址</div>'
+    +'<div class="modal-item" onclick="closeModal();showAddHomeSteps()">查看「添加到主屏幕」步骤</div>');
+}
+function copySiteUrl(){
+  const url=location.href;
+  const done=()=>showToast('地址已复制');
+  if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(url).then(done).catch(()=>{const t=document.createElement('textarea');t.value=url;document.body.appendChild(t);t.select();document.execCommand('copy');t.remove();done();});}
+  else{const t=document.createElement('textarea');t.value=url;document.body.appendChild(t);t.select();document.execCommand('copy');t.remove();done();}
+}
+function showAddHomeSteps(){
+  showModal('添加到主屏幕',`<div style="padding:8px 2px;font-size:13px;line-height:2.1;color:var(--sub)">· iPhone（Safari）：点底部分享按钮 → 添加到主屏幕。<br>· Android（Chrome）：右上角菜单 → 添加到主屏幕。<br>· 完成后从桌面图标打开，后台驻留和通知更稳定。</div>`);
 }
 function renderDataPage(){
   const body=document.getElementById('data-body');
@@ -3405,7 +3623,16 @@ function clearCallLogs(){state.callLogs=[];saveKey('callLogs');renderCallLog();s
 
 
 /* ===== MODAL ===== */
-function showModal(title,body){document.getElementById('modal-title').textContent=title;document.getElementById('modal-body').innerHTML=body;document.getElementById('modal').classList.add('show');}
+function showModal(title,body,actions){
+  document.getElementById('modal-title').textContent=title;
+  document.getElementById('modal-body').innerHTML=body;
+  const ma=document.getElementById('modal-actions');
+  if(ma){
+    if(actions){ma.innerHTML=actions;ma.style.display='';}
+    else{ma.innerHTML='';ma.style.display='none';}
+  }
+  document.getElementById('modal').classList.add('show');
+}
 function closeModal(){
   document.getElementById('modal').classList.remove('show');
   appInputCb=null;appConfirmCb=null;
@@ -3533,6 +3760,8 @@ document.getElementById('widget-avatars').addEventListener('click',e=>{
 });
 openDB().then(async()=>{
   checkUpdate();
+  loadMusicState();
+  bindMiniPlayer();
   await loadSettings();
   if(Date.now()<state.muteEndTime)showMuteBanner(Math.ceil((state.muteEndTime-Date.now())/1000));
   applyChatBg();
@@ -3542,7 +3771,7 @@ openDB().then(async()=>{
   initChatEvents();
   ensureTaDiary&&ensureTaDiary();
 }).catch(e=>{console.error(e);showToast('数据库初始化失败');});
-setInterval(()=>{if(navStack[navStack.length-1]==='mailbox')renderMailbox();},10000);
+setInterval(()=>{if(navStack[navStack.length-1]==='mailbox'){processPendingReplies().then(n=>{if(n)renderMailbox();});}},15000);
 document.addEventListener('visibilitychange',()=>{
   if(document.visibilityState==='visible'){refreshAllBadges();if(isAppVisible())renderChat(false);}
 });
