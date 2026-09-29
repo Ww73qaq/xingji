@@ -2195,7 +2195,7 @@ function renderChatInfo(){
       <div class="cs-item" onclick="openApp('chatsearch')"><span class="cs-ico">&#128269;</span><span class="cs-label">查找聊天记录</span><span class="cs-arrow">&#8250;</span></div>
       <div class="cs-item" onclick="setChatBg()"><span class="cs-ico">&#128444;</span><span class="cs-label">设置聊天背景</span><span class="cs-val">${bg?'已自定义':'默认'}</span><span class="cs-arrow">&#8250;</span></div>
       ${bg?'<div class="cs-item" onclick="resetChatBg()"><span class="cs-ico">&#10005;</span><span class="cs-label">清除聊天背景</span><span class="cs-arrow">&#8250;</span></div>':''}
-      <div class="cs-item" onclick="openApp('calllog')"><span class="cs-ico">&#128222;</span><span class="cs-label">通话记录</span><span class="cs-val">${(state.callLogs||[]).length} 条</span><span class="cs-arrow">&#8250;</span></div>
+      <div class="cs-item" onclick="openApp('calllog')"><span class="cs-ico">&#128222;</span><span class="cs-label">通话记录</span><span class="cs-val">${(state.callLogs?Object.keys(state.callLogs).length:0)} 条</span><span class="cs-arrow">&#8250;</span></div>
     </div>
     <div class="cs-group">
       <div class="cs-item" onclick="muteOther()"><span class="cs-ico">&#128263;</span><span class="cs-label">禁言 TA</span>${Date.now()<state.muteEndTime?`<span class="cs-val">剩 ${Math.ceil((state.muteEndTime-Date.now())/1000)}s</span>`:''}<span class="cs-arrow">&#8250;</span></div>
@@ -3694,7 +3694,7 @@ function renderProfile(){
       <div class="cs-item" onclick="openApp('cards')"><span class="cs-ico">&#128220;</span><span class="cs-label">字卡管理</span><span class="cs-arrow">&#8250;</span></div>
       <div class="cs-item" onclick="openApp('emoji')"><span class="cs-ico">&#9786;</span><span class="cs-label">表情包管理</span><span class="cs-arrow">&#8250;</span></div>
       <div class="cs-item" onclick="openApp('probability')"><span class="cs-ico">&#128202;</span><span class="cs-label">回复设置</span><span class="cs-arrow">&#8250;</span></div>
-      <div class="cs-item" onclick="openApp('calllog')"><span class="cs-ico">&#128222;</span><span class="cs-label">通话记录</span><span class="cs-val">${(state.callLogs||[]).length} 条</span><span class="cs-arrow">&#8250;</span></div>
+      <div class="cs-item" onclick="openApp('calllog')"><span class="cs-ico">&#128222;</span><span class="cs-label">通话记录</span><span class="cs-val">${(state.callLogs?Object.keys(state.callLogs).length:0)} 条</span><span class="cs-arrow">&#8250;</span></div>
     </div>
     <div class="cs-group">
       <div class="cs-item" onclick="setupPin()"><span class="cs-ico">&#128274;</span><span class="cs-label">应用锁密码</span><span class="cs-val">${state.pin.code==='0000'?'未修改':'已设置'}</span><span class="cs-arrow">&#8250;</span></div>
