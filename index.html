@@ -552,6 +552,35 @@ body{-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;letter
 .cp-slogan{margin-top:24px;font-size:14px;font-weight:600}
 .cp-quick{width:48px;height:48px;border-radius:50%;background:var(--card);border:1px solid var(--input);display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;font-size:20px}
 .cp-quick:active{background:var(--input)}
+.write-letter{background:var(--card);border:1px solid var(--input);border-radius:16px;padding:18px 16px}
+.wl-to{text-align:center;font-size:15px;font-weight:600;letter-spacing:2px;padding-bottom:10px}
+.wl-line{border-top:1px solid var(--input);margin-bottom:12px}
+.wl-hint{font-size:13px;color:var(--hint);line-height:1.9;margin-bottom:8px}
+.wl-foot{text-align:right;font-size:12px;color:var(--hint);margin-top:12px;line-height:1.8}
+.diary-paper{background:linear-gradient(transparent 23px,#e9e5dd 24px);background-size:100% 24px;border:1px solid var(--input);border-radius:14px;padding:18px 16px;min-height:130px;line-height:24px;font-size:14px;font-family:inherit}
+.diary-entry{background:var(--card);border:1px solid var(--input);border-radius:14px;padding:13px 14px;margin-bottom:10px}
+.diary-entry .d-sub{font-size:10px;color:var(--hint);letter-spacing:1px}
+.diary-entry .d-text{font-size:14px;line-height:1.8;margin-top:6px;white-space:pre-wrap}
+.diary-entry .d-time{font-size:11px;color:var(--hint);margin-top:6px}
+.diary-entry .d-btns{display:flex;gap:8px;margin-top:8px;font-size:12px}
+.diary-entry .d-btns span{cursor:pointer;padding:4px 10px;border:1px solid var(--input);border-radius:8px;color:var(--sub)}
+.diary-entry .d-btns span:active{background:var(--input)}
+.diary-sec{font-size:13px;font-weight:600;margin:18px 0 10px;display:flex;align-items:center;gap:6px}
+.diary-blur-wrap{position:relative;overflow:hidden;border-radius:14px;margin-bottom:10px}
+.diary-blur{filter:blur(9px);user-select:none;pointer-events:none;opacity:.75}
+.diary-lock-overlay{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(247,246,243,.55);backdrop-filter:blur(2px);z-index:2;border-radius:14px}
+.plus-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:2px 6px;padding:2px 0}
+.plus-item{display:flex;flex-direction:column;align-items:center;gap:6px;padding:12px 4px;border-radius:12px;cursor:pointer}
+.plus-item:active{background:var(--input)}
+.plus-icon{width:46px;height:46px;border-radius:14px;background:var(--input);display:flex;align-items:center;justify-content:center;font-size:22px}
+.plus-label{font-size:11px;color:var(--sub)}
+.rp-card{background:linear-gradient(135deg,#c0392b,#922b21)!important;color:#fff}
+.rp-amt{font-size:24px;font-weight:700;letter-spacing:1px}
+.rp-msg{font-size:12px;color:rgba(255,255,255,.8);margin-top:4px}
+.gift-card{background:linear-gradient(135deg,#2b2b2b,#0f0f0f)!important;color:#fff}
+.pill-oval{display:block;width:200px;margin:12px auto 0;padding:11px 0;border-radius:999px;border:1px solid var(--input);background:var(--bg);font-size:14px;cursor:pointer;text-align:center}
+.pill-oval:active{background:var(--input)}
+.cancel-text{text-align:center;font-size:13px;color:var(--hint);margin-top:14px;cursor:pointer}
 .letter-paper{background:#fdfcf9;border:1px solid #e8e6e0;border-radius:14px;padding:16px 14px 14px;box-shadow:inset 0 0 30px rgba(0,0,0,.03)}
 </style>
 </head>
@@ -690,22 +719,19 @@ body{-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;letter
   <div class="app-header"><div class="back" onclick="goBack()">&#8249;</div><h1>信箱</h1><div class="act" style="opacity:.25">&#8942;</div></div>
   <div class="app-body" id="mailbox-body">
     <div class="tabs">
-      <button class="tab active" onclick="switchMailboxTab('inbox',this)">收信</button>
-      <button class="tab" onclick="switchMailboxTab('sent',this)">寄信</button>
+      <button class="tab active" onclick="switchMailboxTab('inbox',this)">收到的信</button>
+      <button class="tab" onclick="switchMailboxTab('sent',this)">寄出的信</button>
+      <button class="tab" onclick="switchMailboxTab('write',this)">写封信</button>
+      <button class="tab" onclick="switchMailboxTab('data',this)">信件数据</button>
     </div>
     <div id="mailbox-list"></div>
-    <button class="btn-pill primary" style="width:100%;margin-top:12px" onclick="openWriteLetter()">&#9993; 写一封信</button>
   </div>
 </div>
 
 <!-- DIARY -->
 <div id="app-diary" class="app-page">
   <div class="app-header"><div class="back" onclick="goBack()">&#8249;</div><h1>日记</h1><div class="act" style="opacity:.25">&#8942;</div></div>
-  <div class="app-body">
-    <div class="tabs">
-      <button class="tab active" onclick="switchDiaryTab('private',this)">我的私密日志</button>
-      <button class="tab" onclick="switchDiaryTab('share',this)">他的日志</button>
-    </div>
+  <div class="app-body" id="diary-body">
     <div id="diary-list"></div>
   </div>
 </div>
@@ -972,20 +998,20 @@ function updateHome(){
   paintAvatar(document.getElementById('home-avatar-other'),state.other);
   if(state.meetTime){const d=Math.floor((Date.now()-state.meetTime)/86400000);document.getElementById('home-sign').textContent=`已相伴 ${d} 天`;}
   else{document.getElementById('home-sign').textContent='你在左边 我紧靠右';}
-  updateMailboxBadge();
+  updateTabBadge('mailbox',0);countUnreadLetters().then(n=>updateTabBadge('mailbox',n));
   updateTabBar();
 }
 function updateTabBar(){
   document.querySelectorAll('.tab-item').forEach(t=>t.classList.toggle('on',t.dataset.tab===navRoot));
 }
-function countUnreadLetters(){return (state.letters||[]).filter(l=>l.sender==='other'&&!l.read).length;}
+async function countUnreadLetters(){const all=await dbGetAll('letters');return all.filter(l=>l.sender==='other'&&!l.read).length;}
 /* 底部标签栏未读徽标 */
 function updateTabBadge(tab,count){
   const b=document.getElementById('tab-badge-'+tab);if(!b)return;
   b.style.display=count>0?'flex':'none';b.textContent=count>99?'99+':count;
 }
 async function refreshAllBadges(){
-  updateTabBadge('mailbox',countUnreadLetters());
+  updateTabBadge('mailbox',await countUnreadLetters());
   const msgs=await dbGetAll('messages');
   const unread=msgs.filter(m=>m.sender==='other'&&!m.read).length;
   updateTabBadge('chat',unread);
@@ -1263,6 +1289,9 @@ function msgPreviewText(m){
     case 'music':return '[音乐] '+(m.content||'');
     case 'card':return '[字卡] '+(m.content||'');
     case 'location':return '[位置] '+(m.name||'');
+    case 'redpacket':return '[红包] '+(m.content||'')+' 元';
+    case 'gift':return '[礼物] '+(m.content||'');
+    case 'transfer':return '[转账] '+(m.content||'')+' 元';
     case 'file':return '[文件] '+(m.content||'');
     default:return m.content||'';
   }
@@ -1302,6 +1331,12 @@ function bubbleInnerHtml(m){
       return q+`<div class="msg-bubble msg-card"><div style="display:flex;align-items:center;gap:10px;padding:11px 12px"><div class="msg-card-ico">&#127925;</div><div class="msg-music-meta"><div class="msg-music-name">${esc(m.content||'')}</div><div class="msg-music-artist">${esc(m.sub||'点击播放')}</div></div><div class="msg-music-play" onclick="playMusicMsg(${m.id})" id="mplay-${m.id}">&#9654;</div></div><div class="msg-card-foot">${esc(m.sub||'')}&nbsp;·&nbsp;星迹音乐</div></div>`;
     case 'card':
       return q+`<div class="msg-bubble msg-card" style="background:linear-gradient(135deg,#2b2b2b,#0f0f0f)!important"><div class="msg-card-top"><div class="msg-card-title" style="color:#fff">${esc(m.content||'')}</div><div class="msg-card-sub" style="color:rgba(255,255,255,.55)">${esc(m.sub||'字卡')}</div></div><div class="msg-card-foot" style="background:rgba(255,255,255,.08);color:rgba(255,255,255,.5)">${esc(m.fav?'':'')}星迹字卡</div></div>`;
+    case 'redpacket':
+      return q+`<div class="msg-bubble msg-card rp-card" style="min-width:0"><div style="padding:12px 14px"><div class="rp-amt">&#129505; ${esc(m.content)} 元</div><div class="rp-msg">${esc(m.sub||'恭喜发财，大吉大利')}</div></div></div>`;
+    case 'gift':
+      return q+`<div class="msg-bubble msg-card gift-card" style="min-width:0"><div style="display:flex;align-items:center;gap:10px;padding:12px 14px"><div style="font-size:30px">${esc(m.sub||'&#127873;')}</div><div><div class="msg-music-name">${esc(m.content||'礼物')}</div><div class="msg-music-artist">星迹心意</div></div></div></div>`;
+    case 'transfer':
+      return q+`<div class="msg-bubble msg-card" style="min-width:0;border:1px solid var(--input)"><div style="padding:12px 14px"><div style="font-size:11px;color:var(--hint)">${esc(state.other.name)} 收款</div><div class="rp-amt" style="font-size:22px">${esc(m.content)} 元</div><div class="rp-msg" style="color:var(--hint)">${esc(m.sub||'转账')}</div></div></div>`;
     case 'location':
       return q+`<div class="msg-bubble msg-card" style="min-width:0"><div class="msg-loc"><div class="msg-loc-img"></div><div style="padding:7px 10px 9px"><div class="msg-loc-name">${esc(m.name||'位置')}</div><div class="msg-loc-addr">${esc(m.addr||'')}</div></div></div></div>`;
     case 'file':
@@ -1571,8 +1606,9 @@ async function finishVoiceRecord(talk){
   const vsec=Math.max(1,Math.min(60,Math.round(sec)));
   const audio=await stopRealRecord();
   pendingVoiceAudio=audio;
-  showModal('发送语音',`<div style="text-align:center;padding:10px 0 4px"><div style="font-size:38px">&#127908;</div><div style="font-size:16px;font-weight:600;margin-top:6px">${vsec} 秒${audio?' · 真实录音':' · 模拟音'}</div><div style="font-size:12px;color:var(--sub);margin-top:4px">${fmtTime(recordStart)}</div></div>
-    <button class="btn-pill ghost" style="width:100%;margin-top:12px" onclick="playPendingVoice()">&#9654; 先试听</button>`,
+  showModal('发送语音',`<div style="text-align:center;padding:6px 0 0"><div style="font-size:40px">&#127908;</div><div style="font-size:15px;font-weight:600;margin-top:8px">${vsec} 秒${audio?' · 真实录音':' · 模拟音'}</div><div style="font-size:12px;color:var(--hint);margin-top:4px">${fmtTime(recordStart)}</div>
+    <button class="pill-oval" onclick="playPendingVoice()">&#9654; 先试听</button>
+    <div class="cancel-text" onclick="closeModal();pendingVoiceAudio=null">取消</div></div>`,
     '<div class="modal-item" style="font-weight:600;color:var(--text)" onclick="closeModal();doSendVoice('+vsec+')">发送</div>'
     +'<div class="modal-item" style="color:var(--hint)" onclick="closeModal();pendingVoiceAudio=null">取消</div>');
 }
@@ -1816,14 +1852,92 @@ function chatPickImage(multi){
 /* 聊天内「+」面板：模拟来电只在这里 */
 function showPlusMenu(){
   showModal('更多功能',`<div class="plus-grid">
-    <div class="plus-item" onclick="closeModal();chatPickImage(true)"><div class="plus-icon">&#128247;</div><div class="plus-label">相册</div></div>
+    <div class="plus-item" onclick="closeModal();chatPickMedia()"><div class="plus-icon">&#128247;</div><div class="plus-label">相册</div></div>
+    <div class="plus-item" onclick="closeModal();openVideoCall()"><div class="plus-icon">&#128250;</div><div class="plus-label">视频通话</div></div>
     <div class="plus-item" onclick="closeModal();sendLocation()"><div class="plus-icon">&#128205;</div><div class="plus-label">位置</div></div>
+    <div class="plus-item" onclick="closeModal();sendRedPacket()"><div class="plus-icon">&#129505;</div><div class="plus-label">红包</div></div>
+    <div class="plus-item" onclick="closeModal();sendGift()"><div class="plus-icon">&#127873;</div><div class="plus-label">礼物</div></div>
+    <div class="plus-item" onclick="closeModal();sendTransfer()"><div class="plus-icon">&#10133;</div><div class="plus-label">转账</div></div>
+    <div class="plus-item" onclick="closeModal();toggleVoiceMode()"><div class="plus-icon">&#127908;</div><div class="plus-label">语音输入</div></div>
+    <div class="plus-item" onclick="closeModal();showGamesMenu()"><div class="plus-icon">&#127918;</div><div class="plus-label">游戏</div></div>
     <div class="plus-item" onclick="closeModal();openPollModal('single')"><div class="plus-icon">&#10003;</div><div class="plus-label">单选</div></div>
     <div class="plus-item" onclick="closeModal();openPollModal('multi')"><div class="plus-icon">&#10003;&#10003;</div><div class="plus-label">多选</div></div>
-    <div class="plus-item" onclick="closeModal();showGamesMenu()"><div class="plus-icon">&#127918;</div><div class="plus-label">游戏</div></div>
   </div>`);
 }
-/* ===== 问卷系统（单选 / 多选） ===== */
+function chatPickMedia(){
+  showModal('发送图片',`<div class="modal-item" onclick="closeModal();chatPickPhoto()">&#128247; 拍照</div><div class="modal-item" onclick="closeModal();chatPickImage(true)">&#128193; 从相册选择（可多选）</div><div class="modal-item" style="color:var(--hint)" onclick="closeModal()">取消</div>`);
+}
+function chatPickPhoto(){
+  const input=document.createElement('input');input.type='file';input.accept='image/*';input.capture='environment';
+  input.onchange=async e=>{
+    const f=e.target.files&&e.target.files[0];if(!f)return;
+    try{const url=await compressImage(f);await sendMsgObj({type:'image',images:[url],content:url});showToast('照片已发送');}catch(err){showToast('照片处理失败');}
+  };
+  input.click();
+}
+function sendRedPacket(){
+  showModal('发红包',`<div style="text-align:center;padding:8px 0 6px;font-size:14px;font-weight:600">发一个红包</div>
+    <input class="app-input" id="rp-amt" type="number" placeholder="金额（元）" style="width:100%;text-align:center;font-size:20px;margin-bottom:10px">
+    <input class="app-input" id="rp-msg" placeholder="祝福语（默认：恭喜发财，大吉大利）" style="width:100%;margin-bottom:12px">
+    <button class="btn-pill primary" style="width:100%" onclick="doSendRedPacket()">塞钱进红包</button>`,'<div class="modal-item" style="color:var(--hint)" onclick="closeModal()">取消</div>');
+}
+async function doSendRedPacket(){
+  const amt=(document.getElementById('rp-amt').value||'').trim();
+  const msg=(document.getElementById('rp-msg').value||'').trim()||'恭喜发财，大吉大利';
+  if(!amt||isNaN(parseFloat(amt))||parseFloat(amt)<=0){showToast('请输入金额');return;}
+  closeModal();
+  await sendMsgObj({type:'redpacket',content:parseFloat(amt).toFixed(2),sub:msg});
+  showToast('红包已发送');
+}
+const GIFTS=['&#127800;','&#127801;','&#127802;','&#128158;','&#127873;','&#128151;'];
+const GIFT_NAMES=['一束花','玫瑰','郁金香','心动','礼物','爱心'];
+function sendGift(){
+  showModal('送礼物',`<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;padding:8px 2px">${GIFTS.map((g,i)=>`<div class="plus-item" style="padding:14px 0" onclick="closeModal();doSendGift(${i})"><div style="width:46px;height:46px;border-radius:14px;background:var(--input);display:flex;align-items:center;justify-content:center;font-size:26px">${g}</div><div class="plus-label">${GIFT_NAMES[i]}</div></div>`).join('')}</div>`,'<div class="modal-item" style="color:var(--hint)" onclick="closeModal()">取消</div>');
+}
+async function doSendGift(i){
+  await sendMsgObj({type:'gift',content:GIFT_NAMES[i],sub:GIFTS[i]});
+  showToast('礼物已送出');
+}
+function sendTransfer(){
+  showModal('转账',`<div style="text-align:center;padding:8px 0 6px;font-size:14px;font-weight:600">转账给 ${esc(state.other.name)}</div>
+    <input class="app-input" id="tf-amt" type="number" placeholder="金额（元）" style="width:100%;text-align:center;font-size:20px;margin-bottom:10px">
+    <input class="app-input" id="tf-msg" placeholder="备注（可选）" style="width:100%;margin-bottom:12px">
+    <button class="btn-pill primary" style="width:100%" onclick="doSendTransfer()">确认转账</button>`,'<div class="modal-item" style="color:var(--hint)" onclick="closeModal()">取消</div>');
+}
+async function doSendTransfer(){
+  const amt=(document.getElementById('tf-amt').value||'').trim();
+  if(!amt||isNaN(parseFloat(amt))||parseFloat(amt)<=0){showToast('请输入金额');return;}
+  const msg=(document.getElementById('tf-msg').value||'').trim();
+  closeModal();
+  await sendMsgObj({type:'transfer',content:parseFloat(amt).toFixed(2),sub:msg});
+  showToast('转账已发出');
+}
+function openVideoCall(){
+  const t0=Date.now();
+  showModal('视频通话',`<div style="text-align:center;padding:20px 0 12px"><div style="width:88px;height:88px;border-radius:50%;margin:0 auto 12px;background:#2b2b2b;color:#fff;display:flex;align-items:center;justify-content:center;font-size:34px;overflow:hidden">${avatarHtml('other')}</div><div style="font-size:17px;font-weight:600">${esc(state.other.name)}</div><div style="font-size:12px;color:var(--hint);margin-top:6px" id="vc-timer">正在连接…</div></div>
+    <div style="display:flex;justify-content:center;gap:22px;padding:6px 0 2px">
+      <span style="cursor:pointer;font-size:13px;padding:9px 20px;border:1px solid var(--input);border-radius:999px" onclick="muteVideoCall()">&#127908; 静音</span>
+      <span style="cursor:pointer;font-size:13px;padding:9px 20px;background:#c0392b;color:#fff;border-radius:999px" onclick="endVideoCall(${t0})">挂断</span>
+    </div>`);
+  let vcSec=0;
+  if(openVideoCall._t)clearInterval(openVideoCall._t);
+  openVideoCall._t=setInterval(()=>{
+    vcSec++;
+    const e=document.getElementById('vc-timer');
+    if(e)e.textContent='通话中 '+String(Math.floor(vcSec/60)).padStart(2,'0')+':'+String(vcSec%60).padStart(2,'0');
+  },1000);
+}
+function muteVideoCall(){showToast('已静音（示意）');}
+async function endVideoCall(t0){
+  clearInterval(openVideoCall._t);openVideoCall._t=null;
+  const sec=Math.max(1,Math.round((Date.now()-t0)/1000));
+  closeModal();
+  await dbPut('messages',{sender:'sys',type:'text',content:'你和 '+state.other.name+' 视频通话了 '+sec+' 秒',time:Date.now()});
+  const logs=state.callLogs||[];logs.push({type:'video',time:Date.now(),sec,from:'me'});state.callLogs=logs;saveKey('callLogs');
+  if(isAppVisible())renderChat(true);
+  showToast('通话已结束');
+}
+/* ===== 问卷系统/* ===== 问卷系统（单选 / 多选） ===== */
 function openPollModal(type){
   const multi=type==='multi';
   showModal(multi?'发送多选题':'发送单选题',`<input class="app-input" id="poll-q" placeholder="题目" style="width:100%;margin-bottom:10px">
@@ -1885,12 +1999,14 @@ function showPokeToast(text){
 }
 function pokeChat(){
   const name=state.other.name;
-  showPokeToast(`你拍了拍"${name}"`);
-  dbPut('messages',{sender:'sys',type:'text',content:`你拍了拍"${name}"`,time:Date.now()}).then(()=>{if(isAppVisible())renderChat(true);});
+  const pokes=(state.stats.pokes&&state.stats.pokes.length)?state.stats.pokes:['拍了拍你','亲了亲你','揉了揉你的头发'];
+  const act=pokes[Math.floor(Math.random()*pokes.length)];
+  showPokeToast(`你${act}"${name}"`);
+  dbPut('messages',{sender:'sys',type:'text',content:`你${act}"${name}"`,time:Date.now()}).then(()=>{if(isAppVisible())renderChat(true);});
   if(Math.random()<0.6){
     setTimeout(()=>{
-      showPokeToast(`"${name}"拍了拍你`);
-      dbPut('messages',{sender:'sys',type:'text',content:`"${name}"拍了拍你`,time:Date.now()}).then(()=>{if(isAppVisible())renderChat(true);});
+      showPokeToast(`"${name}"${act}你`);
+      dbPut('messages',{sender:'sys',type:'text',content:`"${name}"${act}你`,time:Date.now()}).then(()=>{if(isAppVisible())renderChat(true);});
       setTimeout(()=>{
         if(Date.now()<state.muteEndTime)return;
         const texts=['干嘛拍我呀～','哈哈挠我痒痒？','拍一拍是不是想我了？'];
@@ -1899,6 +2015,14 @@ function pokeChat(){
     },1000+Math.random()*1300);
   }
 }
+function managePokes(){
+  const pokes=state.stats.pokes&&state.stats.pokes.length?state.stats.pokes:['拍了拍你','亲了亲你','揉了揉你的头发'];
+  showModal('拍一拍字卡',pokes.map((p,i)=>`<div style="display:flex;align-items:center;gap:8px;padding:11px 4px;border-bottom:1px solid var(--input)"><span style="flex:1;font-size:14px">${esc(p)}</span><span style="cursor:pointer;padding:4px" onclick="closeModal();editPoke(${i})">&#9998;</span><span style="cursor:pointer;padding:4px;color:#c0392b" onclick="closeModal();delPoke(${i})">&#10005;</span></div>`).join('')
+    +'<button class="btn-pill ghost" style="width:100%;margin-top:12px" onclick="closeModal();addPoke()">＋ 新增拍一拍</button>');
+}
+function addPoke(){appPrompt('新增拍一拍','',v=>{if(v===null||v===undefined)return false;const t=(v||'').trim();if(!t){showToast('不能为空');return false;}if(!state.stats.pokes)state.stats.pokes=[];state.stats.pokes.push(t);saveKey('stats');showToast('已添加');managePokes();});}
+function editPoke(i){appPrompt('修改拍一拍',state.stats.pokes[i],v=>{if(v===null||v===undefined)return false;const t=(v||'').trim();if(!t)return false;state.stats.pokes[i]=t;saveKey('stats');managePokes();});}
+function delPoke(i){state.stats.pokes.splice(i,1);saveKey('stats');managePokes();}
 function clearChat(){
   appConfirm('清除聊天记录','确定清空所有聊天记录吗？此操作不可恢复。',async()=>{
     const all=await dbGetAll('messages');
@@ -2068,31 +2192,65 @@ const REPLY_TEXTS=[
   '累了就早点休息，明天我们继续聊天。'
 ];
 let mailboxTab='inbox';
-function switchMailboxTab(tab,btn){mailboxTab=tab;document.querySelectorAll('#app-mailbox .tab').forEach(t=>t.classList.remove('active'));btn.classList.add('active');renderMailbox();}
-async function updateMailboxBadge(){
-  const letters=await dbGetAll('letters');
-  const unread=letters.filter(l=>l.sender==='other'&&!l.read).length;
-  updateTabBadge('mailbox',unread);
+function switchMailboxTab(tab,btn){mailboxTab=tab;document.querySelectorAll('#app-mailbox .tab').forEach(t=>t.classList.remove('active'));if(btn)btn.classList.add('active');renderMailbox();}
+function renderWriteLetter(list){
+  const taName=state.other.name||'TA',myName=state.me.name||'我';
+  const today=fmtFull(Date.now());
+  list.innerHTML=`<div class="write-letter">
+    <div class="wl-to">To ${esc(taName)}</div>
+    <div class="wl-line"></div>
+    <div class="wl-hint">见字如面，展信舒颜。</div>
+    <textarea class="textarea-full" id="letter-content" placeholder="写下想说的话…" style="min-height:180px;background:transparent;line-height:1.9;font-size:14px"></textarea>
+    <div class="wl-foot">此致<br>${esc(myName)} · ${today}</div>
+    <button class="btn-pill primary" style="width:100%;margin-top:14px" onclick="sendLetter()">&#9993; 寄出</button>
+  </div>`;
 }
-async function processPendingReplies(){
-  const now=Date.now();
+
+async function exportLetters(){
   const letters=await dbGetAll('letters');
-  const due=letters.filter(l=>l.sender==='me'&&l.status==='waiting'&&l.replyAt&&l.replyAt<=now);
-  for(const l of due){
-    const text=REPLY_TEXTS[Math.floor(Math.random()*REPLY_TEXTS.length)];
-    const reply=await dbPut('letters',{sender:'other',title:`RE: ${l.title||'无标题'}`,content:text,time:now,status:'replied',read:false,replyTo:l.id});
-    l.status='replied';l.repliedId=reply;
-    await dbPut('letters',l);
-  }
-  if(due.length)showToast(`收到 ${due.length} 封新回信`);
-  updateMailboxBadge();
-  return due.length;
+  const json=JSON.stringify(letters,null,2);
+  const blob=new Blob([json],{type:'application/json'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='xingji-letters-'+new Date().toISOString().slice(0,10)+'.json';a.click();
+  URL.revokeObjectURL(a.href);
+  showToast('已导出 '+letters.length+' 封信件');
+}
+function importLetters(){
+  const input=document.createElement('input');input.type='file';input.accept='application/json,.json';
+  input.onchange=async e=>{
+    const f=e.target.files&&e.target.files[0];if(!f)return;
+    try{
+      const txt=await f.text();
+      const arr=JSON.parse(txt);
+      if(!Array.isArray(arr))throw new Error('格式错误');
+      let n=0;
+      for(const l of arr){if(l&&l.content){await dbPut('letters',{sender:l.sender==='other'?'other':'me',content:l.content,time:Number(l.time)||Date.now(),status:l.status||'replied',read:true,replyAt:l.replyAt});n++;}}
+      showToast('已导入 '+n+' 封信件');renderMailbox();
+    }catch(err){showToast('导入失败：文件格式不正确');}
+  };
+  input.click();
+}
+function clearLetters(){
+  appConfirm('清空所有信件','确定清空全部信件吗？此操作不可恢复。',async()=>{
+    const all=await dbGetAll('letters');
+    for(const l of all)await dbDelete('letters',l.id);
+    renderMailbox();showToast('信件已清空');
+  });
+}
+function renderMailboxData(list){
+  list.innerHTML=`<div class="cs-group" style="margin-top:6px">
+    <div class="cs-item" onclick="exportLetters()"><span class="cs-ico">&#128229;</span><span class="cs-label">导出信件数据</span><span class="cs-arrow">&#8250;</span></div>
+    <div class="cs-item" onclick="importLetters()"><span class="cs-ico">&#128228;</span><span class="cs-label">导入信件数据</span><span class="cs-arrow">&#8250;</span></div>
+    <div class="cs-item" style="color:#c0392b" onclick="clearLetters()"><span class="cs-ico">&#128465;</span><span class="cs-label">清空所有信件</span></div>
+  </div>
+  <div style="font-size:11px;color:var(--hint);padding:14px 4px;line-height:1.8">信件数据仅保存在本机浏览器中，清除浏览器数据会丢失，请定期导出备份。</div>`;
 }
 async function renderMailbox(){
   await processPendingReplies();
   const list=document.getElementById('mailbox-list');list.innerHTML='';
+  if(mailboxTab==='write'){renderWriteLetter(list);return;}
+  if(mailboxTab==='data'){renderMailboxData(list);return;}
   const letters=await dbGetAll('letters');
-  if(!letters.length){list.innerHTML='<div class="empty">还没有信件<br>写一封信吧</div>';return;}
+  if(!letters.length){list.innerHTML='<div class="empty">还没有信件<br>去「写封信」写一封吧</div>';return;}
   letters.sort((a,b)=>b.time-a.time);
   for(const l of letters){
     if(mailboxTab==='inbox'&&l.sender!=='other')continue;
@@ -2102,34 +2260,22 @@ async function renderMailbox(){
     list.innerHTML+=`<div class="letter-card" onclick="viewLetter(${l.id})"><div style="display:flex;align-items:center;gap:8px"><span class="letter-status ${statusClass}">${statusText}</span><span style="flex:1;font-size:11px;color:var(--hint)">${l.sender==='me'?'寄出':'收到'} · ${fmtTime(l.time)}</span><span style="cursor:pointer;font-size:15px;padding:2px 6px" onclick="event.stopPropagation();editLetter(${l.id})">&#9998;</span></div><div class="list-card-title" style="margin-top:6px">${l.sender==='me'?'寄出的信':'TA 的回信'}</div><div class="list-card-sub">${esc(l.content?.slice(0,60)||'')}${(l.content?.length||0)>60?'...':''}</div></div>`;
   }
   if(!list.innerHTML)list.innerHTML='<div class="empty">暂无信件</div>';
-  updateMailboxBadge();
-}
-function openWriteLetter(){
-  const taName=state.other.name||'TA',myName=state.me.name||'我';
-  const today=fmtFull(Date.now());
-  showModal('写一封信',`<div class="letter-paper">
-    <div style="text-align:center;font-size:14px;font-weight:600;letter-spacing:2px;padding-bottom:8px">To ${esc(taName)}</div>
-    <div style="border-top:1px solid var(--input);margin-bottom:10px"></div>
-    <div style="font-size:13px;color:var(--hint);line-height:1.8;margin-bottom:6px">见字如面，展信舒颜。</div>
-    <textarea class="textarea-full" id="letter-content" placeholder="写下想说的话…" style="min-height:150px;background:transparent"></textarea>
-    <div style="text-align:right;font-size:12px;color:var(--hint);margin-top:10px">此致<br>${esc(myName)} · ${today}</div>
-  </div>
-  <button class="btn-pill primary" style="width:100%;margin-top:14px" onclick="sendLetter()">寄出</button>`);
+  updateTabBadge('mailbox',await countUnreadLetters());
 }
 async function sendLetter(){
   const content=document.getElementById('letter-content').value.trim();
   if(!content){showToast('内容不能为空');return;}
-  const replyAt=Date.now()+Math.floor(60000+Math.random()*86340000); // 1分钟~24小时随机回信
+  const replyAt=Date.now()+Math.floor(60000+Math.random()*86340000);
   await dbPut('letters',{sender:'me',title:'',content,time:Date.now(),status:'waiting',read:true,replyAt});
-  closeModal();showToast('信件已寄出，等待回信');
-  const btns=document.querySelectorAll('#app-mailbox .tab');
-  if(btns[1])switchMailboxTab('sent',btns[1]);else renderMailbox();
+  const el=document.getElementById('letter-content');if(el)el.value='';
+  showToast('信件已寄出，等待回信');
+  renderMailbox();
 }
 async function viewLetter(id){
   const letters=await dbGetAll('letters');
   const l=letters.find(x=>x.id===id);
   if(!l)return;
-  if(l.sender==='other'&&!l.read){l.read=true;await dbPut('letters',l);updateMailboxBadge();renderMailbox();}
+  if(l.sender==='other'&&!l.read){l.read=true;await dbPut('letters',l);updateTabBadge('mailbox',await countUnreadLetters());renderMailbox();}
   const stateText=(l.sender==='me'&&l.status==='waiting')?'已寄出 · 等待回信':(l.sender==='other')?'TA 的回信 · 已送达':(l.status==='replied')?'已收到回信':'已寄出';
   const from=l.sender==='me'?state.me.name:state.other.name;
   const to=l.sender==='me'?state.other.name:state.me.name;
@@ -2163,42 +2309,84 @@ async function saveLetterReply(id){
 }
 
 /* ===== DIARY ===== */
-let diaryTab='private';
-function switchDiaryTab(tab,btn){diaryTab=tab;document.querySelectorAll('#app-diary .tab').forEach(t=>t.classList.remove('active'));btn.classList.add('active');renderDiary();}
+let diaryReqAt=0;
+function fmtDiaryFull(t){
+  const d=new Date(t);
+  const wd=['日','一','二','三','四','五','六'][d.getDay()];
+  return d.getFullYear()+'年'+(d.getMonth()+1)+'月'+d.getDate()+'日 星期'+wd+' '+String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');
+}
 async function renderDiary(){
-  const list=document.getElementById('diary-list');list.innerHTML='';
+  const list=document.getElementById('diary-list');if(!list)return;
+  list.innerHTML='';
   const diaries=await dbGetAll('diaries');
-  // 标记 TA 的日记已读（清除标签栏红点）
   for(const d of diaries)if(d.owner==='other'&&!d.read){d.read=true;await dbPut('diaries',d);}
   updateTabBadge('diary',0);
-  // TA 日记按概率产出（不预置演示数据）
-  const theirs=diaries.filter(d=>d.owner==='other');
-  if(theirs.length<2&&Math.random()<((state.prob.momentProb??25)/100)){
-    const line=TA_DIARY_LINES[Math.floor(Math.random()*TA_DIARY_LINES.length)];
-    await dbPut('diaries',{owner:'other',subtype:'record',content:line,time:Date.now()-Math.floor(Math.random()*12)*3600000,read:true});
+  const mine=diaries.filter(d=>d.owner==='me').sort((a,b)=>b.time-a.time);
+  list.innerHTML+='<div class="diary-sec">&#128221; 我的日记</div>';
+  if(!mine.length){list.innerHTML+='<div class="empty" style="padding:18px 0">还没有日记<br>写下第一篇吧</div>';}
+  else for(const d of mine){
+    list.innerHTML+=`<div class="diary-entry"><div class="d-sub">${d.subtype==='sentence'?'&#128172; 好句子':'&#9998; 记录'}</div><div class="d-text">${esc(d.content)}</div><div class="d-time">${fmtDiaryFull(d.time)}</div>${d.taReply?'<div style="font-size:12px;color:var(--sub);margin-top:6px">&#128172; '+esc(state.other.name)+'：「'+esc(d.taReply)+'」</div>':''}<div class="d-btns"><span onclick="editDiary(${d.id})">&#9998; 编辑</span><span style="color:#c0392b" onclick="delDiary(${d.id})">&#10005; 删除</span></div></div>`;
   }
-  if(diaryTab==='private'){
-    const mine=diaries.filter(d=>d.owner==='me').sort((a,b)=>b.time-a.time);
-    if(!mine.length){list.innerHTML='<div class="empty">还没有日记<br>写下第一篇吧</div>';}
-    else for(const d of mine){list.innerHTML+=`<div class="diary-card"><span class="diary-subtype">${d.subtype==='sentence'?'&#128172; 好句子':'&#128221; 记录'}</span><div class="diary-text">${esc(d.content)}</div><div class="letter-time">${fmtTime(d.time)}</div>${d.taReply?'<div class="diary-reply">&#128172; '+state.other.name+'回应：「'+esc(d.taReply)+'」</div>':''}</div>`;}
-    list.innerHTML+=`<button class="btn-pill primary" style="width:100%;margin-top:12px" onclick="openWriteDiary()">&#128221; 写日记</button>`;
-    return;
-  }
-  // 他的日记：申请制，24 小时无回应自动通过
-  const reqAt=state.stats.diaryReqAt||0;
-  const granted=reqAt&&(Date.now()-reqAt)>=86400000;
-  if(!granted){
-    if(reqAt){
-      const remain=Math.max(1,Math.ceil((86400000-(Date.now()-reqAt))/3600000));
-      list.innerHTML=`<div class="diary-lock">&#128274; 申请已发送<br>约 ${remain} 小时后自动解锁<br><button class="btn-pill ghost" style="margin-top:12px" onclick="requestDiaryAccess()">重新申请</button></div>`;
-    }else{
-      list.innerHTML='<div class="diary-lock">&#128274; TA 的日记需要申请查看<br><span style="font-size:11px;color:var(--hint)">24 小时无回应将自动通过</span><br><button class="btn-pill primary" style="margin-top:12px" onclick="requestDiaryAccess()">申请查看</button></div>';
-    }
-    return;
-  }
+  list.innerHTML+='<button class="btn-pill primary" style="width:100%;margin-top:10px" onclick="openWriteDiary()">&#128221; 写日记</button>';
   const others=diaries.filter(d=>d.owner==='other').sort((a,b)=>b.time-a.time);
-  if(!others.length){list.innerHTML='<div class="empty">TA 还没有写日记</div>';return;}
-  for(const d of others){list.innerHTML+=`<div class="diary-card"><span class="diary-subtype">&#128172; ${esc(state.other.name)}</span><div class="diary-text">${esc(d.content)}</div><div class="letter-time">${fmtTime(d.time)}</div>${d.taReply?'<div class="diary-reply">&#10084; 你回应：「'+esc(d.taReply)+'」</div>':''}</div>`;}
+  list.innerHTML+='<div class="diary-sec" style="margin-top:24px">&#128274; TA 的日记</div>';
+  if(!others.length){
+    list.innerHTML+='<div class="empty" style="padding:18px 0">TA 还没有写日记</div>';
+  }else{
+    const granted=diaryReqAt&&(Date.now()-diaryReqAt)>=60000;
+    for(const d of others){
+      if(granted){
+        list.innerHTML+=`<div class="diary-entry"><div class="d-sub">${esc(state.other.name)}</div><div class="d-text">${esc(d.content)}</div><div class="d-time">${fmtDiaryFull(d.time)}</div></div>`;
+      }else{
+        list.innerHTML+=`<div class="diary-blur-wrap"><div class="diary-blur diary-entry" style="margin:0"><div class="d-sub">${esc(state.other.name)}</div><div class="d-text">${esc(d.content)}</div><div class="d-time">${fmtDiaryFull(d.time)}</div></div><div class="diary-lock-overlay"><div style="font-size:13px;color:var(--sub);margin-bottom:8px;padding:0 10px;text-align:center">${diaryReqAt?'申请中…约 60 秒后自动解锁':'TA 的日记已加密模糊'}</div><button class="btn-pill primary" onclick="requestDiaryAccess()">${diaryReqAt?'重新申请':'申请查看'}</button></div></div>`;
+      }
+    }
+    if(!granted){
+      if(renderDiary._t)clearInterval(renderDiary._t);
+      renderDiary._t=setInterval(()=>{
+        const g=diaryReqAt&&(Date.now()-diaryReqAt)>=60000;
+        if(g){clearInterval(renderDiary._t);renderDiary._t=null;renderDiary();}
+        else if(document.getElementById('diary-list'))renderDiary();
+      },4000);
+    }else if(renderDiary._t){clearInterval(renderDiary._t);renderDiary._t=null;}
+  }
+}
+function requestDiaryAccess(){diaryReqAt=Date.now();showToast('申请已发送，等待 TA 同意');renderDiary();}
+function openWriteDiary(){
+  showModal('写日记',`<div style="text-align:center;font-size:15px;font-weight:600;padding:4px 0 12px">&#128221; 写日记</div>
+    <textarea class="textarea-full diary-paper" id="diary-content" placeholder="写下今天的心情..."></textarea>
+    <div style="text-align:right;font-size:11px;color:var(--hint);margin-top:8px">保存后自动记录：${fmtDiaryFull(Date.now())}</div>
+    <button class="btn-pill primary" style="width:100%;margin-top:12px" onclick="saveDiary()">保存</button>`,
+    '<div class="modal-item" style="color:var(--hint)" onclick="closeModal()">取消</div>');
+}
+async function saveDiary(){
+  const content=document.getElementById('diary-content').value.trim();
+  if(!content){showToast('内容不能为空');return;}
+  const rec=await dbPut('diaries',{owner:'me',subtype:'record',content,time:Date.now()});
+  closeModal();showToast('日记已保存（'+fmtDiaryFull(Date.now())+'）');
+  if(state.currentApp==='diary')renderDiary();
+  if(Math.random()<0.78){
+    const reply=TA_DIARY_REPLIES[Math.floor(Math.random()*TA_DIARY_REPLIES.length)];
+    setTimeout(async()=>{
+      rec.taReply=reply;await dbPut('diaries',rec);
+      pushSys(state.other.name+' 读到了你的日记');
+      pushReply(reply);
+      if(state.currentApp==='diary')renderDiary();
+    },5000+Math.random()*12000);
+  }
+}
+async function editDiary(id){
+  const diaries=await dbGetAll('diaries');const d=diaries.find(x=>x.id===id);if(!d||d.owner!=='me')return;
+  showModal('编辑日记',`<textarea class="textarea-full diary-paper" id="diary-content" style="min-height:120px">${esc(d.content)}</textarea><button class="btn-pill primary" style="width:100%;margin-top:12px" onclick="saveDiaryEdit(${id})">保存修改</button>`,'<div class="modal-item" style="color:var(--hint)" onclick="closeModal()">取消</div>');
+}
+async function saveDiaryEdit(id){
+  const diaries=await dbGetAll('diaries');const d=diaries.find(x=>x.id===id);if(!d)return;
+  const content=document.getElementById('diary-content').value.trim();
+  if(!content){showToast('内容不能为空');return;}
+  d.content=content;await dbPut('diaries',d);closeModal();renderDiary();showToast('日记已更新');
+}
+async function delDiary(id){
+  appConfirm('删除日记','确定删除这篇日记吗？此操作不可恢复。',async()=>{await dbDelete('diaries',id);renderDiary();showToast('已删除');});
 }
 const TA_DIARY_LINES=[
   '今天路过一家旧书店，忽然想起你上次说想找的那本书。',
@@ -2859,20 +3047,25 @@ function openMusicPlayer(){
   const modeTxt=musicMode==='list'?'列表循环':musicMode==='random'?'随机播放':'单曲循环';
   let prog='--:-- / --:--';
   if(musicAudio&&musicAudio.duration)prog=Math.floor(musicAudio.currentTime)+' / '+Math.floor(musicAudio.duration);
-  showModal('音乐',`<div style="text-align:center;padding:12px 0 4px"><div style="width:120px;height:120px;border-radius:50%;background:var(--text);color:var(--bg);display:flex;align-items:center;justify-content:center;font-size:44px;margin:0 auto 14px;box-shadow:0 0 0 6px var(--card),0 0 0 7px var(--input)">&#127925;</div><div style="font-size:17px;font-weight:600">${esc(cur?cur.title:'未在播放')}</div><div style="font-size:13px;color:var(--sub);margin-top:4px">${esc(cur?(cur.artist||'星迹音乐'):'歌单「'+esc(pl.name)+'」')}</div>
-    <div style="font-size:11px;color:var(--hint);margin-top:8px" id="mp-prog">${prog}</div>
-    <div style="height:3px;background:var(--input);border-radius:2px;margin:6px 0 0;overflow:hidden"><div id="mp-bar" style="height:100%;width:0%;background:var(--text);border-radius:2px;transition:width .2s linear"></div></div></div>
-    <div style="display:flex;justify-content:center;align-items:center;gap:40px;padding:16px 0 8px;font-size:22px">
+  showModal('音乐',`<div style="text-align:center;padding:6px 0 2px">
+    <div style="font-size:12px;color:var(--hint)">歌单「${esc(pl.name)}」</div>
+    <div style="width:88px;height:88px;border-radius:22px;background:var(--text);color:var(--bg);display:flex;align-items:center;justify-content:center;font-size:38px;margin:14px auto 12px">&#127925;</div>
+    <div style="font-size:17px;font-weight:600">${esc(cur?cur.title:'未在播放')}</div>
+    <div style="font-size:13px;color:var(--hint);margin-top:3px">${esc(cur?(cur.artist||'星迹音乐'):'---- / ----')}</div>
+    <div style="font-size:11px;color:var(--hint);margin-top:10px" id="mp-prog">${prog}</div>
+    <div style="height:3px;background:var(--input);border-radius:2px;margin:6px 0 0;overflow:hidden"><div id="mp-bar" style="height:100%;width:0%;background:var(--text);border-radius:2px;transition:width .2s linear"></div></div>
+    <div style="display:flex;justify-content:center;align-items:center;gap:44px;padding:18px 0 10px;font-size:24px">
       <span style="cursor:pointer" onclick="prevTrack()">&#8249;</span>
-      <span style="cursor:pointer;font-size:32px" onclick="toggleMiniPlay()" id="mp-big-play">▶</span>
+      <span style="cursor:pointer;font-size:38px" onclick="toggleMiniPlay()" id="mp-big-play">▶</span>
       <span style="cursor:pointer" onclick="nextTrack()">&#8250;</span>
     </div>
-    <div style="display:flex;justify-content:space-around;align-items:center;padding:6px 0 4px;font-size:11px;color:var(--sub)">
+    <div style="display:flex;justify-content:center;gap:12px;padding:4px 0 2px;font-size:11px;color:var(--hint)">${esc(pl.name)} · ${it.length} 首</div>
+    <button class="btn-pill ghost" style="width:100%;margin-top:10px" onclick="closeModal();openApp('music')">打开音乐库</button>
+    <div style="display:flex;justify-content:space-around;align-items:center;padding:8px 0 0;font-size:11px;color:var(--sub)">
       <span style="cursor:pointer;text-align:center;padding:4px" onclick="toggleMusicMode()">${modeTxt}</span>
       <span style="cursor:pointer;text-align:center;padding:4px" onclick="showMusicPlaylist()">播放列表</span>
       <span style="cursor:pointer;text-align:center;padding:4px" onclick="showSleepPicker()">定时</span>
-      <span style="cursor:pointer;text-align:center;padding:4px" onclick="closeModal();openApp('music')">音乐库</span>
-    </div>`);
+    </div></div>`);
   updateMusicUI();
   if(musicAudio){
     const upd=()=>{
@@ -2888,7 +3081,7 @@ function openMusicPlayer(){
   }
 }
 
-/* 迷你播放器：拖动 / 贴边 / 双击收起成小圆球 */
+/* 迷你播放器：拖动/* 迷你播放器：拖动 / 贴边 / 双击收起成小圆球 */
 function bindMiniPlayer(){
   const mp=document.getElementById('mini-player');if(!mp||mp._bound)return;mp._bound=1;
   let sx=0,sy=0,dx=0,dy=0,dragging=false,moved=false;
@@ -3175,6 +3368,9 @@ async function renderCards(){
       <button class="btn-pill ghost" style="flex:1" onclick="exportCards()">导出字卡</button>
     </div>
     <div class="search-bar">&#128269;<input type="text" id="card-search" placeholder="搜索字卡" oninput="filterCards(this.value)"></div>
+    <div style="display:flex;gap:8px;margin-bottom:12px">
+      <button class="btn-pill ghost" style="flex:1" onclick="managePokes()">&#128133; 拍一拍字卡</button>
+    </div>
     <div id="card-list"></div>`;
   renderCardList();
   filterCards('');
