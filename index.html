@@ -2193,6 +2193,20 @@ const REPLY_TEXTS=[
 ];
 let mailboxTab='inbox';
 function switchMailboxTab(tab,btn){mailboxTab=tab;document.querySelectorAll('#app-mailbox .tab').forEach(t=>t.classList.remove('active'));if(btn)btn.classList.add('active');renderMailbox();}
+async function processPendingReplies(){
+  const now=Date.now();
+  const letters=await dbGetAll('letters');
+  const due=letters.filter(l=>l.sender==='me'&&l.status==='waiting'&&l.replyAt&&l.replyAt<=now);
+  for(const l of due){
+    const text=REPLY_TEXTS[Math.floor(Math.random()*REPLY_TEXTS.length)];
+    const reply=await dbPut('letters',{sender:'other',title:'RE: '+(l.title||'无标题'),content:text,time:now,status:'replied',read:false,replyTo:l.id});
+    l.status='replied';l.repliedId=reply;
+    await dbPut('letters',l);
+  }
+  if(due.length)showToast('收到 '+due.length+' 封新回信');
+  updateTabBadge('mailbox',await countUnreadLetters());
+  return due.length;
+}
 function renderWriteLetter(list){
   const taName=state.other.name||'TA',myName=state.me.name||'我';
   const today=fmtFull(Date.now());
@@ -3082,6 +3096,12 @@ function openMusicPlayer(){
 }
 
 /* 迷你播放器：拖动/* 迷你播放器：拖动 / 贴边 / 双击收起成小圆球 */
+function updateMiniPlayer(){
+  const mp=document.getElementById('mini-player');
+  if(!mp)return;
+  const inPage=document.getElementById('app-pages').classList.contains('on');
+  if(musicPlaying&&inPage)mp.classList.add('show');else mp.classList.remove('show');
+}
 function bindMiniPlayer(){
   const mp=document.getElementById('mini-player');if(!mp||mp._bound)return;mp._bound=1;
   let sx=0,sy=0,dx=0,dy=0,dragging=false,moved=false;
