@@ -533,6 +533,25 @@ body{-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;letter
 .poll-opt.sel{background:var(--text);color:var(--bg);border-color:var(--text)}
 .poll-ans{font-size:11px;color:#07c160;padding:8px 12px;background:rgba(7,193,96,.06)}
 .poll-wait{font-size:11px;color:var(--hint);padding:8px 12px;background:var(--input);cursor:pointer}
+#modal-actions{display:flex;gap:10px;margin-top:14px}
+#modal-actions .modal-item{flex:1;margin:0;padding:12px 4px;border-radius:12px;border:1px solid var(--input);background:var(--bg);text-align:center;font-size:15px;cursor:pointer}
+#modal-actions .modal-item:active{background:var(--input)}
+.sb-signal{display:inline-flex;align-items:flex-end;gap:1.5px;height:10px}
+.sig-bar{width:2.5px;border-radius:1px;background:currentColor;animation:sigbar 1s ease-in-out infinite}
+@keyframes sigbar{0%,100%{height:3px;opacity:.25}50%{height:9px;opacity:1}}
+.cp-dur-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.cp-dur{border:1px solid var(--input);border-radius:14px;padding:14px 0;text-align:center;cursor:pointer;background:var(--bg)}
+.cp-dur b{display:block;font-size:20px}
+.cp-dur span{font-size:11px;color:var(--hint)}
+.cp-dur:active{background:var(--input)}
+.cp-timing{display:flex;flex-direction:column;align-items:center;padding:22px 0 26px}
+.cp-conn{background:var(--text);color:var(--bg);font-size:12px;padding:6px 18px;border-radius:999px;margin-bottom:28px}
+.cp-ring{width:168px;height:168px;border-radius:50%;border:5px solid var(--text);display:flex;flex-direction:column;align-items:center;justify-content:center;box-shadow:0 0 0 8px var(--card),0 0 0 9px var(--input)}
+.cp-ring-num{font-size:34px;font-weight:700;letter-spacing:1px}
+.cp-ring-tag{font-size:12px;color:var(--sub);margin-top:4px;letter-spacing:3px}
+.cp-slogan{margin-top:24px;font-size:14px;font-weight:600}
+.cp-quick{width:48px;height:48px;border-radius:50%;background:var(--card);border:1px solid var(--input);display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;font-size:20px}
+.cp-quick:active{background:var(--input)}
 .letter-paper{background:#fdfcf9;border:1px solid #e8e6e0;border-radius:14px;padding:16px 14px 14px;box-shadow:inset 0 0 30px rgba(0,0,0,.03)}
 </style>
 </head>
@@ -575,9 +594,9 @@ body{-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;letter
 <!-- ===== HOME SCREEN ===== -->
 <div id="screen-home" class="screen home-screen">
   <div class="status-bar">
-    <span class="time" id="status-time">22:55</span>
+    <span class="time" id="status-time" style="visibility:hidden">--:--</span>
     <span class="notch-spacer"></span>
-    <span class="sb-right"><span id="sb-signal"></span></span>
+    <span class="sb-right"><span id="sb-signal" class="sb-signal"></span><span class="time" id="sb-status-time">--:--</span></span>
   </div>
   <div class="widget-area">
     <div class="widget-avatars" id="widget-avatars">
@@ -975,11 +994,36 @@ async function refreshAllBadges(){
   const moments=await dbGetAll('moments');
   updateTabBadge('moments',moments.filter(m=>m.owner==='other'&&!m.read).length);
 }
+/* 信号强弱：动态跳动，模拟链接强度；每 2.5 秒随机一次强弱 */
 function renderSignal(){
   const el=document.getElementById('sb-signal');if(!el)return;
-  el.innerHTML='<svg viewBox="0 0 22 12" width="22" height="12" style="display:block"><rect x="0" y="8" width="3" height="4" rx="1"/><rect x="5" y="5.5" width="3" height="6.5" rx="1"/><rect x="10" y="3" width="3" height="9" rx="1"/><rect x="15" y="1" width="3" height="11" rx="1"/></svg>';
+  if(!el.childElementCount){
+    for(let i=0;i<5;i++){
+      const b=document.createElement('span');
+      b.className='sig-bar';
+      b.style.animationDelay=(i*0.16)+'s';
+      b.style.animationDuration=(0.9+Math.random()*0.5)+'s';
+      el.appendChild(b);
+    }
+  }
+  clearTimeout(renderSignal._t);
+  renderSignal._t=setTimeout(()=>{
+    const bars=el.children;
+    const n=3+Math.floor(Math.random()*3);
+    for(let i=0;i<bars.length;i++){
+      bars[i].style.display=i<n?'inline-block':'none';
+      bars[i].style.animationDuration=(0.7+Math.random()*0.8)+'s';
+    }
+    renderSignal();
+  },2500);
 }
-setInterval(()=>{const now=new Date();document.getElementById('status-time').textContent=String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0');renderSignal();},1000);
+setInterval(()=>{
+  const now=new Date();
+  const t=String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0');
+  document.getElementById('status-time').textContent=t;
+  document.getElementById('sb-status-time').textContent=t;
+  renderSignal();
+},1000);
 
 /* ===== 线稿图标（tab bar，24x24 视图，stroke 用 currentColor 跟随选中态） ===== */
 const LINE_ICONS={
@@ -1776,6 +1820,7 @@ function showPlusMenu(){
     <div class="plus-item" onclick="closeModal();sendLocation()"><div class="plus-icon">&#128205;</div><div class="plus-label">位置</div></div>
     <div class="plus-item" onclick="closeModal();openPollModal('single')"><div class="plus-icon">&#10003;</div><div class="plus-label">单选</div></div>
     <div class="plus-item" onclick="closeModal();openPollModal('multi')"><div class="plus-icon">&#10003;&#10003;</div><div class="plus-label">多选</div></div>
+    <div class="plus-item" onclick="closeModal();showGamesMenu()"><div class="plus-icon">&#127918;</div><div class="plus-label">游戏</div></div>
   </div>`);
 }
 /* ===== 问卷系统（单选 / 多选） ===== */
@@ -2514,41 +2559,90 @@ function saveRoomLayout(){saveRoom();showToast('布局已保存');}
 
 /* ===== COMPANION ===== */
 const COMPANION_SCENES=[
-  {id:'work',name:'专注学习',icon:'&#128221;',desc:'两个人各忙各的，偶尔抬起头看一眼对方，心里就安静了。'},
-  {id:'rest',name:'休息片刻',icon:'&#9749;',desc:'泡一杯茶，听听TA那边的呼吸声，什么都不用说。'},
-  {id:'sleep',name:'夜眠',icon:'&#127771;',desc:'点上夜灯，互道晚安，等对方先睡着。'}
+  {id:'study',name:'一起学习',icon:'&#128218;',desc:'两个人各忙各的，偶尔抬起头看一眼对方，心里就安静了。'},
+  {id:'work',name:'一起工作',icon:'&#128188;',desc:'专注各自手头的事，安静地陪在身边。'},
+  {id:'sport',name:'一起运动',icon:'&#127993;',desc:'一起动起来，连呼吸都变得同频。'},
+  {id:'sleep',name:'一起睡觉',icon:'&#127771;',desc:'点上夜灯，互道晚安，等对方先睡着。'},
+  {id:'eat',name:'一起吃饭',icon:'&#127858;',desc:'好好吃饭，我就在对面。'},
+  {id:'fish',name:'一起摸鱼',icon:'&#128031;',desc:'忙里偷闲，一起发呆的时光也很甜。'}
 ];
 let companionTimer=null;
 function allCompanionScenes(){
   return COMPANION_SCENES.concat(state.stats.customCompanion||[]);
 }
+let companionSession=null,companionTick=null;
 function renderCompanion(){
   const body=document.getElementById('companion-body');body.innerHTML='';
+  if(companionSession){renderCompanionTiming(body);return;}
   const extra=(state.stats.companionStart)?(Date.now()-state.stats.companionStart):0;
-  body.innerHTML+=`<div class="companion-status">已陪伴 ${fmtDuration((state.stats.companionTime||0)+extra)} · 连续 ${state.stats.companionStreak} 天</div>`;
+  body.innerHTML+=`<div class="companion-status">&#9889; 1 台设备已连接 · 已陪伴 ${fmtDuration((state.stats.companionTime||0)+extra)} · 连续 ${state.stats.companionStreak} 天</div>`;
+  body.innerHTML+='<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:12px">';
   allCompanionScenes().forEach(sn=>{
-    body.innerHTML+=`<div class="list-card companion-scene" onclick="enterCompanion('${sn.id}')"><div style="font-size:32px;margin-right:12px">${sn.icon}</div><div style="flex:1"><div class="list-card-title">${esc(sn.name)}</div><div class="list-card-sub">${esc(sn.desc||'')}</div></div></div>`;
+    body.innerHTML+=`<div class="list-card" style="margin:0;display:flex;flex-direction:column;align-items:center;gap:8px;padding:18px 10px;text-align:center;cursor:pointer" onclick="enterCompanion('${sn.id}')"><div style="font-size:36px">${sn.icon}</div><div class="list-card-title">${esc(sn.name)}</div><div class="list-card-sub">${esc(sn.desc||'')}</div></div>`;
   });
-  body.innerHTML+=`<button class="btn-pill ghost" style="width:100%;margin-bottom:10px" onclick="addCompanionScene()">＋ 新增陪伴模式</button>`;
-  body.innerHTML+=`<button class="btn-pill primary" style="width:100%" onclick="sendCompanionMsg()">&#128172; 发一条陪伴消息</button>`;
+  body.innerHTML+='</div>';
+  body.innerHTML+=`<button class="btn-pill ghost" style="width:100%;margin-top:14px" onclick="addCompanionScene()">＋ 新增陪伴模式</button>`;
+}
+function renderCompanionTiming(body){
+  const sc=allCompanionScenes().find(x=>x.id===companionSession.scene)||{name:'陪伴'};
+  const remain=Math.max(0,companionSession.endAt-Date.now());
+  const mm=String(Math.floor(remain/60000)).padStart(2,'0'),ss=String(Math.floor(remain%60000/1000)).padStart(2,'0');
+  const act=sc.name.replace('一起','')||'陪伴';
+  body.innerHTML=`
+    <div class="cp-timing">
+      <div class="cp-conn">&#9889; 1 台设备已连接</div>
+      <div class="cp-ring"><div class="cp-ring-num" id="cp-ring-num">${mm}:${ss}</div><div class="cp-ring-tag">${esc(act)}</div></div>
+      <div class="cp-slogan">正在一起${esc(act)} · 加油</div>
+      <div style="display:flex;justify-content:center;gap:26px;margin-top:24px;font-size:20px">
+        <span class="cp-quick" onclick="openApp('chat')">&#128172;<div style="font-size:11px;color:var(--hint)">聊天</div></span>
+        <span class="cp-quick" onclick="openMusicPlayer()">&#127925;<div style="font-size:11px;color:var(--hint)">音乐</div></span>
+        <span class="cp-quick" onclick="endCompanion()">&#10006;<div style="font-size:11px;color:var(--hint)">结束</div></span>
+      </div>
+    </div>`;
+}
+function startCompanion(sc,minutes){
+  companionSession={scene:sc.id,endAt:Date.now()+minutes*60000,total:minutes*60000};
+  state.me.status=sc.name;saveKey('me');
+  if(!state.stats.companionStart)state.stats.companionStart=Date.now();saveKey('stats');
+  pushSys(`你和 ${state.other.name} 开始了「${sc.name}」，共 ${minutes} 分钟`);
+  renderCompanion();
+  if(companionTick)clearInterval(companionTick);
+  companionTick=setInterval(()=>{
+    if(!companionSession)return;
+    if(Date.now()>=companionSession.endAt){
+      clearInterval(companionTick);companionTick=null;
+      companionSession=null;renderCompanion();
+      pushSys('陪伴时间到，这次陪得刚刚好');
+      setTimeout(()=>pushReply('陪你到时间刚好，下次继续。'),2500);
+      showToast('本次陪伴结束');
+      return;
+    }
+    const num=document.getElementById('cp-ring-num');
+    if(num){
+      const remain=companionSession.endAt-Date.now();
+      num.textContent=String(Math.floor(remain/60000)).padStart(2,'0')+':'+String(Math.floor(remain%60000/1000)).padStart(2,'0');
+    }
+  },1000);
+}
+function endCompanion(){
+  if(companionTick)clearInterval(companionTick);companionTick=null;
+  companionSession=null;renderCompanion();showToast('已结束陪伴');
 }
 function enterCompanion(id){
   const sc=allCompanionScenes().find(x=>x.id===id);if(!sc)return;
-  state.me.status=sc.name;saveKey('me');
-  if(!state.stats.companionStart)state.stats.companionStart=Date.now();saveKey('stats');
-  pushSys(`你和 ${state.other.name} 进入了「${sc.name}」陪伴`);
-  if(Math.random()<0.75){
-    const reacts=[`TA 也安静地陪在你身边。`,`TA 看到你上线了，轻轻说了一声「我在」。`,`TA 在你旁边坐了下来，没有打扰你。`];
-    setTimeout(()=>{pushSys(reacts[Math.floor(Math.random()*reacts.length)]);},2500);
-  }
-  openApp('chat');
-  showToast('已进入 '+sc.name);
+  const act=sc.name.replace('一起','');
+  showModal(sc.icon+' '+sc.name,'<div style="text-align:center;font-size:13px;color:var(--sub);padding-bottom:10px">这次陪你多久？</div><div class="cp-dur-grid" id="cp-dur-grid"></div><button class="btn-pill ghost" style="width:100%;margin-top:12px" onclick="closeModal()">取消</button>');
+  const g=document.getElementById('cp-dur-grid');
+  [5,10,15,20,25,30].forEach(m=>{
+    const d=document.createElement('div');d.className='cp-dur';d.innerHTML='<b>'+m+'</b><span>分钟</span>';
+    d.onclick=()=>{closeModal();startCompanion(sc,m);};
+    g.appendChild(d);
+  });
 }
 function openCompanionManage(){
   const list=state.stats.customCompanion||[];
   showModal('陪伴模式管理',list.map((sc,i)=>`<div style="display:flex;align-items:center;gap:8px;padding:12px 4px;border-bottom:1px solid var(--input)"><span style="font-size:22px">${sc.icon}</span><div style="flex:1"><div style="font-size:15px;font-weight:600">${esc(sc.name)}</div><div style="font-size:12px;color:var(--sub)">${esc(sc.desc||'')}</div></div><span style="cursor:pointer;padding:4px" onclick="closeModal();editCompanionScene(${i})">&#9998;</span><span style="cursor:pointer;padding:4px;color:#c0392b" onclick="closeModal();delCompanionScene(${i})">&#10005;</span></div>`).join('')
-    +(list.length?'':'<div class="empty" style="padding:14px 4px">还没有自定义模式</div>')
-    +'<div class="modal-item" onclick="closeModal();addCompanionScene()">＋ 新增陪伴模式</div>');
+    +(list.length?'':'<div class="empty" style="padding:14px 4px">还没有自定义模式</div>'));
 }
 function addCompanionScene(){
   showModal('新增陪伴模式',`<input class="app-input" id="cp-name" placeholder="模式名称" style="width:100%;margin-bottom:10px"><textarea class="textarea-full" id="cp-desc" placeholder="说明（可选）" style="min-height:60px"></textarea><button class="btn-pill primary" style="width:100%" onclick="saveCompanionScene(-1)">保存</button>`);
@@ -2576,12 +2670,6 @@ setInterval(()=>{
     state.stats.companionStart=Date.now();saveKey('stats');
   }
 },60000);
-function sendCompanionMsg(){
-  const msgs=['我在呢。','不打扰你，就在旁边。','好好忙你的，不用回。','想我了就抬头看看。','累了就歇会儿，我等你。'];
-  const msg=msgs[Math.floor(Math.random()*msgs.length)];
-  pushSys(`你向 ${state.other.name} 发送了陪伴消息`);
-  setTimeout(()=>pushReply(msg),3000+Math.random()*5000);
-}
 function fmtDuration(ms){
   if(!ms)return '0 分钟';
   const m=Math.floor(ms/60000);if(m<60)return m+' 分钟';
@@ -2597,9 +2685,10 @@ const SMALL_GAMES=[
 ];
 function renderEntertain(){
   const body=document.getElementById('entertain-body');body.innerHTML='';
-  body.innerHTML='<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:12px">';
-  SMALL_GAMES.forEach(g=>{body.innerHTML+=`<div class="list-card" style="margin:0;display:flex;flex-direction:column;align-items:center;gap:8px;padding:18px 10px;text-align:center;cursor:pointer" onclick="playGame('${g.id}')"><div style="font-size:34px">&#127918;</div><div class="list-card-title">${g.name}</div><div class="list-card-sub">${esc(g.desc)}</div></div>`;});
-  body.innerHTML+='</div><div class="empty" style="padding:20px 20px;font-size:12px">更多玩法在聊天的「+」面板里</div>';
+  body.innerHTML='<div class="empty" style="padding:44px 20px;text-align:center"><div style="font-size:46px">&#127918;</div><div style="margin-top:12px;font-size:15px;font-weight:600">小游戏已搬到聊天「+」面板</div><div style="margin-top:6px;font-size:12px;color:var(--hint)">打开聊天 → 点「+」→ 选「游戏」即可开玩</div></div>';
+}
+function showGamesMenu(){
+  showModal('小游戏',SMALL_GAMES.map(g=>`<div class="list-card" style="cursor:pointer" onclick="closeModal();playGame('${g.id}')"><div style="display:flex;align-items:center;gap:12px"><div style="font-size:30px">&#127918;</div><div style="flex:1"><div class="list-card-title">${g.name}</div><div class="list-card-sub">${esc(g.desc)}</div></div><span style="color:var(--hint);font-size:18px">&#8250;</span></div></div>`).join(''));
 }
 function playGame(id){
   const g=SMALL_GAMES.find(x=>x.id===id);if(!g)return;
@@ -2657,16 +2746,10 @@ function updateMusicUI(){
   const set=(id,v)=>{const e=document.getElementById(id);if(e)e.textContent=v;};
   set('mw-name',name);set('mw-artist',cur?'点击播放音乐':'点击播放音乐');
   set('mp-name',name);set('mp-artist',artist);
-  set('mw-play',musicPlaying?'&#10074;&#10074;':'&#9654;');
-  set('mp-play',musicPlaying?'&#10074;&#10074;':'&#9654;');
-  const big=document.getElementById('mp-big-play');if(big)big.textContent=musicPlaying?'&#10074;&#10074;':'&#9654;';
+  set('mw-play',musicPlaying?'⏸':'▶');
+  set('mp-play',musicPlaying?'⏸':'▶');
+  const big=document.getElementById('mp-big-play');if(big)big.textContent=musicPlaying?'⏸':'▶';
   if(state.currentApp==='music')renderMusic();
-}
-function updateMiniPlayer(){
-  const mp=document.getElementById('mini-player');
-  if(!mp)return;
-  const inPage=document.getElementById('app-pages').classList.contains('on');
-  if(musicPlaying&&inPage)mp.classList.add('show');else mp.classList.remove('show');
 }
 function playToneSeq(freq){
   try{
@@ -2686,21 +2769,25 @@ function stopMusicAudio2(){
   if(musicAudio){try{musicAudio.pause();}catch(e){}musicAudio=null;}
   clearTimeout(musicTimer);
 }
+function startAudioTrack(cur){
+  stopMusicAudio2();
+  musicAudio=new Audio(cur.src);
+  musicAudio.loop=(musicMode==='single');
+  musicAudio.onended=()=>{if(musicPlaying&&!musicAudio.loop)nextTrack();};
+  musicAudio.onerror=()=>{showToast('无法播放该音频（可能被平台限制）');stopMusicAudio2();musicPlaying=false;updateMusicUI();updateMiniPlayer();};
+  musicAudio.play().catch(()=>{showToast('播放被拦截，请点击播放器重试');stopMusicAudio2();musicPlaying=false;updateMusicUI();updateMiniPlayer();});
+}
 function playIndex(i){
   const it=allMusicItems();
   if(!it.length){musicIndex=-1;musicPlaying=false;updateMusicUI();updateMiniPlayer();showToast('歌单还是空的，先去导入音乐');return;}
   musicIndex=(i+it.length)%it.length;
   musicPlaying=true;updateMusicUI();updateMiniPlayer();
-  const cur=curTrack();stopMusicAudio2();
-  if(cur&&cur.src){
-    musicAudio=new Audio(cur.src);
-    musicAudio.onended=()=>{if(musicPlaying)nextTrack();};
-    musicAudio.onerror=()=>{showToast('无法播放该音频（可能被平台限制）');stopMusicAudio2();musicPlaying=false;updateMusicUI();updateMiniPlayer();};
-    musicAudio.play().catch(()=>{showToast('播放被拦截，请点击播放器重试');stopMusicAudio2();musicPlaying=false;updateMusicUI();updateMiniPlayer();});
-  }else{
+  const cur=curTrack();
+  if(cur&&cur.src){startAudioTrack(cur);}
+  else{
     playToneSeq(cur&&cur.tone?cur.tone:261.6);
     clearTimeout(musicTimer);
-    musicTimer=setTimeout(()=>{if(musicPlaying)nextTrack();},3400);
+    musicTimer=setTimeout(()=>{if(musicPlaying){if(musicMode==='single')playIndex(musicIndex);else nextTrack();}},3400);
   }
 }
 function toggleMiniPlay(){
@@ -2711,51 +2798,96 @@ function toggleMiniPlay(){
   const cur=curTrack();
   if(musicPlaying){
     if(cur&&cur.src){
-      if(!musicAudio){
-        musicAudio=new Audio(cur.src);
-        musicAudio.onended=()=>{if(musicPlaying)nextTrack();};
-        musicAudio.onerror=()=>{showToast('播放失败');stopMusicAudio2();musicPlaying=false;updateMusicUI();updateMiniPlayer();};
-      }
-      musicAudio.play().catch(()=>showToast('播放被拦截'));
+      if(!musicAudio){startAudioTrack(cur);}
+      else musicAudio.play().catch(()=>showToast('播放被拦截'));
     }else{
       playToneSeq(cur&&cur.tone?cur.tone:261.6);
       clearTimeout(musicTimer);
-      musicTimer=setTimeout(()=>{if(musicPlaying)nextTrack();},3400);
+      musicTimer=setTimeout(()=>{if(musicPlaying){if(musicMode==='single')playIndex(musicIndex);else nextTrack();}},3400);
     }
   }else{stopMusicAudio2();}
 }
 function nextTrack(){
-  const it=allMusicItems();
-  if(!it.length)return;
-  if(musicPlaying||musicIndex>=0)playIndex(musicIndex+1);else playIndex(0);
+  const it=allMusicItems();if(!it.length)return;
+  if(musicMode==='random'&&it.length>1)playIndex(Math.floor(Math.random()*it.length));
+  else if(musicPlaying||musicIndex>=0)playIndex(musicIndex+1);
+  else playIndex(0);
 }
 function prevTrack(){
+  const it=allMusicItems();if(!it.length)return;
+  if(musicMode==='random'&&it.length>1)playIndex(musicIndex-Math.floor(Math.random()*(it.length-1))-1);
+  else if(musicPlaying||musicIndex>=0)playIndex(musicIndex-1);
+  else playIndex(0);
+}
+function toggleMusicMode(){
+  musicMode=musicMode==='list'?'random':musicMode==='random'?'single':'list';
+  const txt=musicMode==='list'?'列表循环':musicMode==='random'?'随机播放':'单曲循环';
+  if(musicAudio)musicAudio.loop=(musicMode==='single');
+  showToast('播放模式：'+txt);openMusicPlayer();
+}
+function setMusicSleep(min){
+  if(!min){musicSleepAt=0;if(musicSleepTimer)clearInterval(musicSleepTimer);musicSleepTimer=null;showToast('已取消定时');openMusicPlayer();return;}
+  musicSleepAt=Date.now()+min*60000;
+  if(musicSleepTimer)clearInterval(musicSleepTimer);
+  musicSleepTimer=setInterval(()=>{
+    if(musicSleepAt&&Date.now()>=musicSleepAt){
+      musicSleepAt=0;clearInterval(musicSleepTimer);musicSleepTimer=null;
+      musicPlaying=false;stopMusicAudio2();updateMusicUI();updateMiniPlayer();
+      showToast('定时已到，音乐已暂停');
+    }
+  },2000);
+  showToast('将在 '+min+' 分钟后暂停');openMusicPlayer();
+}
+function showSleepPicker(){
+  showModal('定时关闭',`<div style="text-align:center;font-size:13px;color:var(--sub);padding-bottom:10px">${musicSleepAt?'当前已定时，可重新选择：':'到时间自动暂停音乐：'}</div><div class="cp-dur-grid" id="sleep-grid"></div><button class="btn-pill ghost" style="width:100%;margin-top:12px" onclick="closeModal()">取消</button>`);
+  const g=document.getElementById('sleep-grid');
+  [[0,'不关闭'],[10,'10 分钟'],[20,'20 分钟'],[30,'30 分钟'],[60,'60 分钟']].forEach(o=>{
+    const d=document.createElement('div');d.className='cp-dur';d.innerHTML='<b>'+o[0]+'</b><span>'+o[1]+'</span>';
+    d.onclick=()=>{closeModal();setMusicSleep(o[0]);};
+    g.appendChild(d);
+  });
+}
+function showMusicPlaylist(){
   const it=allMusicItems();
-  if(!it.length)return;
-  if(musicPlaying||musicIndex>=0)playIndex(musicIndex-1);else playIndex(0);
+  if(!it.length){showToast('歌单是空的');return;}
+  showModal('播放列表（'+it.length+'）',it.map((m,i)=>`<div class="list-card" style="display:flex;align-items:center;gap:10px;cursor:pointer" onclick="closeModal();playIndex(${i});updateMusicUI();updateMiniPlayer()"><div style="width:32px;height:32px;border-radius:8px;background:${i===musicIndex?'var(--text)':'var(--input)'};color:${i===musicIndex?'var(--bg)':'var(--text)'};display:flex;align-items:center;justify-content:center;font-size:12px;flex-shrink:0">${i===musicIndex?'▶':i+1}</div><div style="flex:1;min-width:0"><div class="list-card-title" style="font-size:14px">${esc(m.title)}</div><div class="list-card-sub" style="font-size:11px">${esc(m.artist||'')}</div></div>${musicPlaying&&i===musicIndex?'<span style="font-size:11px;color:var(--text)">播放中</span>':''}</div>`).join(''));
 }
 function openMusicPlayer(){
   const cur=curTrack();
   const it=allMusicItems();
   const pl=musicState.playlists[musicState.active];
+  const modeTxt=musicMode==='list'?'列表循环':musicMode==='random'?'随机播放':'单曲循环';
   let prog='--:-- / --:--';
   if(musicAudio&&musicAudio.duration)prog=Math.floor(musicAudio.currentTime)+' / '+Math.floor(musicAudio.duration);
-  else if(cur&&cur.dur)prog='0:00 / '+cur.dur;
-  showModal('音乐',`<div style="text-align:center;padding:14px 0 6px"><div style="width:116px;height:116px;border-radius:22px;background:var(--text);color:var(--bg);display:flex;align-items:center;justify-content:center;font-size:42px;margin:0 auto 14px">&#127925;</div><div style="font-size:17px;font-weight:600">${esc(cur?cur.title:'未在播放')}</div><div style="font-size:13px;color:var(--sub);margin-top:4px">${esc(cur?(cur.artist||'星迹音乐'):'歌单「'+esc(pl.name)+'」')}</div>
-    <div style="font-size:11px;color:var(--hint);margin-top:6px" id="mp-prog">${prog}</div></div>
-    <div style="display:flex;justify-content:center;align-items:center;gap:36px;padding:14px 0 10px;font-size:24px">
+  showModal('音乐',`<div style="text-align:center;padding:12px 0 4px"><div style="width:120px;height:120px;border-radius:50%;background:var(--text);color:var(--bg);display:flex;align-items:center;justify-content:center;font-size:44px;margin:0 auto 14px;box-shadow:0 0 0 6px var(--card),0 0 0 7px var(--input)">&#127925;</div><div style="font-size:17px;font-weight:600">${esc(cur?cur.title:'未在播放')}</div><div style="font-size:13px;color:var(--sub);margin-top:4px">${esc(cur?(cur.artist||'星迹音乐'):'歌单「'+esc(pl.name)+'」')}</div>
+    <div style="font-size:11px;color:var(--hint);margin-top:8px" id="mp-prog">${prog}</div>
+    <div style="height:3px;background:var(--input);border-radius:2px;margin:6px 0 0;overflow:hidden"><div id="mp-bar" style="height:100%;width:0%;background:var(--text);border-radius:2px;transition:width .2s linear"></div></div></div>
+    <div style="display:flex;justify-content:center;align-items:center;gap:40px;padding:16px 0 8px;font-size:22px">
       <span style="cursor:pointer" onclick="prevTrack()">&#8249;</span>
-      <span style="cursor:pointer;font-size:30px" onclick="toggleMiniPlay()" id="mp-big-play">&#9654;</span>
+      <span style="cursor:pointer;font-size:32px" onclick="toggleMiniPlay()" id="mp-big-play">▶</span>
       <span style="cursor:pointer" onclick="nextTrack()">&#8250;</span>
     </div>
-    <div style="text-align:center;font-size:11px;color:var(--hint);margin-bottom:4px">歌单「${esc(pl.name)}」 · ${it.length} 首</div>
-    <button class="btn-pill ghost" style="width:100%" onclick="closeModal();openApp('music')">打开音乐库</button>`);
+    <div style="display:flex;justify-content:space-around;align-items:center;padding:6px 0 4px;font-size:11px;color:var(--sub)">
+      <span style="cursor:pointer;text-align:center;padding:4px" onclick="toggleMusicMode()">${modeTxt}</span>
+      <span style="cursor:pointer;text-align:center;padding:4px" onclick="showMusicPlaylist()">播放列表</span>
+      <span style="cursor:pointer;text-align:center;padding:4px" onclick="showSleepPicker()">定时</span>
+      <span style="cursor:pointer;text-align:center;padding:4px" onclick="closeModal();openApp('music')">音乐库</span>
+    </div>`);
   updateMusicUI();
-  if(musicAudio&&musicPlaying){
-    const pr=document.getElementById('mp-prog');
-    if(pr)musicAudio.ontimeupdate=()=>{if(musicAudio&&musicAudio.duration)pr.textContent=Math.floor(musicAudio.currentTime)+' / '+Math.floor(musicAudio.duration);};
+  if(musicAudio){
+    const upd=()=>{
+      const pr=document.getElementById('mp-prog'),bar=document.getElementById('mp-bar');
+      if(!pr||!bar)return;
+      if(musicAudio&&musicAudio.duration){
+        pr.textContent=Math.floor(musicAudio.currentTime)+' / '+Math.floor(musicAudio.duration);
+        bar.style.width=(musicAudio.currentTime/musicAudio.duration*100)+'%';
+      }
+    };
+    musicAudio.ontimeupdate=upd;
+    if(musicPlaying)upd();
   }
 }
+
 /* 迷你播放器：拖动 / 贴边 / 双击收起成小圆球 */
 function bindMiniPlayer(){
   const mp=document.getElementById('mini-player');if(!mp||mp._bound)return;mp._bound=1;
@@ -2804,9 +2936,9 @@ function renderMusic(){
     <div id="music-list"></div>
     <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap">
       <button class="btn-pill primary" style="flex:1;min-width:46%" onclick="openImportMusic()">&#128279; 解析链接导入</button>
-      <button class="btn-pill ghost" style="flex:1;min-width:46%" onclick="importLocalAudio()">&#128193; 导入背景音乐</button>
+      <button class="btn-pill ghost" style="flex:1;min-width:46%" onclick="importLocalAudio()">&#128193; 导入本地音乐（可多选）</button>
     </div>
-    <div style="font-size:11px;color:var(--hint);margin-top:10px;line-height:1.8">支持网易云 / 汽水音乐的公开分享链接（单曲）；本地音频也可导入。导入的数据仅存本机，可分享进聊天。</div>`;
+    <div style="font-size:11px;color:var(--hint);margin-top:10px;line-height:1.8">支持网易云 / 汽水音乐的公开分享链接（单曲 / 歌单）；本地音频也可批量导入。导入的数据仅存本机，可分享进聊天。</div>`;
   renderMusicList();
 }
 function switchMusicPlaylist(i){
@@ -2826,7 +2958,7 @@ function saveNewPlaylist(){
 function renderMusicList(){
   const box=document.getElementById('music-list');if(!box)return;
   const it=allMusicItems();
-  if(!it.length){box.innerHTML='<div class="empty">歌单是空的<br>用「解析链接导入」或「导入背景音乐」添加</div>';return;}
+  if(!it.length){box.innerHTML='<div class="empty">歌单是空的<br>用「解析链接导入」或「导入本地音乐」添加</div>';return;}
   box.innerHTML=it.map((m,i)=>`<div class="list-card" style="display:flex;align-items:center;gap:10px">
     <div style="width:40px;height:40px;border-radius:10px;background:var(--text);color:var(--bg);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;cursor:pointer" onclick="playMusicIdx(${i})">${musicPlaying&&musicIndex===i?'&#10074;&#10074;':'&#9654;'}</div>
     <div style="flex:1;min-width:0"><div class="list-card-title">${esc(m.title)}</div><div class="list-card-sub">${esc(m.artist||'未知歌手')} · ${m.src?'链接音频':(m.tone?'合成音':'本地')}</div></div>
@@ -2838,31 +2970,64 @@ function playMusicIdx(i){
   playIndex(i);renderMusic();
 }
 function openImportMusic(){
-  showModal('解析链接导入','<div style="font-size:12px;color:var(--sub);margin-bottom:8px">粘贴网易云 / 汽水音乐的公开分享链接（单曲即可）：</div><textarea class="textarea-full" id="import-link" placeholder="例如：https://music.163.com/#/song?id=186016" style="min-height:70px"></textarea><div style="font-size:11px;color:var(--hint);margin-top:6px">歌单链接请先打开网页版，把歌曲链接逐条粘贴进来；无法识别的链接会退回手动添加。</div>','<div class="modal-item" onclick="doImportMusic()">开始解析</div>');
+  showModal('解析链接导入','<div style="font-size:12px;color:var(--sub);margin-bottom:8px">粘贴网易云 / 汽水音乐的公开分享链接（单曲或歌单）：</div><textarea class="textarea-full" id="import-link" placeholder="例如：https://music.163.com/#/song?id=186016" style="min-height:70px"></textarea><div style="font-size:11px;color:var(--hint);margin-top:6px">支持网易云歌单链接批量导入；无法识别的链接会退回手动添加。</div>','<div class="modal-item" onclick="doImportMusic()">开始解析</div>');
 }
 async function doImportMusic(){
   const raw=(document.getElementById('import-link').value||'').trim();
   if(!raw){showToast('请先粘贴链接');return;}
   const urls=raw.split(/\s+/).filter(Boolean);
-  let added=0,playlists=0;
+  closeModal();
+  showToast('正在解析链接…');
+  let added=0;
   for(const u of urls){
-    if(/playlist(?:\?id=|\/)\d+/i.test(u)){playlists++;continue;}
+    const pid=extractPlaylistId(u);
+    if(pid){added+=await importNeteasePlaylist(pid);continue;}
     const ids=extractNeteaseIds(u);
     if(ids&&ids.length){
       for(const id of ids){
         const src='https://music.163.com/song/media/outer/url?id='+id+'.mp3';
-        addMusicItem('网易云音乐 #'+id,'公开链接',src,0);
-        added++;
+        addMusicItem('网易云音乐 #'+id,'公开链接',src,0);added++;
       }
     }else{
-      addMusicItem(u.slice(0,22)+'…','未识别链接',null,220+Math.floor(Math.random()*100));
-      added++;
+      addMusicItem(u.slice(0,22)+'…','未识别链接',null,220+Math.floor(Math.random()*100));added++;
     }
   }
-  closeModal();renderMusic();updateMusicUI();
-  let msg='已导入 '+added+' 首'+(added?'（链接音频需联网播放）':'');
-  if(playlists)msg+='；检测到 '+playlists+' 个歌单链接，请逐条粘贴歌曲链接导入';
-  showToast(msg);
+  renderMusic();updateMusicUI();
+  showToast('共导入 '+added+' 首'+(added?'（链接音频需联网播放）':''));
+}
+function extractPlaylistId(url){
+  const m=url.match(/playlist(?:\?id=|\/)(\d+)/i);
+  return m?m[1]:null;
+}
+async function importNeteasePlaylist(pid){
+  const apis=[
+    'https://api.injahow.cn/meting/?type=playlist&id=',
+    'https://api.i-meto.com/meting/api?server=netease&type=playlist&id='
+  ];
+  for(const api of apis){
+    try{
+      const ctrl=new AbortController();
+      const to=setTimeout(()=>ctrl.abort(),8000);
+      const resp=await fetch(api+pid,{signal:ctrl.signal});
+      clearTimeout(to);
+      if(!resp.ok)continue;
+      const data=await resp.json();
+      if(!Array.isArray(data)||!data.length)continue;
+      let n=0;
+      for(const song of data){
+        const sid=song.url_id||song.id;
+        if(!sid)continue;
+        const title=(song.title||song.name||('网易云 #'+sid)).replace(/^\s*[\[【].*?[\]】]\s*/,'');
+        const artist=song.author||song.artist||'网易云歌单';
+        addMusicItem(title,artist,'https://music.163.com/song/media/outer/url?id='+sid+'.mp3',0);
+        n++;
+      }
+      if(n)showToast('歌单解析成功，已导入 '+n+' 首');
+      return n;
+    }catch(e){}
+  }
+  showToast('歌单解析失败（接口受限），请复制歌单内歌曲链接逐条导入');
+  return 0;
 }
 function extractNeteaseIds(url){
   const ids=[];
@@ -2892,14 +3057,24 @@ function shareMusicItem(i){
   showToast(`已分享《${m.title}》到聊天`);
 }
 function importLocalAudio(){
-  const input=document.createElement('input');input.type='file';input.accept='audio/*';
+  const input=document.createElement('input');input.type='file';input.accept='audio/*';input.multiple=true;
   input.onchange=e=>{
-    const f=e.target.files[0];if(!f)return;
-    if(f.size>8*1024*1024){showToast('音频超过 8MB，请换一个小文件');return;}
-    showToast('正在导入…');
-    const fr=new FileReader();
-    fr.onload=()=>{addMusicItem(f.name.replace(/\.[^.]+$/,''),'本地导入',fr.result,0);renderMusic();updateMusicUI();showToast('导入成功');};
-    fr.readAsDataURL(f);
+    const files=[...e.target.files];
+    if(!files.length)return;
+    const ok=files.filter(f=>f.size<=8*1024*1024);
+    const skip=files.length-ok.length;
+    if(!ok.length){showToast('音频都超过 8MB，请换小文件');return;}
+    showToast('正在导入 '+ok.length+' 个…');
+    let done=0;
+    ok.forEach(f=>{
+      const fr=new FileReader();
+      fr.onload=()=>{
+        addMusicItem(f.name.replace(/\.[^.]+$/,''),'本地导入',fr.result,0);
+        done++;
+        if(done===ok.length){renderMusic();updateMusicUI();showToast('导入完成'+(skip?'，跳过 '+skip+' 个超大文件':''));}
+      };
+      fr.readAsDataURL(f);
+    });
   };
   input.click();
 }
