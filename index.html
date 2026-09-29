@@ -1607,10 +1607,10 @@ async function finishVoiceRecord(talk){
   const audio=await stopRealRecord();
   pendingVoiceAudio=audio;
   showModal('发送语音',`<div style="text-align:center;padding:6px 0 0"><div style="font-size:40px">&#127908;</div><div style="font-size:15px;font-weight:600;margin-top:8px">${vsec} 秒${audio?' · 真实录音':' · 模拟音'}</div><div style="font-size:12px;color:var(--hint);margin-top:4px">${fmtTime(recordStart)}</div>
-    <button class="pill-oval" onclick="playPendingVoice()">&#9654; 先试听</button>
-    <div class="cancel-text" onclick="closeModal();pendingVoiceAudio=null">取消</div></div>`,
+    <button class="pill-oval" onclick="playPendingVoice()">&#9654; 先试听</button></div>`,
     '<div class="modal-item" style="font-weight:600;color:var(--text)" onclick="closeModal();doSendVoice('+vsec+')">发送</div>'
     +'<div class="modal-item" style="color:var(--hint)" onclick="closeModal();pendingVoiceAudio=null">取消</div>');
+  const mc=document.getElementById('modal-close');if(mc)mc.style.display='';
 }
 function playPendingVoice(){
   if(!pendingVoiceAudio){showToast('没有可试听的音频');return;}
@@ -2809,7 +2809,7 @@ function endCompanion(){
 function enterCompanion(id){
   const sc=allCompanionScenes().find(x=>x.id===id);if(!sc)return;
   const act=sc.name.replace('一起','');
-  showModal(sc.icon+' '+sc.name,'<div style="text-align:center;font-size:13px;color:var(--sub);padding-bottom:10px">这次陪你多久？</div><div class="cp-dur-grid" id="cp-dur-grid"></div><button class="btn-pill ghost" style="width:100%;margin-top:12px" onclick="closeModal()">取消</button>');
+  showModal(sc.icon+' '+sc.name,'<div style="text-align:center;font-size:13px;color:var(--sub);padding-bottom:10px">这次陪你多久？</div><div class="cp-dur-grid" id="cp-dur-grid"></div>');
   const g=document.getElementById('cp-dur-grid');
   [5,10,15,20,25,30].forEach(m=>{
     const d=document.createElement('div');d.className='cp-dur';d.innerHTML='<b>'+m+'</b><span>分钟</span>';
@@ -3159,7 +3159,7 @@ function playMusicIdx(i){
   playIndex(i);renderMusic();
 }
 function openImportMusic(){
-  showModal('解析链接导入','<div style="font-size:12px;color:var(--sub);margin-bottom:8px">粘贴网易云 / 汽水音乐的公开分享链接（单曲或歌单）：</div><textarea class="textarea-full" id="import-link" placeholder="例如：https://music.163.com/#/song?id=186016" style="min-height:70px"></textarea><div style="font-size:11px;color:var(--hint);margin-top:6px">支持网易云歌单链接批量导入；无法识别的链接会退回手动添加。</div>','<div class="modal-item" onclick="doImportMusic()">开始解析</div>');
+  showModal('解析链接导入','<div style="font-size:12px;color:var(--sub);margin-bottom:8px">粘贴网易云 / 汽水音乐的公开分享链接（单曲或歌单）：</div><textarea class="textarea-full" id="import-link" placeholder="例如：https://music.163.com/#/song?id=186016" style="min-height:70px"></textarea><div style="font-size:11px;color:var(--hint);margin-top:6px">支持网易云歌单链接批量导入；无法识别的链接会退回手动添加。</div>','<div class="modal-item" onclick="doImportMusic()">开始解析</div><div class="modal-item" onclick="closeModal()">取消</div>');
 }
 async function doImportMusic(){
   const raw=(document.getElementById('import-link').value||'').trim();
@@ -3998,10 +3998,13 @@ function showModal(title,body,actions){
     if(actions){ma.innerHTML=actions;ma.style.display='';}
     else{ma.innerHTML='';ma.style.display='none';}
   }
+  const mc=document.getElementById('modal-close');
+  if(mc)mc.style.display=(actions&&actions.includes('closeModal()'))?'none':'';
   document.getElementById('modal').classList.add('show');
 }
 function closeModal(){
   document.getElementById('modal').classList.remove('show');
+  const mc=document.getElementById('modal-close');if(mc)mc.style.display='';
   appInputCb=null;appConfirmCb=null;
   if(typeof roomPickerOpen!=='undefined'){roomPickerOpen=false;pendingRoomCell=-1;}
 }
