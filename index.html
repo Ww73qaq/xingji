@@ -889,7 +889,7 @@ let state = {
   skin:{themeId:'ink',primary:'#1a1a1a',light:'#3f3f3f',bg:'#f7f6f3',chatBg:''},
   pin:{code:'0000',enabled:1}, prob:{fastSec:10,slowSec:60,c1:70,c2:25,c3:5,quote:20,emoji:30},
   meetTime:null, quote:'遇你，与你，予你，余你', splashText:'谢绝一切内外意识体进入本网站，暂不开放！\n（本网站是专属于·时停该独立意识体的传讯网站，目前暂不开放，也包括不对时停开放）', muteEndTime:0, muteRequest:null,
-  letters:[], diaries:[], moments:[], currentApp:null, callActive:false,
+  letters:[], diaries:[], moments:[], currentApp:null, callActive:false, callLogs:[],
   chat:{lastReadAt:0, chatBg:'', recallSec:120, showQuote:true},
   callLogs:[],
   stats:{diaryOpen:false,companionTime:0,companionStreak:0,diaryCount:0,momentCount:0,chatCount:0}
@@ -2360,7 +2360,6 @@ async function renderDiary(){
       renderDiary._t=setInterval(()=>{
         const g=diaryReqAt&&(Date.now()-diaryReqAt)>=60000;
         if(g){clearInterval(renderDiary._t);renderDiary._t=null;renderDiary();}
-        else if(document.getElementById('diary-list'))renderDiary();
       },4000);
     }else if(renderDiary._t){clearInterval(renderDiary._t);renderDiary._t=null;}
   }
@@ -2438,29 +2437,6 @@ async function ensureTaDiary(){
   }
   if(state.currentApp==='diary')renderDiary();
 }
-function requestDiaryAccess(){
-  state.stats.diaryReqAt=Date.now();saveKey('stats');
-  showToast('申请已发送，24 小时无回应将自动通过');
-  if(state.currentApp==='diary')renderDiary();
-}
-function openWriteDiary(){showModal('写日记',`<div style="display:flex;gap:10px;margin-bottom:10px"><button class="btn-pill primary" onclick="document.getElementById('diary-subtype').value='sentence'">好句子</button><button class="btn-pill ghost" onclick="document.getElementById('diary-subtype').value='record'">记录</button></div><input type="hidden" id="diary-subtype" value="sentence"><textarea class="textarea-full" id="diary-content" placeholder="写下今天的心情..."></textarea><button class="btn-pill primary" style="width:100%" onclick="saveDiary()">保存</button>`);}
-async function saveDiary(){
-  const content=document.getElementById('diary-content').value.trim();
-  if(!content){showToast('内容不能为空');return;}
-  const rec=await dbPut('diaries',{owner:'me',content,subtype:document.getElementById('diary-subtype').value,time:Date.now()});
-  closeModal();showToast('日记已保存');
-  if(state.currentApp==='diary')renderDiary();
-  if(Math.random()<0.78){
-    const reply=TA_DIARY_REPLIES[Math.floor(Math.random()*TA_DIARY_REPLIES.length)];
-    setTimeout(async()=>{
-      rec.taReply=reply;await dbPut('diaries',rec);
-      pushSys(`${state.other.name} 读到了你的日记`);
-      pushReply(reply);
-      if(state.currentApp==='diary')renderDiary();
-    },5000+Math.random()*12000);
-  }
-}
-
 /* ===== MOMENTS ===== */
 function openMomentsSettings(){
   const p=state.prob;
