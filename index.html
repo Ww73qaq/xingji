@@ -118,6 +118,8 @@ body{position:fixed;inset:0;width:100%}
 /* ===== APP PAGES（含 iOS 风格 push/pop 导航栈） ===== */
 #app-pages{position:absolute;inset:0;display:none;z-index:100}
 #app-pages.on{display:block}
+/* 二级页面打开时隐藏底部标签栏（微信式：返回靠 ‹，避免被页面内容盖住无法点击） */
+#app-pages.on~#tabbar{transform:translateY(100%);opacity:0;pointer-events:none}
 .app-page{position:absolute;inset:0;background:var(--bg);display:flex;flex-direction:column;z-index:100;transform:translateX(100%);visibility:hidden;box-shadow:-2px 0 14px rgba(0,0,0,.07);transition:transform .3s cubic-bezier(.32,.72,0,1),visibility .3s}
 .app-page.on{transform:translateX(0);visibility:visible;z-index:102}
 .app-page.under{transform:translateX(-24%);visibility:visible;z-index:101;filter:brightness(.9)}
