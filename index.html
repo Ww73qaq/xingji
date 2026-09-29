@@ -2339,7 +2339,7 @@ async function renderDiary(){
   list.innerHTML+='<div class="diary-sec">&#128221; 我的日记</div>';
   if(!mine.length){list.innerHTML+='<div class="empty" style="padding:18px 0">还没有日记<br>写下第一篇吧</div>';}
   else for(const d of mine){
-    list.innerHTML+=`<div class="diary-entry"><div class="d-sub">${d.subtype==='sentence'?'&#128172; 好句子':'&#9998; 记录'}</div><div class="d-text">${esc(d.content)}</div><div class="d-time">${fmtDiaryFull(d.time)}</div>${d.taReply?'<div style="font-size:12px;color:var(--sub);margin-top:6px">&#128172; '+esc(state.other.name)+'：「'+esc(d.taReply)+'」</div>':''}<div class="d-btns"><span onclick="editDiary(${d.id})">&#9998; 编辑</span><span style="color:#c0392b" onclick="delDiary(${d.id})">&#10005; 删除</span></div></div>`;
+    list.innerHTML+=`<div class="diary-entry"><div class="d-text">${esc(d.content)}</div><div class="d-time">${fmtDiaryFull(d.time)}</div>${d.taReply?'<div style="font-size:12px;color:var(--sub);margin-top:6px">&#128172; '+esc(state.other.name)+'：「'+esc(d.taReply)+'」</div>':''}<div class="d-btns"><span onclick="editDiary(${d.id})">&#9998; 编辑</span><span style="color:#c0392b" onclick="delDiary(${d.id})">&#10005; 删除</span></div></div>`;
   }
   list.innerHTML+='<button class="btn-pill primary" style="width:100%;margin-top:10px" onclick="openWriteDiary()">&#128221; 写日记</button>';
   const others=diaries.filter(d=>d.owner==='other').sort((a,b)=>b.time-a.time);
