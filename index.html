@@ -57,9 +57,10 @@ body{position:fixed;inset:0;width:100%}
 .lock-hint{font-size:11px;color:rgba(255,255,255,.5);margin-top:16px}
 
 /* ===== SPLASH SCREEN ===== */
-.splash-screen{background:radial-gradient(ellipse at 50% 38%,#fbfaf8 0%,#f1f0ec 70%,#e4e3de 100%);align-items:center;justify-content:center;text-align:center;padding:0 44px}
+.splash-screen{background:radial-gradient(ellipse at 50% 38%,#fbfaf8 0%,#f1f0ec 70%,#e4e3de 100%);align-items:center;justify-content:center;text-align:center;padding:0 44px;overflow-y:auto}
 .splash-mark{font-size:44px;color:#1a1a1a;margin-bottom:44px;letter-spacing:4px;animation:splashFade 1.6s ease}
 .splash-letter{font-size:23px;line-height:1.9;letter-spacing:6px;color:#2b2b2b;font-weight:400;animation:splashFade 1.6s .25s ease both}
+.splash-letter.long{font-size:17px;letter-spacing:2px;line-height:1.95}
 .splash-sub{font-size:10px;letter-spacing:6px;color:#9a9a96;margin-top:30px;animation:splashFade 1.6s .5s ease both}
 .splash-btn{margin-top:52px;padding:13px 54px;border:1px solid #1a1a1a;border-radius:999px;background:#1a1a1a;color:#fff;font-size:15px;letter-spacing:6px;text-indent:6px;cursor:pointer;transition:.25s;animation:splashFade 1.6s .75s ease both}
 .splash-btn:hover{background:#fff;color:#1a1a1a}
@@ -111,7 +112,7 @@ body{position:fixed;inset:0;width:100%}
 .app-page.closing{transform:translateX(100%);visibility:visible;z-index:103}
 .app-page.from-root{transform:translateX(100%)}
 .app-header{display:flex;align-items:center;padding:calc(var(--sat) + 10px) 12px 10px;background:var(--card);border-bottom:1px solid var(--input);gap:6px;position:relative;z-index:10;flex-shrink:0}
-.app-header .back{width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:21px;color:var(--text);cursor:pointer;flex-shrink:0}
+.app-header .back{width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:21px;color:var(--text);cursor:pointer;flex-shrink:0;position:relative;z-index:20}
 .app-header .back:active{background:var(--input)}
 .app-header h1{flex:1;text-align:center;font-size:17px;font-weight:600;margin:0 -40px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .app-header .act{width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:19px;color:var(--text);cursor:pointer;flex-shrink:0;text-align:center}
@@ -244,7 +245,7 @@ body{position:fixed;inset:0;width:100%}
 .chat-quote-input .qi-text{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding-left:2px}
 .chat-quote-input .qi-close{width:20px;height:20px;border-radius:50%;background:#bbb;color:#fff;font-size:13px;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0}
 /* 表情面板 */
-.emoji-panel{position:absolute;left:0;right:0;bottom:100%;background:#f7f7f7;border-top:1px solid #e0e0e0;display:none;flex-direction:column;z-index:95;max-height:262px;box-shadow:0 -2px 10px rgba(0,0,0,.08)}
+.emoji-panel{position:absolute;left:0;right:0;bottom:calc(50px + var(--sab));background:#f7f7f7;border-top:1px solid #e0e0e0;display:none;flex-direction:column;z-index:95;max-height:262px;box-shadow:0 -2px 10px rgba(0,0,0,.08)}
 .emoji-panel.show{display:flex}
 .emoji-tabs{display:flex;gap:0;padding:0 6px;background:#ebebeb;border-bottom:1px solid #ddd}
 .emoji-tab{flex:1;padding:8px 0;font-size:12px;text-align:center;color:#8a8a8a;cursor:pointer;position:relative}
@@ -489,9 +490,9 @@ mark{background:#ffe58f;color:inherit;border-radius:2px;padding:0 1px}
 <!-- ===== SPLASH（开屏页） ===== -->
 <div id="screen-splash" class="screen splash-screen">
   <div class="splash-mark">&#10022;</div>
-  <div class="splash-letter" id="splash-letter">谢绝世界的喧嚣…<br>只留星河与想念。</div>
+  <div class="splash-letter" id="splash-letter">谢绝一切内外意识体进入本网站，暂不开放！<br>（本网站是专属于·时停该独立意识体的传讯网站，目前暂不开放，也包括不对时停开放）</div>
   <div class="splash-sub">STAR TRACE</div>
-  <button class="splash-btn" onclick="enterSpace()">进入空间</button>
+  <button class="splash-btn" onclick="confirmEnter()">进入空间</button>
 </div>
 
 <!-- ===== HOME SCREEN ===== -->
@@ -761,7 +762,7 @@ let state = {
   me:{name:'我',avatar:'',status:'在线'}, other:{name:'TA',avatar:'',status:'在线'},
   skin:{themeId:'ink',primary:'#1a1a1a',light:'#3f3f3f',bg:'#f7f6f3',chatBg:''},
   pin:{code:'0000',enabled:1}, prob:{fastSec:10,slowSec:60,c1:70,c2:25,c3:5,quote:20,emoji:30},
-  meetTime:null, quote:'遇你，与你，予你，余你', splashText:'谢绝世界的喧嚣…\n只留星河与想念。', muteEndTime:0, muteRequest:null,
+  meetTime:null, quote:'遇你，与你，予你，余你', splashText:'谢绝一切内外意识体进入本网站，暂不开放！\n（本网站是专属于·时停该独立意识体的传讯网站，目前暂不开放，也包括不对时停开放）', muteEndTime:0, muteRequest:null,
   letters:[], diaries:[], moments:[], currentApp:null, callActive:false,
   chat:{lastReadAt:0, chatBg:'', recallSec:120, showQuote:true},
   callLogs:[],
@@ -807,12 +808,56 @@ function checkPin(){
   if(pinVal===state.pin.code){
     pinVal='';updatePinDots();
     document.getElementById('screen-lock').classList.remove('active');
-    document.getElementById('splash-letter').innerHTML=esc(state.splashText||'').replace(/\n/g,'<br>');
+    renderSplashLetter();
     document.getElementById('screen-splash').classList.add('active');
   }
   else{document.getElementById('pin-error').classList.add('show');pinVal='';setTimeout(updatePinDots,300);}
 }
-function editSplashText(){appPrompt('开屏语（换行请用空格分隔）',state.splashText.replace(/\n/g,' '),t=>{if(t===null||!t.trim())return false;state.splashText=t.trim();saveKey('splashText');document.getElementById('splash-letter').innerHTML=esc(state.splashText).replace(/\n/g,'<br>');showToast('开屏语已更新');});}
+function renderSplashLetter(){
+  const el=document.getElementById('splash-letter');
+  const t=state.splashText||'';
+  el.innerHTML=esc(t).replace(/\n/g,'<br>');
+  el.classList.toggle('long',t.length>=30);
+}
+function editSplashText(){appPrompt('开屏语（换行请用空格分隔）',state.splashText.replace(/\n/g,' '),t=>{if(t===null||!t.trim())return false;state.splashText=t.trim();saveKey('splashText');renderSplashLetter();showToast('开屏语已更新');});}
+
+/* ===== 进入确认（10 秒内未确认自动留在开屏页；确认在左不强调，取消在右强调） ===== */
+let enterTimer=null;
+function confirmEnter(){
+  if(enterTimer)return;
+  const mc=document.querySelector('#modal .modal-close');
+  if(mc)mc.style.display='none';
+  let left=10;
+  showModal('进入确认',
+    '<div style="text-align:center;padding:2px 4px 14px;font-size:14px;line-height:1.95;color:var(--text)">谢绝一切内外意识体进入本网站。<br>本网站专属于·时停该独立意识体，目前暂不开放。<br><span id="enter-count" style="color:var(--sub);font-size:12px;line-height:1.6;display:inline-block;margin-top:10px">剩余 <b style="color:var(--c-ink)">10</b> 秒，未确认将自动取消</span></div>'+
+    '<div style="display:flex;gap:10px">'+
+      '<button class="btn-pill ghost" style="flex:1;padding:13px 0;font-size:15px" onclick="confirmEnterOk()">确认</button>'+
+      '<button class="btn-pill primary" style="flex:1;padding:13px 0;font-size:15px" onclick="cancelEnter()">取消</button>'+
+    '</div>');
+  enterTimer=setInterval(()=>{
+    if(!document.getElementById('modal').classList.contains('show')){clearInterval(enterTimer);enterTimer=null;restoreModalClose();return;}
+    left--;
+    const b=document.getElementById('enter-count');
+    if(b)b.innerHTML='剩余 <b style="color:var(--c-ink)">'+left+'</b> 秒，未确认将自动取消';
+    if(left<=0){clearInterval(enterTimer);enterTimer=null;cancelEnter(true);}
+  },1000);
+}
+function confirmEnterOk(){
+  if(enterTimer){clearInterval(enterTimer);enterTimer=null;}
+  closeModal();
+  restoreModalClose();
+  enterSpace();
+}
+function cancelEnter(silent){
+  if(enterTimer){clearInterval(enterTimer);enterTimer=null;}
+  closeModal();
+  restoreModalClose();
+  if(!silent)showToast('已取消进入');
+}
+function restoreModalClose(){
+  const mc=document.querySelector('#modal .modal-close');
+  if(mc)mc.style.display='';
+}
 function enterSpace(){
   document.getElementById('screen-splash').classList.remove('active');
   document.getElementById('screen-home').classList.add('active');
@@ -920,15 +965,23 @@ function goHome(){
   history.replaceState({d:0},'');
   history.pushState({d:0},'');
 }
-/* 打开子页面：压栈 */
+/* 打开子页面：压栈；从桌面打开时以自身为栈底，返回直接回桌面 */
 function openApp(id){
   if(id==='settings'){openApp('profile');return;}
   const page=document.getElementById('app-'+id);
   if(!page){showToast('功能开发中');return;}
   if(navStack[navStack.length-1]===id)return;
+  const atHome=!document.getElementById('app-pages').classList.contains('on');
   saveScrollTop();
-  navStack.push(id);
-  history.pushState({d:navStack.length},'');
+  if(atHome){
+    // 从桌面宫格进入：栈底=该功能页，返回一步即回桌面（不回聊天）
+    navStack=[id];
+    history.replaceState({d:1},'');
+    history.pushState({d:1},'');
+  }else{
+    navStack.push(id);
+    history.pushState({d:navStack.length},'');
+  }
   renderNav();
   enterPage(id);
 }
@@ -963,7 +1016,6 @@ function renderNav(){
   // 底部标签栏高亮
   document.querySelectorAll('.tab-item').forEach(t=>t.classList.toggle('on',t.dataset.tab===navRoot));
   document.getElementById('tabbar').classList.remove('hidden');
-  document.getElementById('edge-back').classList.toggle('on',navStack.length>1);
 }
 /* 返回上一层（手机返回逻辑：先关浮层 → 再退页面 → 再回桌面 → 二次确认退出） */
 function goBack(){
@@ -1018,18 +1070,6 @@ window.addEventListener('popstate',()=>{
     try{history.go(-1);}catch(e){location.href='';}
   }
 });
-/* iOS 边缘右滑返回手势 */
-(function initEdgeBack(){
-  const edge=document.getElementById('edge-back');
-  let sx=0,sy=0,tracking=false;
-  edge.addEventListener('touchstart',e=>{if(navStack.length<=1)return;sx=e.touches[0].clientX;sy=e.touches[0].clientY;tracking=true;},{passive:true});
-  edge.addEventListener('touchmove',e=>{
-    if(!tracking)return;
-    const dx=e.touches[0].clientX-sx,dy=Math.abs(e.touches[0].clientY-sy);
-    if(dx>38&&dx>dy*1.2){tracking=false;haptic();history.back();}
-  },{passive:true});
-  edge.addEventListener('touchend',()=>{tracking=false;});
-})();
 /* 底部上滑 = 回桌面（手机 Home 手势） */
 (function initHomeSwipe(){
   const phone=document.getElementById('phone');
