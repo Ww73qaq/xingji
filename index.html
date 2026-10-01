@@ -146,6 +146,7 @@ body{position:fixed;inset:0;width:100%}
 .chat-content{flex:1;overflow-y:auto;padding:10px 12px 16px;background:#ededed;-webkit-overflow-scrolling:touch;overscroll-behavior:contain}
 .chat-date{text-align:center;font-size:11px;color:rgba(0,0,0,.55);background:rgba(0,0,0,.06);border-radius:4px;padding:3px 10px;margin:14px auto;width:fit-content}
 .chat-unread{text-align:center;font-size:11px;color:#c0392b;background:rgba(192,57,43,.08);border-radius:4px;padding:3px 10px;margin:12px auto;width:fit-content;cursor:pointer}
+.proactive-mark{color:#b08b5a;font-size:12px;letter-spacing:1px}
 .msg-row{display:flex;margin:12px 0;align-items:flex-start;position:relative}
 .msg-avatar-col{display:flex;flex-direction:column;align-items:center;gap:3px;margin:0 7px;flex-shrink:0}
 .msg-time{font-size:10px;color:rgba(0,0,0,.38);line-height:1}
@@ -901,11 +902,10 @@ body{-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;letter
 let state = {
   me:{name:'我',avatar:'',status:'在线'}, other:{name:'TA',avatar:'',status:'在线'},
   skin:{themeId:'ink',primary:'#1a1a1a',light:'#3f3f3f',bg:'#f7f6f3',chatBg:''},
-  pin:{code:'0000',enabled:1}, prob:{fastSec:10,slowSec:60,c1:70,c2:20,c3:7,c4:2,c5:1,quote:20,emoji:30,pokeProb:15,emojiProb:20,quoteProb:15,heartProb:5,qaProb:5,proactive:1,proactiveCooldown:30,repeatExclude:5,pollProb:10,momentProb:25},
+  pin:{code:'0000',enabled:1}, prob:{fastSec:10,slowSec:60,c1:70,c2:20,c3:7,c4:2,c5:1,normalProb:55,emojiProb:18,pokeProb:10,quoteProb:8,heartProb:6,qaProb:3,proactive:1,proactiveMin:30,proactiveMax:120,quietAfterReply:20,readIgnoreProb:0,multiEnabled:true,multiProb:35,minPerBubble:1,maxPerBubble:3,customRatio:90,repeatExclude:5,pollProb:10,momentProb:25},
   meetTime:null, quote:'遇你，与你，予你，余你', splashText:'谢绝一切内外意识体进入本网站，暂不开放！\n（本网站是专属于·时停该独立意识体的传讯网站，目前暂不开放，也包括不对时停开放）', muteEndTime:0, muteRequest:null,
   letters:[], diaries:[], moments:[], currentApp:null, callActive:false, callLogs:[],
   chat:{lastReadAt:0, chatBg:'', recallSec:120, showQuote:true},
-  callLogs:[],
   stats:{diaryOpen:false,companionTime:0,companionStreak:0,diaryCount:0,momentCount:0,chatCount:0}
 };
 const THEMES=[
@@ -1047,6 +1047,7 @@ function updateTabBadge(tab,count){
   b.style.display=count>0?'flex':'none';b.textContent=count>99?'99+':count;
 }
 async function refreshAllBadges(){
+  if(!DB)return;
   updateTabBadge('interact',await countUnreadLetters());
   const msgs=await dbGetAll('messages');
   const unread=msgs.filter(m=>m.sender==='other'&&!m.read).length;
@@ -1297,10 +1298,22 @@ function haptic(){try{navigator.vibrate&&navigator.vibrate(12);}catch(e){}}
 
 /* ===== CHAT（微信风格） ===== */
 const DEFAULT_REPLIES=[
-  '嗯嗯，我在听。','然后呢？我等你继续讲。','好想你呀。','我也这么觉得。',
-  '你最近还好吗？','哈哈，你总是能逗笑我。','别忙太晚，晚上早点休息。',
-  '其实我刚刚也在想你呢。','这句话我要记下来。','周末要不要一起出去走走？',
-  '你说得对，我有点想你。','要不要听听我今天遇到的事？'
+  // 普通回应
+  '嗯嗯，我在听。','然后呢？我等你继续讲。','好呀。','我在。','继续说呀。','嗯，我听着呢。','好。','知道啦。','是这样呀。',
+  // 询问与关心
+  '你最近还好吗？','今天过得怎么样？','有没有好好吃饭？','别太累，记得休息。','你那边天气怎么样？','忙完记得找我。','最近有遇到开心的事吗？','是不是又熬夜了？',
+  // 日常分享
+  '我刚刚也在想你呢。','今天遇到一件小事，想讲给你听。','我这里的月亮很好看。','外面下雨了，你有带伞吗？','我刚泡了杯茶。','今天风很大，记得多穿点。','我这儿今天的云特别好看。',
+  // 情绪回应
+  '辛苦了。','我懂你。','没关系，有我在。','抱抱你。','别想太多啦。','你已经做得很好了。','慢慢来，不着急。','我会一直站在你这边的。',
+  // 晚安 / 早安
+  '晚安，好梦。','早安，新的一天。','早点休息呀。','睡前别想太多，我在呢。','梦里也要好好的。','睡醒记得找我。','今天也要好好照顾自己。',
+  // 疑问与轻松
+  '真的吗？','然后呢？','哈哈，你总是能逗笑我。','我也这么觉得。','你说得对。','有点意思。','是吧。','说来听听？','我很好奇。',
+  // 轻微撒娇 / 想念
+  '想你了。','我有点想你呀。','你不在的时候，时间过得好慢。','一直陪着你。','我在的，一直都在。','你怎么才来呀。',
+  // 安静陪伴
+  '嗯，我陪着你。','安静待一会儿也好。','不需要说话也没关系。','我在旁边陪着你。','累了就靠着我。','什么都不用想，放空一下也好。'
 ];
 const EMOJIS=['😀','😁','😂','🤣','😊','😘','😍','🥰','😜','🤗','🤔','😴','😭','😅','😤','🥺','👍','👎','🙏','👌','💪','❤️','💔','💕','✨','🌙','⭐','🔥','🍀','🌹','🎵','☕','🐱','🐶','🍜'];
 function updateChatHeader(){
@@ -1391,7 +1404,10 @@ function bubbleInnerHtml(m){
       const foot=m.answer?('<div class="poll-ans">'+esc(state.other.name)+' 已作答 · 用时 '+(m.answer.usedSec||0)+' 秒</div>'):('<div class="poll-wait" onclick="pollRetry(\''+m.id+'\')">等待作答… 点击可再问一遍</div>');
       return q+'<div class="msg-bubble msg-card" style="min-width:0"><div style="padding:11px 13px 9px"><div class="poll-q">'+esc(pp.question||'问卷')+' <span style="font-size:11px;color:var(--hint)">'+(pp.multi?'多选':'单选')+'</span></div>'+opts+'</div>'+foot+'</div>';
     }
-    default:return q+`<div class="msg-bubble">${linkify(esc(m.content||''))}</div>`;
+    default:{
+      const mark=(m.proactive&&m.sender==='other')?'<span class="proactive-mark">✦ </span>':'';
+      return q+`<div class="msg-bubble">${mark}${linkify(esc(m.content||''))}</div>`;
+    }
   }
 }
 function who(s){return s==='me'?state.me.name:state.other.name;}
@@ -1401,17 +1417,69 @@ function paintAvatar(el,p){
   el.innerHTML=p.avatar?`<img src="${p.avatar}" alt="">`:esc((p.name||'TA').charAt(0));
 }
 function linkify(t){return t.replace(/(https?:\/\/[^\s]+)/g,'<a href="$1" target="_blank" rel="noopener" style="color:#07c160">$1</a>');}
+let chatFirstPaint=true, chatUnreadShown=false;
+/* 构建单条消息行（完整渲染与增量追加共用） */
+function buildMsgRow(m){
+  const isMe=m.sender==='me';
+  const row=document.createElement('div');
+  row.className='msg-row '+(isMe?'me':'other');row.dataset.mid=m.id;
+  const acol=document.createElement('div');acol.className='msg-avatar-col';
+  const av=document.createElement('div');av.className='msg-avatar';av.innerHTML=avatarHtml(m.sender);
+  if(!isMe){av.style.cursor='pointer';av.title='双击拍一拍';av.ondblclick=e=>{e.stopPropagation();pokeChat();};}
+  acol.appendChild(av);
+  const ts=document.createElement('span');ts.className='msg-time';ts.textContent=fmtChatTime(m.time);
+  acol.appendChild(ts);
+  const body=document.createElement('div');body.className='msg-body';
+  body.innerHTML=bubbleInnerHtml(m);
+  const meta=document.createElement('div');meta.className='msg-meta';
+  if(isMe){
+    const st=document.createElement('span');
+    st.className='msg-status '+(m.read?'read':'sent');
+    st.textContent=m.read?'\u2714\u2714':'\u2714';
+    meta.appendChild(st);
+  }
+  if(m.fav){const f=document.createElement('span');f.textContent='★';f.style.color='#c0392b';meta.appendChild(f);}
+  body.appendChild(meta);
+  row.appendChild(acol);row.appendChild(body);
+  bindMsgGestures(row,m);
+  return row;
+}
+/* 增量追加一条消息：不重绘历史；用户在看历史时不强制滚动 */
+function appendMsgRow(m,stick){
+  const el=document.getElementById('chat-content');if(!el)return;
+  const atBottom=el.scrollTop+el.clientHeight>=el.scrollHeight-60;
+  const label=fmtChatDate(m.time);
+  const last=el.lastElementChild;
+  const lastLabel=(last&&last.classList.contains('chat-date'))?last.textContent:'';
+  if(label!==lastLabel){const d=document.createElement('div');d.className='chat-date';d.textContent=label;el.appendChild(d);}
+  if(m.sender!=='sys'&&!chatUnreadShown&&m.sender==='other'&&m.time>(state.chat.lastReadAt||0)){
+    chatUnreadShown=true;
+    const u=document.createElement('div');u.className='chat-unread';u.textContent='以下为新消息';u.onclick=()=>{el.scrollTop=u.offsetTop-60;};
+    el.appendChild(u);
+  }
+  if(m.sender==='sys'){
+    const d=document.createElement('div');
+    d.className='msg-sys'+(m.action?' tappable':'');
+    d.textContent=m.content||'';
+    if(m.action==='reedit'&&m.ref)d.onclick=()=>reeditMessage(m.ref);
+    el.appendChild(d);
+  }else{
+    el.appendChild(buildMsgRow(m));
+  }
+  if(stick||atBottom)requestAnimationFrame(()=>{el.scrollTop=el.scrollHeight;});
+}
 async function renderChat(scrollBottom){
   const el=document.getElementById('chat-content');if(!el)return;
   const msgs=(await dbGetAll('messages')).filter(m=>!m.deleted).sort((a,b)=>a.time-b.time);
   const keep=el.scrollTop+el.clientHeight>=el.scrollHeight-60;
   const stick=(scrollBottom===true)||keep||chatFirstPaint;
   chatFirstPaint=false;
-  let lastLabel='',unreadDone=false,last=el.scrollHeight;
+  chatUnreadShown=false;
+  let lastLabel='',last=el.scrollHeight;
   el.innerHTML='';
   for(const m of msgs){
-    if(m.sender!=='sys'&&!unreadDone&&m.sender==='other'&&m.time>(state.chat.lastReadAt||0)){
-      unreadDone=true;
+    if(m.sender!=='sys'&&!chatUnreadShown&&m.sender==='other'&&m.time>(state.chat.lastReadAt||0)){
+      chatUnreadShown=true;
       const u=document.createElement('div');u.className='chat-unread';u.textContent='以下为新消息';u.onclick=()=>{el.scrollTop=u.offsetTop-60;};
       el.appendChild(u);
     }
@@ -1424,35 +1492,12 @@ async function renderChat(scrollBottom){
       if(m.action==='reedit'&&m.ref) d.onclick=()=>reeditMessage(m.ref);
       el.appendChild(d);continue;
     }
-    const isMe=m.sender==='me';
-    const row=document.createElement('div');
-    row.className='msg-row '+(isMe?'me':'other');row.dataset.mid=m.id;
-    const acol=document.createElement('div');acol.className='msg-avatar-col';
-    const av=document.createElement('div');av.className='msg-avatar';av.innerHTML=avatarHtml(m.sender);
-    if(!isMe){av.style.cursor='pointer';av.title='双击拍一拍';av.ondblclick=e=>{e.stopPropagation();pokeChat();};}
-    acol.appendChild(av);
-    const ts=document.createElement('span');ts.className='msg-time';ts.textContent=fmtChatTime(m.time);
-    acol.appendChild(ts);
-    const body=document.createElement('div');body.className='msg-body';
-    body.innerHTML=bubbleInnerHtml(m);
-    const meta=document.createElement('div');meta.className='msg-meta';
-    if(isMe){
-      const st=document.createElement('span');
-      st.className='msg-status '+(m.read?'read':'sent');
-      st.textContent=m.read?'\u2714\u2714':'\u2714';
-      meta.appendChild(st);
-    }
-    if(m.fav){const f=document.createElement('span');f.textContent='★';f.style.color='#c0392b';meta.appendChild(f);}
-    body.appendChild(meta);
-    row.appendChild(acol);row.appendChild(body);
-    bindMsgGestures(row,m);
-    el.appendChild(row);
+    el.appendChild(buildMsgRow(m));
   }
   if(!msgs.length)el.innerHTML='<div class="msg-sys">还没有消息，说点什么吧</div>';
   if(stick)requestAnimationFrame(()=>{el.scrollTop=el.scrollHeight;});
   else el.scrollTop=last;
 }
-let chatFirstPaint=true;
 /* 长按 / 右键 → 消息操作面板 */
 function bindMsgGestures(row,m){
   let timer=null,moved=false,sx=0,sy=0;
@@ -1562,9 +1607,15 @@ async function sendMessage(){
   await markMeReadSoon();
   scheduleReply();
 }
-async function markMeReadSoon(){
-  const all=await dbGetAll('messages');
-  for(const m of all){if(m.sender==='me'&&!m.read&&!m.recalled&&m.type!=='text'){m.read=false;}}
+/* 我方消息延迟 2~4 秒标记「已读」（✓✓），模拟 TA 已读 */
+function markMeReadSoon(){
+  setTimeout(async()=>{
+    const all=await dbGetAll('messages');
+    const changed=all.filter(m=>m.sender==='me'&&!m.read&&!m.recalled);
+    if(!changed.length)return;
+    for(const m of changed){m.read=true;await dbPut('messages',m);}
+    if(state.currentApp==='chat')renderChat(false);
+  },2000+Math.random()*2000);
 }
 /* 通用消息发送入口（图片/语音/字卡/位置/音乐共用） */
 async function sendMsgObj(obj,noReply){
@@ -1585,85 +1636,456 @@ function hideTyping(){
   const bar=document.getElementById('chat-typing');if(bar)bar.classList.remove('show');
   const t=document.getElementById('chat-title');if(t)t.textContent=state.other.name;
 }
-let replying=false, replyTimer=null;
-function getReplyCount(){const p=state.prob||{};const c=[1,2,3,4,5].map(i=>Math.max(0,Number(p['c'+i])||0));const total=c.reduce((a,b)=>a+b,0)||100;const r=Math.random()*total;let acc=0;for(let i=0;i<5;i++){acc+=c[i];if(r<acc)return i+1;}return 1;}
-function getReplyDelay(){const fast=Math.max(0,Number(state.prob?.fastSec)||10),slow=Math.max(fast,Number(state.prob?.slowSec)||60);return (fast+Math.random()*(slow-fast))*1000;}
-function continueReply(){if(Date.now()<state.muteEndTime){showToast('对方已被禁言');return;}if(replying){showToast('对方正在回复中');return;}scheduleReply(true);}
-async function getUsableCardPool(){
+/* =========================================================
+   STAR TRACE CHAT ENGINE v2
+   聊天回复 / 字卡 / 特殊互动 / 主动消息统一调度器
+   - 单队列 + 合并回复（连续发送算一轮）
+   - 回复类型独立权重（互斥，总和 100）
+   - 引用 / QA / 多字卡 / 字卡使用统计
+   - 主动消息按 nextAt 时间戳调度（不再 45 秒轮询）
+   ========================================================= */
+let replying=false, replyTimer=null, proactiveTimer=null;
+let replyQueue=0, replyGeneration=0, proactiveBusy=false;
+
+const CHAT_ENGINE_DEFAULTS={
+  fastSec:8, slowSec:45,
+  c1:70, c2:20, c3:7, c4:2, c5:1,
+  normalProb:55, emojiProb:18, pokeProb:10, quoteProb:8, heartProb:6, qaProb:3,
+  proactive:1, proactiveMin:30, proactiveMax:120, quietAfterReply:20,
+  readIgnoreProb:0,
+  multiEnabled:true, multiProb:35, minPerBubble:1, maxPerBubble:3,
+  customRatio:90, repeatExclude:5
+};
+const MULTI_SEPARATORS=[' ','，','。','！','？','......','——'];
+
+function num(v,fb=0){const n=Number(v);return Number.isFinite(n)?n:fb;}
+function clamp(v,min,max){return Math.max(min,Math.min(max,v));}
+function randomInt(min,max){min=Math.ceil(min);max=Math.floor(max);return Math.floor(Math.random()*(max-min+1))+min;}
+
+/* ---- 回复长度：c1~c5 权重抽样，总和保持 100 ---- */
+function getReplyCount(){
+  const p=state.prob||{};
+  const values=[1,2,3,4,5].map(i=>clamp(num(p['c'+i],CHAT_ENGINE_DEFAULTS['c'+i]),0,100));
+  const total=values.reduce((a,b)=>a+b,0);
+  if(total<=0)return 1;
+  const r=Math.random()*total;let acc=0;
+  for(let i=0;i<5;i++){acc+=values[i];if(r<acc)return i+1;}
+  return 1;
+}
+/* ---- 回复等待：偏向较短等待的随机分布，更像真人 ---- */
+function getReplyDelay(){
+  const p=state.prob||{};
+  const fast=Math.max(1,num(p.fastSec,CHAT_ENGINE_DEFAULTS.fastSec));
+  const slow=Math.max(fast,num(p.slowSec,CHAT_ENGINE_DEFAULTS.slowSec));
+  const r=(Math.random()+Math.random())/2;
+  return (fast+r*(slow-fast))*1000;
+}
+function continueReply(){
+  if(Date.now()<state.muteEndTime){showToast('对方已被禁言');return;}
+  if(replying){showToast('对方正在回复中');return;}
+  scheduleReply(true);
+}
+
+/* ---- 字卡池：带 id / useCount 的卡片对象（排除停用分组） ---- */
+async function getCardPool(){
   const cards=await dbGetAll('cards');
   const groups=await dbGetAll('cardGroups');
   const dis=new Set(groups.filter(g=>g.enabled===false).map(g=>g.name));
-  const pool=cards.filter(c=>c.enabled!==false&&!dis.has(c.group||'默认')).map(c=>c.text).filter(Boolean);
-  return pool.length?pool:DEFAULT_REPLIES;
+  const pool=cards
+    .filter(c=>c.enabled!==false&&!dis.has(c.group||'默认'))
+    .map(c=>({id:c.id,text:String(c.text||'').trim(),useCount:c.useCount||0,group:c.group||'默认'}))
+    .filter(c=>c.text);
+  return pool.length?pool:null;
+}
+/* 兼容旧调用：返回纯文本数组 */
+async function getUsableCardPool(){
+  const pool=await getCardPool();
+  return pool?pool.map(c=>c.text):DEFAULT_REPLIES;
+}
+/* 字卡来源分层：customRatio% 抽自定义池，否则抽系统默认池；自定义池为空自动回退 */
+async function getReplySourcePool(){
+  const p=state.prob||{};
+  const custom=await getCardPool();
+  const ratio=clamp(num(p.customRatio,90),0,100);
+  const wantCustom=custom&&custom.length&&Math.random()*100<ratio;
+  return wantCustom?{cards:custom,kind:'custom'}:{cards:null,kind:'system'};
 }
 async function getRecentUsed(n){
-  const msgs=(await dbGetAll('messages')).filter(m=>m.sender==='other'&&m.type==='text'&&!m.isPoke).sort((a,b)=>b.time-a.time).slice(0,n||0);
-  return new Set(msgs.map(m=>m.content));
+  n=clamp(num(n,5),0,50);
+  if(!n)return new Set();
+  const msgs=(await dbGetAll('messages'))
+    .filter(m=>m.sender==='other'&&m.type==='text'&&!m.isPoke&&!m.recalled)
+    .sort((a,b)=>b.time-a.time).slice(0,n);
+  return new Set(msgs.map(m=>String(m.content||'')).filter(Boolean));
+}
+/* 平衡随机：低频卡更容易出现，高频卡仍会出现 */
+function pickText(cards,exclude){
+  if(!cards||!cards.length)return null;
+  let avail=cards.filter(c=>!exclude.has(c.text));
+  if(!avail.length)avail=cards;
+  const weights=avail.map(c=>1/Math.sqrt((c.useCount||0)+1));
+  const total=weights.reduce((a,b)=>a+b,0);
+  let r=Math.random()*total;
+  for(let i=0;i<avail.length;i++){r-=weights[i];if(r<=0)return avail[i];}
+  return avail[avail.length-1];
+}
+/* 多字卡拼接：一个气泡内 1~3 张卡，随机分隔符连接 */
+function pickMultiCards(cards,exclude){
+  const p=state.prob||{};
+  const multi=(p.multiEnabled!==false)&&(Math.random()*100<clamp(num(p.multiProb,35),0,100));
+  const minC=clamp(num(p.minPerBubble,1),1,5);
+  const maxC=clamp(num(p.maxPerBubble,3),minC,5);
+  const n=multi?randomInt(minC,maxC):1;
+  const picked=[];const bubbleUsed=new Set();
+  for(let i=0;i<n;i++){
+    const ex=new Set([...exclude,...bubbleUsed]);
+    if(cards&&cards.length){
+      const c=pickText(cards,ex);
+      if(c){bubbleUsed.add(c.text);picked.push(c);continue;}
+    }
+    const sys=DEFAULT_REPLIES.filter(t=>!ex.has(t));
+    const src=sys.length?sys:DEFAULT_REPLIES;
+    const t=src[Math.floor(Math.random()*src.length)];
+    bubbleUsed.add(t);picked.push(t);
+  }
+  if(!picked.length)return null;
+  const sep=MULTI_SEPARATORS[Math.floor(Math.random()*MULTI_SEPARATORS.length)];
+  const text=picked.map(x=>typeof x==='string'?x:x.text).join(sep);
+  return {text,cards:picked.filter(x=>typeof x!=='string')};
+}
+
+/* ---- 回复类型独立权重（互斥，自动归一化） ---- */
+function getInteractionWeights(){
+  const p=state.prob||{};
+  let w={
+    normal:num(p.normalProb,NaN),emoji:num(p.emojiProb,NaN),poke:num(p.pokeProb,NaN),
+    quote:num(p.quoteProb,NaN),heart:num(p.heartProb,NaN),qa:num(p.qaProb,NaN)
+  };
+  // 兼容旧存档：没有 normalProb 时，从旧特殊概率推导，剩余给普通字卡
+  if(!Number.isFinite(w.normal)){
+    const special=[
+      Math.max(0,num(p.emojiProb,20)),
+      Math.max(0,num(p.pokeProb,15)),
+      Math.max(0,num(p.quoteProb,15)),
+      Math.max(0,num(p.heartProb,5)),
+      Math.max(0,num(p.qaProb,5))
+    ];
+    const sum=special.reduce((a,b)=>a+b,0);
+    w={normal:Math.max(0,100-sum),emoji:special[0],poke:special[1],quote:special[2],heart:special[3],qa:special[4]};
+  }
+  Object.keys(w).forEach(k=>w[k]=Math.max(0,num(w[k],0)));
+  const total=Object.values(w).reduce((a,b)=>a+b,0);
+  if(total<=0)return{normal:100,emoji:0,poke:0,quote:0,heart:0,qa:0};
+  const out={};
+  Object.keys(w).forEach(k=>out[k]=w[k]/total*100);
+  return out;
+}
+function pickInteractionType(){
+  const w=getInteractionWeights();
+  const r=Math.random()*100;let acc=0;
+  const types=[['normal',w.normal],['emoji',w.emoji],['poke',w.poke],['quote',w.quote],['heart',w.heart],['qa',w.qa]];
+  for(const [t,wt] of types){acc+=wt;if(r<acc)return t;}
+  return 'normal';
+}
+async function getLatestUserText(){
+  const msgs=(await dbGetAll('messages'))
+    .filter(m=>m.sender==='me'&&m.type==='text'&&!m.recalled)
+    .sort((a,b)=>b.time-a.time);
+  return msgs[0]||null;
+}
+
+/* ---- 引用回复：引用你最近一句话 + 泛化回应 ---- */
+async function buildQuoteReply(roundId,cards){
+  const latest=await getLatestUserText();
+  if(!latest)return null;
+  const content=String(latest.content||'').trim();
+  if(!content)return null;
+  if(cards&&cards.length){
+    const candidates=cards.filter(c=>/你|我|想|好|说|觉得|知道|喜欢|可以|嗯|嗯嗯|对/.test(c.text));
+    const source=candidates.length?candidates:cards;
+    const c=source[Math.floor(Math.random()*source.length)];
+    return {sender:'other',type:'text',content:c.text,quote:{id:latest.id,text:content},time:Date.now(),read:false,source:'passive',replyRoundId:roundId,cardIds:[c.id]};
+  }
+  const sys=DEFAULT_REPLIES.filter(t=>/你|我|想|好|说|觉得|知道|喜欢|可以|嗯/.test(t));
+  const source=sys.length?sys:DEFAULT_REPLIES;
+  return {sender:'other',type:'text',content:source[Math.floor(Math.random()*source.length)],quote:{id:latest.id,text:content},time:Date.now(),read:false,source:'passive',replyRoundId:roundId};
+}
+/* ---- 回答题目：轻量规则识别提问，再从应答风格字卡抽样 ---- */
+function isQuestionText(t){
+  return /[？?]|为什么|怎么|如何|多少|是不是|能不能|可以吗|好吗|对吗|行不行|怎么样/.test(t||'');
+}
+
+/* ---- 构造一条回复 ---- */
+function buildOneReplyNormalFallback(roundId,cards,roundUsed,markUsed){
+  if(cards&&cards.length){
+    const c=pickText(cards,roundUsed);
+    if(c){markUsed(c);roundUsed.add(c.text);return {sender:'other',type:'text',content:c.text,time:Date.now(),read:false,source:'passive',replyRoundId:roundId,cardIds:[c.id]};}
+  }
+  const avail=DEFAULT_REPLIES.filter(t=>!roundUsed.has(t));
+  const source=avail.length?avail:DEFAULT_REPLIES;
+  return {sender:'other',type:'text',content:source[Math.floor(Math.random()*source.length)],time:Date.now(),read:false,source:'passive',replyRoundId:roundId};
+}
+async function buildOneReply(roundId,src,roundUsed,markUsed){
+  const type=pickInteractionType();
+  const cards=src.cards;
+  if(type==='normal'){
+    const picked=pickMultiCards(cards,roundUsed);
+    if(!picked)return buildOneReplyNormalFallback(roundId,cards,roundUsed,markUsed);
+    picked.cards.forEach(markUsed);
+    picked.cards.forEach(c=>roundUsed.add(c.text));
+    return {sender:'other',type:'text',content:picked.text,time:Date.now(),read:false,source:'passive',replyRoundId:roundId,cardIds:picked.cards.map(c=>c.id)};
+  }
+  if(type==='emoji'){
+    const em=EMOJIS[Math.floor(Math.random()*EMOJIS.length)];
+    return {sender:'other',type:'text',content:em,time:Date.now(),read:false,source:'passive',replyRoundId:roundId};
+  }
+  if(type==='poke'){
+    const pokes=allPokeTexts();
+    if(pokes.length){
+      const poke=pokes[Math.floor(Math.random()*pokes.length)];
+      return {sender:'other',type:'text',content:`${state.other.name}拍了拍你：${poke}`,time:Date.now(),read:false,isPoke:true,source:'passive',replyRoundId:roundId};
+    }
+    return buildOneReplyNormalFallback(roundId,cards,roundUsed,markUsed);
+  }
+  if(type==='quote'){
+    const quoted=await buildQuoteReply(roundId,cards);
+    if(quoted){
+      (quoted.cardIds||[]).forEach(id=>{const c=(cards||[]).find(x=>x.id===id);if(c)markUsed(c);});
+      return quoted;
+    }
+    return buildOneReplyNormalFallback(roundId,cards,roundUsed,markUsed);
+  }
+  if(type==='heart'){
+    if(HEARTS.length){
+      const i=Math.floor(Math.random()*HEARTS.length);
+      return {sender:'other',type:'heart',content:HEART_NAMES[i],sub:HEARTS[i],time:Date.now(),read:false,source:'passive',replyRoundId:roundId};
+    }
+    return buildOneReplyNormalFallback(roundId,cards,roundUsed,markUsed);
+  }
+  if(type==='qa'){
+    const latest=await getLatestUserText();
+    if(latest&&isQuestionText(String(latest.content||''))){
+      if(cards&&cards.length){
+        const qaC=cards.filter(c=>/可以|应该|可能|我觉得|嗯|对|不是|是的|当然|放心|没事/.test(c.text));
+        const source=qaC.length?qaC:cards;
+        const c=source[Math.floor(Math.random()*source.length)];
+        markUsed(c);
+        return {sender:'other',type:'text',content:c.text,time:Date.now(),read:false,source:'passive',replyRoundId:roundId,cardIds:[c.id]};
+      }
+      const sys=DEFAULT_REPLIES.filter(t=>/可以|应该|可能|我觉得|嗯|对|不是|是的|当然|放心|没事/.test(t));
+      const source=sys.length?sys:DEFAULT_REPLIES;
+      return {sender:'other',type:'text',content:source[Math.floor(Math.random()*source.length)],time:Date.now(),read:false,source:'passive',replyRoundId:roundId};
+    }
+    return buildOneReplyNormalFallback(roundId,cards,roundUsed,markUsed);
+  }
+  return buildOneReplyNormalFallback(roundId,cards,roundUsed,markUsed);
+}
+
+/* ---- 字卡使用统计：本轮抽到的卡批量 +1 ---- */
+async function flushCardUsage(usage){
+  if(!usage.size)return;
+  const entries=[...usage.entries()];
+  for(const [id,c] of entries){
+    c.useCount=(c.useCount||0)+1;
+    c.lastUsedAt=Date.now();
+    c.replyCount=(c.replyCount||0)+1;
+    try{await dbPut('cards',c);}catch(e){}
+  }
+}
+
+/* ---- pendingReply 生命周期：任务真正完成后再清理 ---- */
+async function clearPendingReply(){
+  try{
+    const v=await dbGetByKey('settings','pendingReply');
+    if(v)await dbDelete('settings',v.id);
+  }catch(e){console.warn('[chat-engine] clearPendingReply failed',e);}
+}
+
+/* ---- 已读不回：命中则标记已读、不回复 ---- */
+async function maybeReadIgnore(){
+  const prob=clamp(num(state.prob?.readIgnoreProb,0),0,100);
+  if(prob<=0)return false;
+  if(Math.random()*100>=prob)return false;
+  const msgs=await dbGetAll('messages');
+  const changed=msgs.filter(m=>m.sender==='me'&&!m.read&&!m.recalled);
+  for(const m of changed){m.read=true;await dbPut('messages',m);}
+  if(changed.length&&state.currentApp==='chat')renderChat(false);
+  refreshAllBadges();
+  return true;
+}
+
+/* ---- 回复调度：单队列 + 合并触发；锁在整轮结束后才释放 ---- */
+function finishReplyLocked(){
+  if(replyQueue>0){
+    replyQueue=0;
+    setTimeout(()=>{
+      if(Date.now()<state.muteEndTime){replying=false;return;}
+      replyQueue=0;replying=false;scheduleReply(false);
+    },650);
+  }else{
+    replying=false;
+  }
 }
 function scheduleReply(immediate=false){
-  if(replying){if(immediate)showToast('对方正在回复中');return;}
-  replying=true;showTyping();
+  if(replying){replyQueue++;return;}
+  replying=true;
   const delay=immediate?0:getReplyDelay();
-  const run=()=>{replyTimer=null;replying=false;hideTyping();if(Date.now()<state.muteEndTime)return;finishReply();};
+  const generation=++replyGeneration;
+  clearPendingReply();
+  const execute=async()=>{
+    if(generation!==replyGeneration)return;
+    replyTimer=null;
+    await clearPendingReply();
+    if(Date.now()<state.muteEndTime){finishReplyLocked();return;}
+    if(await maybeReadIgnore()){finishReplyLocked();return;}
+    // 只有临近回复才显示「正在输入…」，避免长时间假装打字
+    showTyping();
+    await new Promise(r=>setTimeout(r,immediate?(600+Math.random()*1200):(1200+Math.random()*2800)));
+    if(Date.now()<state.muteEndTime){hideTyping();finishReplyLocked();return;}
+    try{
+      await finishReply('passive');
+    }catch(e){
+      console.error('[chat-engine] finishReply failed',e);
+    }
+    hideTyping();
+    finishReplyLocked();
+  };
   if(delay>0){
-    dbPut('settings',{key:'pendingReply',value:{at:Date.now()+delay}}).catch(()=>{});
-    replyTimer=setTimeout(run,delay);
-  }else{run();}
+    dbPut('settings',{key:'pendingReply',value:{at:Date.now()+delay,generation}}).catch(()=>{});
+    replyTimer=setTimeout(execute,delay);
+  }else{
+    execute();
+  }
 }
-async function finishReply(){
-  let pool=await getUsableCardPool();
-  const exclude=Number(state.prob.repeatExclude)||5;
-  const used=await getRecentUsed(exclude);
-  if(used.size){const rest=pool.filter(t=>!used.has(t));if(rest.length)pool=rest;}
-  const p=state.prob||{};
+/* ---- 完成一轮回复：逐条构建 → 增量追加渲染 ---- */
+async function finishReply(source){
+  const roundId='r_'+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2,6);
+  const usage=new Map();
+  const markUsed=c=>{if(c&&c.id)usage.set(c.id,c);};
+  const src=await getReplySourcePool();
+  const roundUsed=await getRecentUsed(clamp(num(state.prob?.repeatExclude,5),0,50));
   const n=getReplyCount();
   for(let i=0;i<n;i++){
-    await new Promise(r=>setTimeout(r,i?900+Math.random()*1800:0));
-    if(Date.now()<state.muteEndTime)return;
-    const pokes=allPokeTexts();
-    const r=Math.random()*100;
-    if(pokes.length&&r<(p.pokeProb??15)){const poke=pokes[Math.floor(Math.random()*pokes.length)];await dbPut('messages',{sender:'other',type:'text',content:`${state.other.name}拍了拍你：${poke}`,time:Date.now(),read:false,isPoke:true});}
-    else if(r<((p.pokeProb??15)+(p.emojiProb??20))){const em=EMOJIS[Math.floor(Math.random()*EMOJIS.length)];await dbPut('messages',{sender:'other',type:'text',content:em,time:Date.now(),read:false});}
-    else if(r<((p.pokeProb??15)+(p.emojiProb??20)+(p.heartProb??5))){const hi=Math.floor(Math.random()*HEARTS.length);await dbPut('messages',{sender:'other',type:'heart',content:HEART_NAMES[hi],sub:HEARTS[hi],time:Date.now(),read:false});}
-    else{const text=pool[Math.floor(Math.random()*pool.length)];await dbPut('messages',{sender:'other',type:'text',content:text,time:Date.now(),read:false});}
-    if(state.currentApp==='chat')renderChat(true);
+    if(Date.now()<state.muteEndTime)break;
+    if(i>0)await new Promise(r=>setTimeout(r,800+Math.random()*1600));
+    const msg=await buildOneReply(roundId,src,roundUsed,markUsed);
+    msg.id=await dbPut('messages',msg);
+    if(state.currentApp==='chat')appendMsgRow(msg,true);
     updateTabBadge('chat',1);
   }
-  if(state.currentApp==='chat')renderChat();
+  await flushCardUsage(usage);
   refreshAllBadges();
 }
-let proactiveTimer=null;
-function startProactive(){
-  if(proactiveTimer){clearInterval(proactiveTimer);proactiveTimer=null;}
-  if(!state.prob.proactive)return;
-  proactiveTimer=setInterval(async()=>{
-    const p=state.prob;
-    if(!p.proactive||Date.now()<state.muteEndTime||replying)return;
-    const cd=(p.proactiveCooldown??30)*60000;
-    if(Date.now()-(p._lastProactive||0)<cd)return;
-    if(Math.random()>(p.proactive===2?0.3:0.1))return;
-    p._lastProactive=Date.now();saveKey('prob');
-    const pool=await getUsableCardPool();
-    const line=TA_MOMENT_LINES[Math.floor(Math.random()*TA_MOMENT_LINES.length)];
-    const text=pool[Math.floor(Math.random()*pool.length)]||line;
-    await dbPut('messages',{sender:'other',type:'text',content:text,time:Date.now(),read:false});
-    if(state.currentApp==='chat')renderChat(true);
-    updateTabBadge('chat',1);
-    trySendNotify(text);
-  },45000);
+
+/* ---- 主动消息：nextAt 时间戳调度，每次发完安排下一次 ---- */
+function getProactiveDelay(){
+  const p=state.prob||{};
+  const min=clamp(num(p.proactiveMin,30),5,720);
+  const max=clamp(num(p.proactiveMax,120),min,1440);
+  const minutes=min+Math.random()*(max-min);
+  return minutes*60000;
 }
+function stopProactive(){
+  if(proactiveTimer){clearTimeout(proactiveTimer);proactiveTimer=null;}
+}
+function scheduleNextProactive(){
+  stopProactive();
+  const p=state.prob||{};
+  if(!p.proactive)return;
+  const delay=getProactiveDelay();
+  p._nextAt=Date.now()+delay;
+  saveKey('prob').catch(()=>{});
+  proactiveTimer=setTimeout(runProactive,delay);
+}
+async function runProactive(){
+  proactiveTimer=null;
+  const p=state.prob||{};
+  if(!p.proactive)return;
+  if(Date.now()<state.muteEndTime||replying||proactiveBusy){scheduleNextProactive();return;}
+  // 安静窗口：你刚发过消息 / TA 刚回复完 → 不抢话
+  const msgs=(await dbGetAll('messages')).filter(m=>!m.recalled).sort((a,b)=>b.time-a.time);
+  const quiet=(num(p.quietAfterReply,20))*60000;
+  const lastMine=msgs.find(m=>m.sender==='me');
+  if(lastMine&&Date.now()-lastMine.time<quiet){scheduleNextProactive();return;}
+  const recentTwo=msgs.slice(0,2);
+  if(recentTwo.length===2&&recentTwo.every(m=>m.sender==='other'&&Date.now()-m.time<60000)){scheduleNextProactive();return;}
+  proactiveBusy=true;
+  try{
+    const src=await getReplySourcePool();
+    const used=await getRecentUsed(clamp(num(p.repeatExclude,5),0,50));
+    let text=null,cardObj=null;
+    if(src.cards&&src.cards.length){
+      const c=pickText(src.cards,used);
+      if(c){text=c.text;cardObj=c;}
+    }
+    if(!text){
+      const avail=DEFAULT_REPLIES.filter(t=>!used.has(t));
+      const source=avail.length?avail:(TA_MOMENT_LINES.length?TA_MOMENT_LINES:DEFAULT_REPLIES);
+      text=source[Math.floor(Math.random()*source.length)];
+    }
+    if(cardObj){
+      cardObj.useCount=(cardObj.useCount||0)+1;
+      cardObj.lastUsedAt=Date.now();
+      cardObj.proactiveCount=(cardObj.proactiveCount||0)+1;
+      try{await dbPut('cards',cardObj);}catch(e){}
+    }
+    const rec={sender:'other',type:'text',content:text,time:Date.now(),read:false,proactive:true,source:'proactive'};
+    rec.id=await dbPut('messages',rec);
+    if(state.currentApp==='chat')appendMsgRow(rec,true);
+    updateTabBadge('chat',1);
+    refreshAllBadges();
+    trySendNotify(text);
+  }catch(e){
+    console.error('[chat-engine] proactive failed',e);
+  }finally{
+    proactiveBusy=false;
+    scheduleNextProactive();
+  }
+}
+function startProactive(){
+  stopProactive();
+  const p=state.prob||{};
+  if(!p.proactive)return;
+  if(p._nextAt&&p._nextAt>Date.now()){
+    proactiveTimer=setTimeout(runProactive,p._nextAt-Date.now());
+  }else{
+    delete p._nextAt;
+    scheduleNextProactive();
+  }
+}
+
+/* ---- 页面刷新后的待回复恢复（带 generation 防重复） ---- */
 async function initPendingReply(){
   const v=await dbGetByKey('settings','pendingReply');
   if(!v||!v.value)return;
   const pr=v.value;
   try{await dbDelete('settings',v.id);}catch(e){}
   if(!pr.at)return;
-  if(pr.at>Date.now()){
-    replying=true;showTyping();
-    replyTimer=setTimeout(async()=>{replyTimer=null;replying=false;hideTyping();if(Date.now()<state.muteEndTime)return;finishReply();},pr.at-Date.now());
-  }else if(Date.now()-pr.at<120000){
-    replying=true;showTyping();
-    setTimeout(async()=>{replyTimer=null;replying=false;hideTyping();if(Date.now()<state.muteEndTime)return;finishReply();},1200);
+  const remain=pr.at-Date.now();
+  if(remain>0){
+    replying=true;
+    const generation=++replyGeneration;
+    replyTimer=setTimeout(async()=>{
+      if(generation!==replyGeneration)return;
+      replyTimer=null;
+      if(Date.now()<state.muteEndTime){replying=false;return;}
+      showTyping();
+      await new Promise(r=>setTimeout(r,1200+Math.random()*2800));
+      try{await finishReply('passive');}finally{hideTyping();replying=false;}
+    },remain);
+    return;
+  }
+  if(Date.now()-pr.at<120000){
+    replying=true;
+    const generation=++replyGeneration;
+    replyTimer=setTimeout(async()=>{
+      if(generation!==replyGeneration)return;
+      replyTimer=null;
+      if(Date.now()<state.muteEndTime){replying=false;return;}
+      showTyping();
+      await new Promise(r=>setTimeout(r,900));
+      try{await finishReply('passive');}finally{hideTyping();replying=false;}
+    },900);
   }
 }
 
@@ -3370,11 +3792,14 @@ function renderTheme(){
 function applyTheme(id){const t=THEMES.find(x=>x.id===id);if(!t)return;state.skin={...state.skin,themeId:id,primary:t.primary,light:t.light,bg:t.bg};saveKey('skin');renderTheme();showToast('主题已切换');}
 function applyCustomTheme(){state.skin={themeId:'custom',primary:document.getElementById('custom-primary').value,light:document.getElementById('custom-light').value,bg:state.skin.bg};saveKey('skin');renderTheme();showToast('自定义主题已应用');}
 
-/* ===== PROBABILITY（概率工坊：联动自动归一化） ===== */
-let probAdjusting=false;
+/* ===== PROBABILITY（概率工坊：回复类型互斥归一化 + 独立概率） ===== */
+let probAdjusting=false, interactionAdjusting=false;
+const INTERACTION_KEYS=['normalProb','emojiProb','pokeProb','quoteProb','heartProb','qaProb'];
+const PROB_ID_MAP={fastSec:'lb-fast',slowSec:'lb-slow',count:'lb-count',c1:'lb-c1',c2:'lb-c2',c3:'lb-c3',c4:'lb-c4',c5:'lb-c5',pokeProb:'lb-pokeProb',emojiProb:'lb-emojiProb',quoteProb:'lb-quoteProb',heartProb:'lb-heartProb',qaProb:'lb-qaProb',normalProb:'lb-normalProb',proactiveMin:'lb-proactiveMin',proactiveMax:'lb-proactiveMax',quietAfterReply:'lb-quiet',readIgnoreProb:'lb-readignore',multiProb:'lb-multi',minPerBubble:'lb-mincard',maxPerBubble:'lb-maxcard',customRatio:'lb-custom',repeatExclude:'lb-repeat'};
 function renderProbability(){
   const p=state.prob;
   const body=document.getElementById('probability-body');if(!body)return;
+  const iv=(k,def)=>{const v=Number(p[k]);return Number.isFinite(v)?v:def;};
   const counts=[p.c1||0,p.c2||0,p.c3||0,p.c4||0,p.c5||0];
   const pure=counts.filter(v=>v>0).length===1;
   const count=pure?(counts.indexOf(100)+1):(counts.reduce((a,v,i)=>v>counts[a]?i:a,0)+1);
@@ -3395,30 +3820,71 @@ function renderProbability(){
       <div style="font-size:11px;color:var(--hint);margin-top:8px">每次回复由 1~5 句字卡拼接；「继续」会开启新一轮回复</div>
     </div>
     <div class="list-card">
-      <div class="list-card-title">主动消息</div>
-      <div style="display:flex;gap:8px;margin-top:10px">${proLabels.map((l,i)=>`<button class="btn-pill ${p.proactive===i?'primary':'ghost'}" style="flex:1;padding:11px 0" onclick="setProb('proactive',${i})">${l}</button>`).join('')}</div>
-      <div style="font-size:11px;color:var(--hint);margin-top:8px">${p.proactive===0?'TA 不会主动找话题，等你先开口':(p.proactive===1?'TA 偶尔会主动发消息给你':'TA 会经常主动找你聊天')}</div>
+      <div class="list-card-title">回复类型概率</div>
+      <div style="font-size:11px;color:var(--hint);margin-top:6px">以下项目为互斥概率，总和自动归一化为 100%；设为 0% 则完全不会出现</div>
+      ${[['normalProb','普通字卡',55],['emojiProb','表情回应',18],['pokeProb','拍一拍',10],['quoteProb','引用你的话',8],['heartProb','心意卡',6],['qaProb','回答题目',3]].map(([k,label,def])=>{
+        const v=Number.isFinite(Number(p[k]))?Number(p[k]):def;
+        return `<div style="margin-top:10px;font-size:12px;color:var(--sub)">${label} <b id="lb-${k}">${v}</b>%</div><input type="range" min="0" max="100" value="${v}" oninput="setInteractionProb('${k}',this.value)" style="width:100%">`;
+      }).join('')}
+      <div id="interaction-prob-sum" style="font-size:11px;color:var(--hint);margin-top:8px"></div>
     </div>
     <div class="list-card">
-      <div class="list-card-title">特殊互动</div>
-      ${[['pokeProb','拍一拍',p.pokeProb??15],['emojiProb','表情回应',p.emojiProb??20],['quoteProb','引用你的话',p.quoteProb??15],['heartProb','送你心意卡',p.heartProb??5],['qaProb','回答你的题目',p.qaProb??5]].map(([k,label,v])=>`<div style="margin-top:10px;font-size:12px;color:var(--sub)">${label} <b id="lb-${k}">${v}</b>%</div><input type="range" min="0" max="100" value="${v}" oninput="setProb('${k}',this.value)" style="width:100%">`).join('')}
-      <div style="font-size:11px;color:var(--hint);margin-top:8px">互动在每次回复时按概率触发</div>
+      <div class="list-card-title">字卡拼接</div>
+      <div style="margin-top:10px;font-size:12px;color:var(--sub)">自定义字卡占比 <b id="lb-custom">${iv('customRatio',90)}</b>%（其余用系统预设字卡）</div>
+      <input type="range" min="0" max="100" value="${iv('customRatio',90)}" oninput="setProb('customRatio',this.value)" style="width:100%">
+      <button class="btn-pill ${p.multiEnabled===false?'ghost':'primary'}" style="width:100%;margin-top:12px;padding:11px 0" onclick="setProb('multiEnabled',${p.multiEnabled===false?1:0})">${p.multiEnabled===false?'多字卡拼接：关闭':'多字卡拼接：开启'}</button>
+      <div style="margin-top:12px;font-size:12px;color:var(--sub)">多字卡概率 <b id="lb-multi">${iv('multiProb',35)}</b>%</div>
+      <input type="range" min="0" max="100" value="${iv('multiProb',35)}" oninput="setProb('multiProb',this.value)" style="width:100%">
+      <div style="margin-top:12px;font-size:12px;color:var(--sub)">每条气泡最少 <b id="lb-mincard">${iv('minPerBubble',1)}</b> 张 · 最多 <b id="lb-maxcard">${iv('maxPerBubble',3)}</b> 张</div>
+      <div style="display:flex;gap:10px;margin-top:6px">
+        <input type="range" min="1" max="5" value="${iv('minPerBubble',1)}" oninput="setProb('minPerBubble',this.value)" style="width:100%">
+        <input type="range" min="1" max="5" value="${iv('maxPerBubble',3)}" oninput="setProb('maxPerBubble',this.value)" style="width:100%">
+      </div>
+      <div style="font-size:11px;color:var(--hint);margin-top:8px">开启后一条回复气泡内可由多张字卡随机拼接（如「嗯。今天也辛苦了。」）</div>
+    </div>
+    <div class="list-card">
+      <div class="list-card-title">主动消息</div>
+      <div style="display:flex;gap:8px;margin-top:10px">${proLabels.map((l,i)=>`<button class="btn-pill ${p.proactive===i?'primary':'ghost'}" style="flex:1;padding:11px 0" onclick="setProb('proactive',${i})">${l}</button>`).join('')}</div>
+      <div style="font-size:11px;color:var(--hint);margin-top:8px">${p.proactive===0?'TA 不会主动找话题，等你先开口':(p.proactive===1?'TA 偶尔会主动发消息给你（默认 30~120 分钟一次）':'TA 会经常主动找你聊天（15~60 分钟一次）')}</div>
+      ${p.proactive!==0?`
+      <div style="margin-top:12px;font-size:12px;color:var(--sub)">最短间隔 <b id="lb-proactiveMin">${iv('proactiveMin',30)}</b> 分钟</div>
+      <input type="range" min="5" max="720" value="${iv('proactiveMin',30)}" oninput="setProb('proactiveMin',this.value)" style="width:100%">
+      <div style="margin-top:8px;font-size:12px;color:var(--sub)">最长间隔 <b id="lb-proactiveMax">${iv('proactiveMax',120)}</b> 分钟</div>
+      <input type="range" min="5" max="1440" value="${iv('proactiveMax',120)}" oninput="setProb('proactiveMax',this.value)" style="width:100%">
+      <div style="margin-top:8px;font-size:12px;color:var(--sub)">你发消息后的安静时间 <b id="lb-quiet">${iv('quietAfterReply',20)}</b> 分钟</div>
+      <input type="range" min="1" max="120" value="${iv('quietAfterReply',20)}" oninput="setProb('quietAfterReply',this.value)" style="width:100%">
+      <div style="font-size:11px;color:var(--hint);margin-top:8px">主动消息按「计划时间」触发，TA 刚回复完或你刚发完消息时不会插话</div>`:''}
     </div>
     <div class="list-card">
       <div class="list-card-title">高级设置</div>
       <details style="margin-top:4px"><summary style="font-size:12px;color:var(--sub);cursor:pointer;padding:6px 0">展开精确概率与冷却</summary>
       ${[['c1','1 句'],['c2','2 句'],['c3','3 句'],['c4','4 句'],['c5','5 句']].map(([k,label])=>`<div style="margin-top:10px;font-size:12px;color:var(--sub)">${label} <b id="lb-${k}">${p[k]||0}</b>%</div><input type="range" min="0" max="100" value="${p[k]||0}" oninput="setProb('${k}',this.value)" style="width:100%">`).join('')}
       <div style="font-size:11px;color:var(--hint);margin-top:8px" id="prob-sum"></div>
-      <div style="margin-top:12px;font-size:12px;color:var(--sub)">主动消息冷却 <b id="lb-cooldown">${p.proactiveCooldown??30}</b> 分钟</div>
-      <input type="range" min="1" max="240" value="${p.proactiveCooldown??30}" oninput="setProb('proactiveCooldown',this.value)" style="width:100%">
-      <div style="margin-top:12px;font-size:12px;color:var(--sub)">最近重复排除 <b id="lb-repeat">${p.repeatExclude??5}</b> 条</div>
-      <input type="range" min="0" max="20" value="${p.repeatExclude??5}" oninput="setProb('repeatExclude',this.value)" style="width:100%">
+      <div style="margin-top:12px;font-size:12px;color:var(--sub)">已读不回 <b id="lb-readignore">${iv('readIgnoreProb',0)}</b>%（命中时 TA 显示已读但不回复）</div>
+      <input type="range" min="0" max="100" value="${iv('readIgnoreProb',0)}" oninput="setProb('readIgnoreProb',this.value)" style="width:100%">
+      <div style="margin-top:12px;font-size:12px;color:var(--sub)">最近重复排除 <b id="lb-repeat">${iv('repeatExclude',5)}</b> 条</div>
+      <input type="range" min="0" max="20" value="${iv('repeatExclude',5)}" oninput="setProb('repeatExclude',this.value)" style="width:100%">
       <button class="btn-pill ghost" style="width:100%;margin-top:12px" onclick="resetProb()">恢复默认设置</button></details>
     </div>`;
   updateProbHints();
+  updateInteractionProbHints();
 }
 function setProb(key,val){
   if(probAdjusting)return;
+  if(key==='proactive'){
+    const v=clamp(parseInt(val)||0,0,2);
+    state.prob.proactive=v;
+    if(v===1){
+      if(!Number.isFinite(num(state.prob.proactiveMin,NaN))||state.prob.proactiveMin<=0)state.prob.proactiveMin=30;
+      if(!Number.isFinite(num(state.prob.proactiveMax,NaN))||state.prob.proactiveMax<state.prob.proactiveMin)state.prob.proactiveMax=Math.max(120,state.prob.proactiveMin);
+    }
+    if(v===2){state.prob.proactiveMin=15;state.prob.proactiveMax=60;}
+    saveKey('prob');
+    renderProbability();
+    startProactive();
+    return;
+  }
+  if(INTERACTION_KEYS.includes(key)){setInteractionProb(key,val);return;}
   state.prob[key]=parseInt(val);
   if(key==='count'){
     probAdjusting=true;
@@ -3441,10 +3907,47 @@ function setProb(key,val){
   }
   if(key==='fastSec'&&state.prob.fastSec>=state.prob.slowSec){state.prob.slowSec=state.prob.fastSec+1;}
   if(key==='slowSec'&&state.prob.slowSec<=state.prob.fastSec){state.prob.fastSec=Math.max(1,state.prob.slowSec-1);}
+  if(key==='multiEnabled'){state.prob.multiEnabled=parseInt(val)?1:0;}
+  if(key==='proactiveMin'&&state.prob.proactiveMin>state.prob.proactiveMax){state.prob.proactiveMax=state.prob.proactiveMin;}
+  if(key==='proactiveMax'&&state.prob.proactiveMax<state.prob.proactiveMin){state.prob.proactiveMin=Math.max(5,state.prob.proactiveMax);}
+  if(['proactiveMin','proactiveMax','quietAfterReply'].includes(key))startProactive();
   saveKey('prob');
-  const m={fastSec:'lb-fast',slowSec:'lb-slow',c1:'lb-c1',c2:'lb-c2',c3:'lb-c3',c4:'lb-c4',c5:'lb-c5',pokeProb:'lb-pokeProb',emojiProb:'lb-emojiProb',quoteProb:'lb-quoteProb',heartProb:'lb-heartProb',qaProb:'lb-qaProb',proactiveCooldown:'lb-cooldown',repeatExclude:'lb-repeat',count:'lb-count'};
-  const e=document.getElementById(m[key]);if(e)e.textContent=state.prob[key];
+  const e=document.getElementById(PROB_ID_MAP[key]||'');if(e)e.textContent=state.prob[key];
   updateProbHints();
+}
+/* 回复类型六项互斥：调整一项，其余按比例缩放，总和保持 100% */
+function setInteractionProb(key,val){
+  if(interactionAdjusting)return;
+  const target=clamp(parseInt(val,10)||0,0,100);
+  state.prob[key]=target;
+  interactionAdjusting=true;
+  const others=INTERACTION_KEYS.filter(k=>k!==key);
+  const remaining=Math.max(0,100-target);
+  const otherSum=others.reduce((s,k)=>s+Math.max(0,num(state.prob[k],0)),0);
+  if(otherSum<=0){
+    state.prob[others[0]]=remaining;
+    others.slice(1).forEach(k=>state.prob[k]=0);
+  }else{
+    others.forEach(k=>{state.prob[k]=Math.round(Math.max(0,num(state.prob[k],0))/otherSum*remaining);});
+  }
+  let sum=INTERACTION_KEYS.reduce((a,k)=>a+num(state.prob[k],0),0);
+  let diff=100-sum;
+  if(diff!==0){
+    for(const k of INTERACTION_KEYS){
+      if(diff===0)break;
+      const next=num(state.prob[k],0)+diff;
+      if(next>=0&&next<=100){state.prob[k]=next;diff=0;}
+    }
+  }
+  interactionAdjusting=false;
+  saveKey('prob');
+  INTERACTION_KEYS.forEach(k=>{const el=document.getElementById('lb-'+k);if(el)el.textContent=state.prob[k];});
+  updateInteractionProbHints();
+}
+function updateInteractionProbHints(){
+  const sum=INTERACTION_KEYS.reduce((a,k)=>a+num(state.prob[k],0),0);
+  const el=document.getElementById('interaction-prob-sum');
+  if(el)el.textContent=`合计 ${sum}%（自动保持 100%）`;
 }
 function updateProbHints(){
   const sum=(state.prob.c1||0)+(state.prob.c2||0)+(state.prob.c3||0)+(state.prob.c4||0)+(state.prob.c5||0);
@@ -3453,10 +3956,10 @@ function updateProbHints(){
   const h=document.getElementById('prob-hint');
   if(h)h.textContent=state.prob.slowSec<=state.prob.fastSec?'⚠ 最慢需大于最快，已自动修正':'平均等待约 '+Math.round((state.prob.fastSec+state.prob.slowSec)/2)+' 秒';
 }
-function resetProb(){state.prob={...state.prob,fastSec:10,slowSec:60,c1:70,c2:20,c3:7,c4:2,c5:1,pokeProb:15,emojiProb:20,quoteProb:15,heartProb:5,qaProb:5,proactive:1,proactiveCooldown:30,repeatExclude:5,pollProb:10,momentProb:25};saveKey('prob');renderProbability();showToast('已恢复默认设置');}
+function resetProb(){state.prob={...state.prob,fastSec:10,slowSec:60,c1:70,c2:20,c3:7,c4:2,c5:1,normalProb:55,emojiProb:18,pokeProb:10,quoteProb:8,heartProb:6,qaProb:3,proactive:1,proactiveMin:30,proactiveMax:120,quietAfterReply:20,readIgnoreProb:0,multiEnabled:true,multiProb:35,minPerBubble:1,maxPerBubble:3,customRatio:90,repeatExclude:5,pollProb:10,momentProb:25};saveKey('prob');renderProbability();startProactive();showToast('已恢复默认设置');}
 
 /* ===== CARDS（字卡：分组 / 增删改查 / 批量导入 / 自动查重） ===== */
-let cardGroupFilter='全部',selectedCardIds=new Set();
+let cardGroupFilter='全部',selectedCardIds=new Set(),cardSortMode='time';
 async function renderCards(){
   const body=document.getElementById('cards-body');
   const groups=await dbGetAll('cardGroups');
@@ -3464,11 +3967,20 @@ async function renderCards(){
   const all=await dbGetAll('cards');
   const names=['全部',...groups.map(g=>g.name)];
   cardGroupNames=names;
+  const enabledCount=all.filter(c=>c.enabled!==false).length;
+  const dayStart=new Date();dayStart.setHours(0,0,0,0);
+  const todayUsed=all.filter(c=>c.lastUsedAt&&c.lastUsedAt>=dayStart.getTime()).length;
+  const totalUse=all.reduce((s,c)=>s+(c.useCount||0),0);
+  const unusedCount=all.filter(c=>!c.useCount).length;
   body.innerHTML=`
     <div class="tabs" style="overflow-x:auto;flex-wrap:nowrap">${names.map((n,i)=>`<button class="tab${cardGroupFilter===n?' active':''}" style="flex:0 0 auto;padding:8px 14px" onclick="pickCardGroup(${i})">${esc(n)}</button>`).join('')}
     <button class="tab" style="flex:0 0 auto;padding:8px 14px" onclick="addCardGroup()">+ 分组</button>
     <button class="tab" style="flex:0 0 auto;padding:8px 14px;color:#c0392b" onclick="delCardGroup()">&#128465;</button></div>
     <div class="card-toolbar"><button class="btn-pill ghost" onclick="toggleSelectAllCards()">全选</button><button class="btn-pill ghost" onclick="deleteSelectedCards()">删除选中</button><button class="btn-pill ghost" onclick="optimizeCards()">清理重复</button><button class="btn-pill ghost" onclick="toggleGroupReply()">分组开关</button><button class="btn-pill ghost" onclick="exportCards()">导出字卡</button></div>
+    <div style="display:flex;gap:12px;flex-wrap:wrap;font-size:11px;color:var(--hint);padding:10px 2px 2px">
+      <span>全部 <b>${all.length}</b></span><span>启用 <b>${enabledCount}</b></span><span>停用 <b>${all.length-enabledCount}</b></span><span>今日使用 <b>${todayUsed}</b></span><span>累计 <b>${totalUse}</b></span><span>从未使用 <b>${unusedCount}</b></span>
+    </div>
+    <div class="card-toolbar" style="margin-top:6px">${[['time','最新添加'],['use','最常使用'],['lastUsed','最近使用'],['unused','从未使用']].map(([k,l])=>`<button class="btn-pill ${cardSortMode===k?'primary':'ghost'}" style="flex:1" onclick="cardSortMode='${k}';renderCardList()">${l}</button>`).join('')}</div>
     <div class="search-bar">&#128269;<input type="text" id="card-search" placeholder="搜索字卡" oninput="filterCards(this.value)"></div>
     <div style="display:flex;gap:8px;margin-bottom:12px">
       <button class="btn-pill ghost" style="flex:1" onclick="managePokes()">&#128133; 拍一拍字卡</button>
@@ -3479,7 +3991,7 @@ async function renderCards(){
 }
 let cardGroupNames=[];
 function pickCardGroup(i){cardGroupFilter=cardGroupNames[i]||'全部';renderCards();}
-function renderCardList(){dbGetAll('cards').then(all=>{const list=all.filter(c=>cardGroupFilter==='全部'||(c.group||'默认')===cardGroupFilter).sort((a,b)=>b.time-a.time);const box=document.getElementById('card-list');if(!list.length){box.innerHTML='<div class="empty">这个分组还没有字卡<br>点击下方 + 添加</div><div style="width:100%;height:56px;border:1.5px dashed #d0d0cd;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:22px;color:#b5b5b0;cursor:pointer;margin-top:10px" onclick="addCard()">+</div>';return;}box.innerHTML=list.map(c=>`<div class="list-card" style="display:flex;align-items:center;gap:10px" data-t="${esc(c.text||'')}"><input class="card-select" type="checkbox" ${selectedCardIds.has(c.id)?'checked':''} onchange="toggleCardSelect(${c.id},this.checked)"><div style="flex:1;min-width:0;cursor:pointer" onclick="sendCardPoke('${esc(c.text)}')"><div class="list-card-title">${esc(c.text)}</div><div class="list-card-sub">${esc(c.group||'默认')} · ${c.useCount||0} 次使用</div></div><button class="btn-pill ghost" style="padding:6px 10px" onclick="editCard(${c.id})">改</button><button class="btn-pill ghost" style="padding:6px 10px;color:${c.enabled===false?'#c0392b':'var(--sub)'}" onclick="toggleCardEnabled(${c.id})">${c.enabled===false?'启用':'停用'}</button><button class="btn-pill ghost" style="padding:6px 10px" onclick="delCard(${c.id})">删</button></div>`).join('')+'<div style="width:100%;height:56px;border:1.5px dashed #d0d0cd;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:22px;color:#b5b5b0;cursor:pointer;margin-top:10px" onclick="addCard()">+</div>';});}
+function renderCardList(){dbGetAll('cards').then(all=>{let list=all.filter(c=>cardGroupFilter==='全部'||(c.group||'默认')===cardGroupFilter);if(cardSortMode==='use')list.sort((a,b)=>(b.useCount||0)-(a.useCount||0)||(b.time-a.time));else if(cardSortMode==='lastUsed')list.sort((a,b)=>(b.lastUsedAt||0)-(a.lastUsedAt||0)||(b.time-a.time));else if(cardSortMode==='unused')list=list.filter(c=>!c.useCount).sort((a,b)=>b.time-a.time);else list.sort((a,b)=>b.time-a.time);const box=document.getElementById('card-list');if(!list.length){box.innerHTML='<div class="empty">这个分组还没有字卡<br>点击下方 + 添加</div><div style="width:100%;height:56px;border:1.5px dashed #d0d0cd;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:22px;color:#b5b5b0;cursor:pointer;margin-top:10px" onclick="addCard()">+</div>';return;}box.innerHTML=list.map(c=>{const lastUsed=c.lastUsedAt?(' · 最近 '+fmtChatDate(c.lastUsedAt)+' '+fmtChatTime(c.lastUsedAt)):(c.useCount?'':' · 从未使用');return `<div class="list-card" style="display:flex;align-items:center;gap:10px" data-t="${esc(c.text||'')}"><input class="card-select" type="checkbox" ${selectedCardIds.has(c.id)?'checked':''} onchange="toggleCardSelect(${c.id},this.checked)"><div style="flex:1;min-width:0;cursor:pointer" onclick="sendCardPoke('${esc(c.text)}')"><div class="list-card-title">${esc(c.text)}</div><div class="list-card-sub">${esc(c.group||'默认')} · ${c.useCount||0} 次使用${lastUsed}</div></div><button class="btn-pill ghost" style="padding:6px 10px" onclick="editCard(${c.id})">改</button><button class="btn-pill ghost" style="padding:6px 10px;color:${c.enabled===false?'#c0392b':'var(--sub)'}" onclick="toggleCardEnabled(${c.id})">${c.enabled===false?'启用':'停用'}</button><button class="btn-pill ghost" style="padding:6px 10px" onclick="delCard(${c.id})">删</button></div>`;}).join('')+'<div style="width:100%;height:56px;border:1.5px dashed #d0d0cd;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:22px;color:#b5b5b0;cursor:pointer;margin-top:10px" onclick="addCard()">+</div>';});}
 function toggleCardSelect(id,on){if(on)selectedCardIds.add(id);else selectedCardIds.delete(id);}
 async function toggleCardEnabled(id){
   const all=await dbGetAll('cards');const c=all.find(x=>x.id===id);if(!c)return;
@@ -3950,7 +4462,7 @@ function nukeDB(){
 }
 
 /* ===== CALL（手机通话：来电 / 去电 / 通话中 / 通话记录） ===== */
-let callSec=0,callIv=null,callMode=null,callMuted=false,callSpeaker=false,ringIv=null,ringOsc=null;
+let callSec=0,callIv=null,callMode=null,callMuted=false,callSpeaker=false,ringIv=null,ringOsc=null,callTalkTimer=null;
 const CALL_BG=[
   '大家都在吃饭吗','刚看到你的消息','忙完了吗','我这边下雨了',
   '在做什么呀','有点想听你说话','今天累不累','睡了吗'
@@ -4049,34 +4561,49 @@ function startCall(){
   updateCallFloat();
   if(callIv)clearInterval(callIv);
   callIv=setInterval(()=>{callSec++;updateCallFloat();},1000);
-  renderCallActions(
-    '<div class="call-row">'
+  renderCallActions(callActionsHtml());
+  scheduleCallTalk();
+}
+const TALK_LINES=['你那边声音有点小…','在忙吗？','我听到你笑了。','今天过得怎么样？','有点想你了。','外面好安静。','等我一下，马上就好。','你说话真好听。','我一直在听哦。','要不要给我讲讲你的事？'];
+/* 通话中操作按钮（初始化和状态更新共用，避免重复重启通话） */
+function callActionsHtml(){
+  return '<div class="call-row">'
     +`<div class="call-col"><button class="call-btn${callMuted?' on':''}" onclick="toggleMute()">&#128263;</button><span class="call-btn-label">${callMuted?'已静音':'静音'}</span></div>`
     +'<div class="call-col"><button class="call-btn" onclick="showToast(\'暂不支持\')">&#128249;</button><span class="call-btn-label">视频</span></div>'
     +'</div>'
     +'<div class="call-row">'
     +`<div class="call-col"><button class="call-btn${callSpeaker?' on':''}" onclick="toggleSpeaker()">&#128266;</button><span class="call-btn-label">${callSpeaker?'免提开':'免提'}</span></div>`
     +'<div class="call-col"><button class="call-btn end" onclick="endCall(\'hangup\')">&#128222;</button><span class="call-btn-label">挂断</span></div>'
-    +'</div>');
-  // 通话中 TA 会说话
-  if(Math.random()<0.85){
-    setTimeout(()=>{
-      if(state.callActive)pushReply(TALK_LINES[Math.floor(Math.random()*TALK_LINES.length)]);
-    },5000+Math.random()*9000);
-  }
+    +'</div>';
 }
-const TALK_LINES=['你那边声音有点小…','在忙吗？','我听到你笑了。','今天过得怎么样？','有点想你了。','外面好安静。','等我一下，马上就好。','你说话真好听。'];
+/* 通话中 TA 说话：概率 + 最短/最长间隔的重复调度 */
+function scheduleCallTalk(){
+  if(callTalkTimer){clearTimeout(callTalkTimer);callTalkTimer=null;}
+  const p=state.prob||{};
+  const prob=clamp(num(p.callTalkProb,70),0,100);
+  const min=Math.max(5,num(p.callTalkMin,12));
+  const max=Math.max(min,num(p.callTalkMax,45));
+  callTalkTimer=setTimeout(()=>{
+    callTalkTimer=null;
+    if(!state.callActive||callMode!=='talk')return;
+    if(Math.random()*100<prob){
+      pushReply(TALK_LINES[Math.floor(Math.random()*TALK_LINES.length)]);
+    }
+    scheduleCallTalk();
+  },(min+Math.random()*(max-min))*1000);
+}
 function updateCallFloat(){
   const f=document.getElementById('call-float');
   f.querySelector('#cf-text').textContent=`通话中 ${String(Math.floor(callSec/60)).padStart(2,'0')}:${String(callSec%60).padStart(2,'0')}`;
 }
-function toggleMute(){callMuted=!callMuted;if(mediaStream)mediaStream.getAudioTracks().forEach(t=>t.enabled=!callMuted);startCall();}
-function toggleSpeaker(){callSpeaker=!callSpeaker;startCall();}
+function toggleMute(){callMuted=!callMuted;if(mediaStream)mediaStream.getAudioTracks().forEach(t=>t.enabled=!callMuted);renderCallActions(callActionsHtml());}
+function toggleSpeaker(){callSpeaker=!callSpeaker;renderCallActions(callActionsHtml());}
 function endCall(reason){
   const dur=callSec;
   const connected=(callMode==='talk');
   state.callActive=false;callSec=0;callMode=null;
   if(callIv){clearInterval(callIv);clearTimeout(callIv);callIv=null;}
+  if(callTalkTimer){clearTimeout(callTalkTimer);callTalkTimer=null;}
   stopRing();
   if(mediaStream){mediaStream.getTracks().forEach(t=>t.stop());mediaStream=null;}
   hideCallOverlay();
@@ -4220,7 +4747,7 @@ function saveLastRead(){
   },400);
 }
 /* ===== 版本更新通知 ===== */
-const APP_VERSION='1.2.0';
+const APP_VERSION='1.3.0';
 let updateTimer=null;
 function checkUpdate(){
   try{
@@ -4266,7 +4793,12 @@ openDB().then(async()=>{
 }).catch(e=>{console.error(e);showToast('数据库初始化失败');});
 setInterval(()=>{processPendingReplies().then(n=>{if(n&&navStack[navStack.length-1]==='mailbox')renderMailbox();refreshAllBadges();});},15000);
 document.addEventListener('visibilitychange',()=>{
-  if(document.visibilityState==='visible'){refreshAllBadges();if(isAppVisible())renderChat(false);}
+  if(document.visibilityState==='visible'){
+    refreshAllBadges();
+    if(isAppVisible())renderChat(false);
+    // 后台期间定时器被节流：回到前台时按时间戳补触发到期的主动消息
+    if(state.prob&&state.prob.proactive&&state.prob._nextAt&&Date.now()>=state.prob._nextAt)runProactive();
+  }
 });
 </script>
 </body>
