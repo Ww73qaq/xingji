@@ -3053,22 +3053,36 @@ function pickMomentImages(){
   input.click();
 }
 function removeMomentImg(i){momentDraftImgs.splice(i,1);const box=document.getElementById('moment-img-preview');const cnt=document.getElementById('moment-img-count');if(box)box.innerHTML=momentDraftImgs.map((u,idx)=>`<div style="position:relative;width:64px;height:64px;border-radius:8px;overflow:hidden;background:var(--input)"><img src="${u}" style="width:100%;height:100%;object-fit:cover"><span style="position:absolute;top:2px;right:2px;width:16px;height:16px;border-radius:50%;background:rgba(0,0,0,.6);color:#fff;font-size:10px;display:flex;align-items:center;justify-content:center;cursor:pointer" onclick="removeMomentImg(${idx})">×</span></div>`).join('');if(cnt)cnt.textContent=momentDraftImgs.length+' 张';}
+async function scheduleTaMomentInteraction(momentId){
+  const delay=3500+Math.random()*9000;
+  setTimeout(async()=>{
+    const ms=await dbGetAll('moments');
+    const m=ms.find(x=>String(x.id)===String(momentId));
+    if(!m||m.owner!=='me')return;
+    let changed=false;
+    if(Math.random()<0.8&&!m.taLiked){
+      m.likes=(m.likes||0)+1;m.taLiked=true;changed=true;
+      pushNotif({type:'like',from:state.other.name,text:'赞了你的动态',momentId:m.id});
+      notifySystem(\${state.other.name} 赞了你的动态\`,(m.content||'').slice(0,50),()=>switchTab('moments'));
+    }
+    if(Math.random()<0.65){
+      m.comments=m.comments||[];
+      const text=MOMENT_COMMENTS[Math.floor(Math.random()*MOMENT_COMMENTS.length)];
+      m.comments.push({name:state.other.name,text:text,time:Date.now(),replyTo:null,fromTa:true});
+      changed=true;
+      pushNotif({type:'comment',from:state.other.name,text:'评论了你的动态：'+text.slice(0,16),momentId:m.id});
+      notifySystem(\${state.other.name} 评论了你的动态\`,text.slice(0,50),()=>switchTab('moments'));
+    }
+    if(changed){await dbPut('moments',m);if(state.currentApp==='moments')renderMoments();}
+  },delay);
+}
 async function saveMoment(){
-  const content=document.getElementById('moment-content').value.trim();
+  const content=(document.getElementById('moment-content')?.value||'').trim();
   if(!content&&!momentDraftImgs.length){showToast('内容不能为空');return;}
-  await dbPut('moments',{owner:'me',name:'我',content,images:momentDraftImgs,time:Date.now(),likes:0,comments:[]});
+  const id=await dbPut('moments',{owner:'me',name:'我',content,images:momentDraftImgs.slice(),time:Date.now(),likes:0,comments:[]});
   closeModal();showToast('动态已发布');
   if(state.currentApp==='moments')renderMoments();
-  if(Math.random()<0.8){
-    setTimeout(async()=>{
-      const ms=await dbGetAll('moments');const m=ms[ms.length-1];
-      if(m&&m.owner==='me'){
-        m.likes=(m.likes||0)+1;await dbPut('moments',m);
-        showToast(`${state.other.name} 赞了你的动态`);
-        if(state.currentApp==='moments')renderMoments();
-      }
-    },4000+Math.random()*10000);
-  }
+  scheduleTaMomentInteraction(id);
 }
 
 /* ===== SPELLING（拼写：TA 在意识空间的拼音练习本。这是「他」的功能——像在纸上完成拼写练习） ===== */
