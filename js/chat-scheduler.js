@@ -27,13 +27,11 @@ const _scheduler={
 function _roll(pct){return Math.random()*100 < (Number.isFinite(pct)?pct:0);}
 function _clamp(v,min,max){return Math.max(min,Math.min(max,v));}
 
-/* 回复总时长（ms）：从用户发送到 TA 第一条回复出现 */
+/* 回复总时长（ms）：从用户发送到 TA 第一条回复出现（固定 replyDelaySec，含「正在输入…」窗口） */
 function _replyTotalMs(){
   const p=state.prob||{};
-  const min=Math.max(1,Number(p.replyMinSec)||10);
-  const max=Math.max(min,Number(p.replyMaxSec)||60);
-  const r=(Math.random()+Math.random())/2;
-  return (min+r*(max-min))*1000;
+  const sec=Math.max(1,Number(p.replyDelaySec)||20);
+  return sec*1000;
 }
 /* 正在输入窗口：包含在总回复时间内（最后 typingRatio 段，钳制 1~4 秒） */
 function _typingWindow(totalMs){
@@ -130,8 +128,12 @@ function enqueueTaJob(config){
     return;
   }
   if(j&&j.status==='sending'){_scheduler.pendingQueue++;return;}
-  // 新任务
-  const totalMs=_replyTotalMs();
+  // 新任务：问卷可传入独立期限（deadlineSec），effectiveDueAt = min(回复时间, 问卷期限)
+  let totalMs=_replyTotalMs();
+  const deadlineSec=Number(cfg.deadlineSec);
+  if(Number.isFinite(deadlineSec)&&deadlineSec>0){
+    totalMs=Math.min(totalMs,deadlineSec*1000);
+  }
   const tw=_typingWindow(totalMs);
   const typingAt=now+totalMs-tw;
   const dueAt=now+totalMs;
@@ -143,6 +145,7 @@ function enqueueTaJob(config){
     roundId:'r_'+Date.now().toString(36)+Math.random().toString(36).slice(2,5),
     contactId:'other',
     messageIds:cfg.messageId?[cfg.messageId]:[],
+    deadlineSec:Number.isFinite(deadlineSec)&&deadlineSec>0?deadlineSec:null,
     generation:(j?j.generation+1:1)
   };
   _scheduler.activeJob=job;
@@ -185,7 +188,10 @@ function _finishJob(){
   scheduleProactive();
 }
 
-/* ---- 主动消息：统一进 scheduler，独立时间范围（分钟） ---- */
+/* ---- 主动消息：统一进 scheduler。用户可见设置只有「开关 + 最小间隔（分钟）」；
+   TA 的想不想主动属于内部行为（间隔内随机偏置 + 内部意愿概率） ---- */
+const INTERNAL_QUIET_MS=20*60000;      // 内部：你发消息后的安静期（不暴露给用户）
+const INTERNAL_PROACTIVE_PCT=45;        // 内部：到点后 TA 主动联系的意愿概率（不暴露给用户）
 function scheduleProactive(){
   if(_scheduler.proactiveTimer){clearTimeout(_scheduler.proactiveTimer);_scheduler.proactiveTimer=null;}
   const p=state.prob||{};
@@ -193,9 +199,9 @@ function scheduleProactive(){
     _scheduler.proactiveNextAt=0;_persistProactiveNext();
     return;
   }
-  const min=Math.max(1,Number(p.proactiveMin)||30);
-  const max=Math.max(min,Number(p.proactiveMax)||120);
-  const delay=(min+Math.random()*(max-min))*60000;
+  const min=Math.max(1,Number(p.proactiveMinIntervalMin)||30);
+  // 至少 min 分钟；内部在 min~min*1.5 间随机（不向用户暴露最大值）
+  const delay=(min+Math.random()*min*0.5)*60000;
   _scheduler.proactiveNextAt=Date.now()+delay;
   _persistProactiveNext();
   _scheduler.proactiveTimer=setTimeout(runProactive,delay);
@@ -207,13 +213,13 @@ function runProactive(){
   _scheduler.proactiveNextAt=0;_persistProactiveNext();
   if(!p.proactiveEnabled)return;
   if(Date.now()<state.muteEndTime){scheduleProactive();return;}
+  if(Date.now()<state.taMuteMeEndTime){scheduleProactive();return;}
   const j=_scheduler.activeJob;
   if(j&&(j.status==='waiting'||j.status==='typing'||j.status==='sending')){scheduleProactive();return;}
   if(state.callActive){scheduleProactive();return;}
-  const quiet=(Number(p.quietAfterReply)||20)*60000;
-  if(Date.now()-_scheduler.lastUserMsgAt<quiet){scheduleProactive();return;}
+  if(Date.now()-_scheduler.lastUserMsgAt<INTERNAL_QUIET_MS){scheduleProactive();return;}
   if(Date.now()-_scheduler.lastTaReplyAt<60000){scheduleProactive();return;}
-  if(!_roll(Number(p.proactiveProb)||35)){scheduleProactive();return;}
+  if(!_roll(INTERNAL_PROACTIVE_PCT)){scheduleProactive();return;}
   // 主动消息直接进入 typing（时长统一从回复设置读取）
   const tw=_typingWindow(_replyTotalMs());
   const now=Date.now();

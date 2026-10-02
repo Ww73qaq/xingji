@@ -168,12 +168,11 @@ async function buildReply(context){
   let extraInteractions=0;
   const MAX_EXTRA=2;
 
-  const hasQuestion=isQuestionText(context.latestUserText);
   const latest=context.latestUserMsg||null;
-  const isPollMsg=!!latest&&(latest.type==='poll'||latest.type==='survey')&&!!latest.poll;
+  const isPollMsg=!!latest&&(latest.type==='poll'||latest.type==='survey')&&!!(latest.poll||latest.survey);
   const shouldQuote=!!latest&&_roll(Number(p.quoteReplyProb)||20);
-  // 回答题目：仅当最近消息是题目或文本提问且命中 qaReplyProb 时进入 QA 分支
-  const qaRoll=(hasQuestion||isPollMsg)&&_roll(Number(p.qaReplyProb)||30);
+  // 题目必答：poll / survey 消息不走任何概率（用户已明确提交问题，TA 必须回答）
+  const mustAnswer=isPollMsg;
   const emojiRoll=_roll(Number(p.emojiReplyProb)||15);
   const pokeRoll=_roll(Number(p.pokeReplyProb)||8);
   const giftRoll=_roll(Number(p.giftReplyProb)||5);
@@ -181,21 +180,16 @@ async function buildReply(context){
   for(let i=0;i<bubbleCount;i++){
     const bubbleUsed=new Set();
     let base=null;
-    // 基础回复：普通字卡（第一气泡可能被 QA/引用改造）
+    // 基础回复：普通字卡（第一气泡可能被题目回答/引用改造）
     base=await _buildBaseBubbleText(src,roundUsed,usage,bubbleUsed,markUsed);
     if(!base)base={text:SYSTEM_TEXT_POOL()[0],cards:[]};
     let msgType='text';
     let content=base.text;
     let quote=null;
 
-    if(i===0&&qaRoll&&extraInteractions<MAX_EXTRA){
-      if(isPollMsg){
-        // 题目回复：单选/多选/问卷 生成答案
-        content=_buildPollAnswerText(latest);
-      }else{
-        const qaPool=QA_REPLY_POOL.filter(t=>!roundUsed.has(t));
-        content=qaPool.length?qaPool[Math.floor(Math.random()*qaPool.length)]:QA_REPLY_POOL[0];
-      }
+    if(i===0&&mustAnswer&&extraInteractions<MAX_EXTRA){
+      // 题目回答：单选/多选/问卷 生成答案（必答，不经过概率）
+      content=_buildPollAnswerText(latest);
       msgType='text';
       extraInteractions++;
     }
@@ -227,7 +221,7 @@ async function buildReply(context){
 
 /* ---- 题目回答生成（单选 / 多选 / 问卷） ---- */
 function _buildPollAnswerText(m){
-  const poll=m.poll||{};
+  const poll=m.poll||m.survey||{};
   const pick=arr=>arr[Math.floor(Math.random()*arr.length)];
   if(poll.questions&&poll.questions.length){
     // 问卷：每题一个单选，一次性提交
@@ -296,6 +290,7 @@ async function buildAndSendReply(job){
 
   // 逐条发送（自然间隔 800~2400ms）
   const start=Date.now();
+  let lastSent=null;
   for(let i=0;i<totalBubbles.length;i++){
     const b=totalBubbles[i];
     if(Date.now()<state.muteEndTime)break;
@@ -313,6 +308,14 @@ async function buildAndSendReply(job){
     _scheduler.lastTaReplyAt=Date.now();
     if(state.currentApp==='chat')appendMsgRow(msg,true);
     updateTabBadge('chat',1);
+    lastSent=msg;
   }
   refreshAllBadges();
+  // 系统通知：TA 发来新消息且页面不在前台时，发真正的手机关通知（浏览器 Notification API）
+  if(lastSent&&typeof window.notifySystem==='function'){
+    const preview=(lastSent.content||'');
+    window.notifySystem(`${state.other.name} 发来消息`,preview.slice(0,60),()=>{
+      if(state.currentApp!=='chat')switchTab('chat');
+    });
+  }
 }
