@@ -99,8 +99,8 @@ const QA_REPLY_POOL=[
   '当然可以。','放心，没事的。','嗯嗯。','我觉得挺好。','那我们一起吧。'
 ];
 
-/* ---- 一个气泡的基础内容（字卡拼接 / 单卡 / 系统池回退） ---- */
-async function _buildBaseBubbleText(src,roundUsed,usage,bubbleUsed,markUsed){
+/* ---- 一个气泡的基础内容（字卡拼接 / 单卡 / 意图素材 / 系统池回退） ---- */
+async function _buildBaseBubbleText(src,roundUsed,usage,bubbleUsed,markUsed,intent){
   const p=state.prob||{};
   const cards=src.cards;
   let picked=[];
@@ -113,17 +113,24 @@ async function _buildBaseBubbleText(src,roundUsed,usage,bubbleUsed,markUsed){
       const exclude=new Set([...roundUsed,...bubbleUsed]);
       let c=_pickBalanced(cards,exclude);
       if(!c&&src.kind==='custom'){
-        // 自定义池抽空 → 回退系统池
-        const sys=SYSTEM_TEXT_POOL().filter(t=>!roundUsed.has(t)&&!bubbleUsed.has(t));
-        const text=sys.length?sys[Math.floor(Math.random()*sys.length)]:SYSTEM_TEXT_POOL()[0];
+        // 自定义池抽空 → 意图素材 → 系统池回退
+        const intentPool=INTENT_POOLS[intent]||[];
+        const sys=intentPool.filter(t=>!roundUsed.has(t)&&!bubbleUsed.has(t));
+        const fallback=SYSTEM_TEXT_POOL().filter(t=>!roundUsed.has(t)&&!bubbleUsed.has(t));
+        const pool=sys.length?sys:fallback;
+        const text=pool.length?pool[Math.floor(Math.random()*pool.length)]:(intentPool[0]||SYSTEM_TEXT_POOL()[0]);
         picked.push({id:null,text});
       }else if(c){
         picked.push(c);
       }
     }
   }else{
-    const sys=SYSTEM_TEXT_POOL().filter(t=>!roundUsed.has(t));
-    const text=sys.length?sys[Math.floor(Math.random()*sys.length)]:SYSTEM_TEXT_POOL()[0];
+    // 无自定义字卡（或命中系统池层）：意图素材优先
+    const intentPool=INTENT_POOLS[intent]||[];
+    const sys=intentPool.filter(t=>!roundUsed.has(t));
+    const fallback=SYSTEM_TEXT_POOL().filter(t=>!roundUsed.has(t));
+    const pool=sys.length?sys:fallback;
+    const text=pool.length?pool[Math.floor(Math.random()*pool.length)]:(intentPool[0]||SYSTEM_TEXT_POOL()[0]);
     picked.push({id:null,text});
   }
   if(!picked.length)return null;
@@ -151,6 +158,25 @@ function SYSTEM_TEXT_POOL(){
   ];
 }
 
+/* ---- 统一 Response Engine（方案 §22-25）：shouldRespond → intent → 素材 → 组合 ---- */
+/* shouldRespond：进入本引擎即视为应回复（外部调度器已做禁言/已读不回/主动避让判断） */
+/* intent：根据最近一条我方消息判断本轮意图，驱动素材选择与组合 */
+function _detectIntent(context){
+  const t=(context.latestUserText||'').trim();
+  if(context.latestUserMsg&&(context.latestUserMsg.type==='poll'||context.latestUserMsg.type==='survey'))return 'poll-answer';
+  if(!t)return 'random';
+  if(/难过|伤心|委屈|哭|累|烦|焦虑|不安|害怕|孤独|失眠/.test(t))return 'comfort';
+  if(/早安|早上好|晚安|睡觉|休息|睡了/.test(t))return 'greeting';
+  if(isQuestionText(t))return 'question';
+  return 'random';
+}
+/* 意图素材表：各 intent 的可用素材（优先系统池，命中后回退通用池） */
+const INTENT_POOLS={
+  comfort:['别难过，我陪着你。','没关系的。','你做得很好。','抱抱你。','有我在。','你已经很棒了。','想哭就哭吧。','我会一直在。','慢慢来，不急。','我在听。'],
+  greeting:['晚安。','早安。','好梦。','晚安，做个好梦。','醒了记得找我。','今天也要元气满满。','睡个好觉。','夜深了，快睡吧。','早。','今天也要开心。'],
+  question:['嗯，我明白你的意思。','我觉得可以。','应该可以的。','可能要看情况。','我信你。','嗯，你说得对。','当然可以。','放心，没事的。','我觉得挺好。','那我们一起吧。']
+};
+
 /* ---- 构造一轮回复（多气泡 + 独立互动事件） ---- */
 async function buildReply(context){
   const p=state.prob||{};
@@ -158,6 +184,7 @@ async function buildReply(context){
   const roundUsed=await _getRecentUsed(Number(p.repeatExclude)||5);
   const usage={};
   const markUsed=(c,u)=>{u[c.id]=(u[c.id]||0)+1;};
+  const intent=_detectIntent(context);
 
   const bubbles=[];
   // 多气泡回复：multiBubbleEnabled × 概率 → 1~maxBubbles 个独立气泡
@@ -181,7 +208,7 @@ async function buildReply(context){
     const bubbleUsed=new Set();
     let base=null;
     // 基础回复：普通字卡（第一气泡可能被题目回答/引用改造）
-    base=await _buildBaseBubbleText(src,roundUsed,usage,bubbleUsed,markUsed);
+    base=await _buildBaseBubbleText(src,roundUsed,usage,bubbleUsed,markUsed,intent);
     if(!base)base={text:SYSTEM_TEXT_POOL()[0],cards:[]};
     let msgType='text';
     let content=base.text;
@@ -197,47 +224,59 @@ async function buildReply(context){
       quote={id:latest.id,text:latest.content};
       extraInteractions++;
     }
-    bubbles.push({type:msgType,content,quote,cardIds:base.cards.map(c=>c.id),proactive:context.source==='proactive'});
+    bubbles.push({type:msgType,content,quote,cardIds:base.cards.map(c=>c.id),proactive:context.source==='proactive',intent});
   }
 
   // 独立互动：表情 / 拍一拍 / 礼物（作为额外气泡，受每轮最多 2 个限制）
   if(emojiRoll&&extraInteractions<MAX_EXTRA){
-    bubbles.push({type:'emoji',content:EMOJI_REPLY_POOL[Math.floor(Math.random()*EMOJI_REPLY_POOL.length)],cardIds:[]});
+    bubbles.push({type:'emoji',content:EMOJI_REPLY_POOL[Math.floor(Math.random()*EMOJI_REPLY_POOL.length)],cardIds:[],intent:'emoji'});
     extraInteractions++;
   }
   if(pokeRoll&&extraInteractions<MAX_EXTRA){
     const pokes=await _allPokeTexts();
     const poke=(pokes.length?pokes[Math.floor(Math.random()*pokes.length)]:'拍了拍你');
-    bubbles.push({type:'poke',content:(state.other.name||'TA')+'拍了拍你：'+poke,isPoke:true,cardIds:[]});
+    bubbles.push({type:'poke',content:(state.other.name||'TA')+'拍了拍你：'+poke,isPoke:true,cardIds:[],intent:'poke'});
     extraInteractions++;
   }
   if(giftRoll&&extraInteractions<MAX_EXTRA){
-    bubbles.push({type:'gift',content:GIFT_REPLY_POOL[Math.floor(Math.random()*GIFT_REPLY_POOL.length)],cardIds:[]});
+    bubbles.push({type:'gift',content:GIFT_REPLY_POOL[Math.floor(Math.random()*GIFT_REPLY_POOL.length)],cardIds:[],intent:'gift'});
     extraInteractions++;
   }
 
-  return {bubbles,usage};
+  return {bubbles,usage,intent};
 }
 
 /* ---- 题目回答生成（单选 / 多选 / 问卷） ---- */
 function _buildPollAnswerText(m){
   const poll=m.poll||m.survey||{};
+  const ss=state.surveySettings||{};
+  const multiMin=_clamp(Number(ss.multiMin)||1,1,4);
+  const multiMax=_clamp(Number(ss.multiMax)||6,Math.max(2,multiMin),8);
   const pick=arr=>arr[Math.floor(Math.random()*arr.length)];
+  const pickMulti=opts=>{
+    if(!opts.length)return [];
+    const max=Math.min(multiMax,opts.length);
+    const n=opts.length>multiMin?_randomInt(multiMin,max):multiMin;
+    const idxs=[];while(idxs.length<n){const i=Math.floor(Math.random()*opts.length);if(idxs.indexOf(i)<0)idxs.push(i);}
+    return idxs.map(i=>opts[i]);
+  };
   if(poll.questions&&poll.questions.length){
-    // 问卷：每题一个单选，一次性提交
+    // 问卷：每题按题型作答（单选=1 项，多选=最少~最多项），一次性提交
     const lines=poll.questions.map((q,i)=>{
       const opts=q.options&&q.options.length?q.options:[];
-      const sel=opts.length?pick(opts):'—';
-      return `${i+1}. ${sel}`;
+      if(q.multi){
+        const sel=pickMulti(opts);
+        return sel.length?`${i+1}. ${sel.join('、')}`:`${i+1}. —`;
+      }
+      return `${i+1}. ${opts.length?pick(opts):'—'}`;
     });
     return (m.content||'问卷回答')+'：'+lines.join('；');
   }
   const opts=poll.options||[];
   if(!opts.length)return '嗯，我选好了。';
   if(poll.multi){
-    const n=1+Math.floor(Math.random()*Math.min(2,opts.length));
-    const idxs=[];while(idxs.length<n){const i=Math.floor(Math.random()*opts.length);if(idxs.indexOf(i)<0)idxs.push(i);}
-    return '我选：'+idxs.map(i=>opts[i]).join('、');
+    const sel=pickMulti(opts);
+    return sel.length?'我选：'+sel.join('、'):'嗯，我选好了。';
   }
   return '我选：'+pick(opts);
 }

@@ -129,10 +129,14 @@ function enqueueTaJob(config){
   }
   if(j&&j.status==='sending'){_scheduler.pendingQueue++;return;}
   // 新任务：问卷可传入独立期限（deadlineSec），effectiveDueAt = min(回复时间, 问卷期限)
+  // 提前交卷：部分问卷 TA 会在期限结束前 25%~75% 时刻交卷（earlySubmitProb 控制概率）
   let totalMs=_replyTotalMs();
   const deadlineSec=Number(cfg.deadlineSec);
   if(Number.isFinite(deadlineSec)&&deadlineSec>0){
-    totalMs=Math.min(totalMs,deadlineSec*1000);
+    let eff=deadlineSec;
+    const ss=state.surveySettings||{};
+    if(_roll(Number(ss.earlySubmitProb)||30)){eff=deadlineSec*(0.25+Math.random()*0.5);}
+    totalMs=Math.min(totalMs,eff*1000);
   }
   const tw=_typingWindow(totalMs);
   const typingAt=now+totalMs-tw;

@@ -106,6 +106,17 @@ body{position:fixed;inset:0;width:100%}
 .note-card:active{transform:scale(.98)}
 .note-head{font-size:10px;color:var(--hint)}
 .note-body{font-size:12px;color:var(--text);margin-top:3px;white-space:pre-wrap;word-break:break-word;max-height:44px;overflow:hidden;line-height:1.5}
+/* 拼写练习本（4 横线 3 格） */
+.spell-book{position:relative;height:128px;background:#fffdf8;border:1px solid var(--input);border-radius:12px;margin:2px 0 0;overflow:hidden}
+.spell-cell-row{position:absolute;inset:0;display:flex;justify-content:center;align-items:flex-end;gap:12px;padding:18px 14px 8px}
+.spell-cell{position:relative;width:52px;height:84px;display:flex;align-items:flex-end;justify-content:center;font-family:Georgia,serif;font-size:36px;color:var(--text);padding-bottom:12px}
+.spell-cell.empty{color:#e2dfd8}
+.spell-char{letter-spacing:1px}
+.spell-del{position:absolute;top:-6px;right:-8px;width:19px;height:19px;border-radius:50%;background:#c0392b;color:#fff;font-size:11px;display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 1px 3px rgba(0,0,0,.25)}
+.spell-line{position:absolute;left:0;right:0;border-top:1.5px solid #d9d5cb}
+.spell-keys{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}
+.spell-key{height:38px;border:1px solid var(--input);border-radius:8px;background:var(--bg);font-size:15px;color:var(--text);font-family:Georgia,serif;cursor:pointer}
+.spell-key:active{background:var(--input)}
 
 /* ===== BOTTOM TAB BAR（手机原生标签栏） ===== */
 .tabbar{position:absolute;left:0;right:0;bottom:0;display:flex;background:rgba(250,250,249,.94);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-top:1px solid rgba(0,0,0,.07);padding-bottom:var(--sab);z-index:90;transition:transform .28s cubic-bezier(.32,.72,0,1)}
@@ -315,7 +326,8 @@ body{position:fixed;inset:0;width:100%}
 .cs-item{display:flex;align-items:center;gap:10px;padding:13px 16px;border-bottom:1px solid var(--input);font-size:15px;cursor:pointer}
 .cs-item:last-child{border-bottom:none}
 .cs-item:active{background:var(--input)}
-.cs-item .cs-ico{font-size:17px;width:22px;text-align:center}
+.cs-item .cs-ico{font-size:17px;width:22px;text-align:center;display:inline-flex;align-items:center;justify-content:center}
+.cs-item .cs-ico svg{display:block}
 .cs-item .cs-label{flex:1}
 .cs-item .cs-val{font-size:13px;color:var(--hint);max-width:50%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .cs-item .cs-arrow{color:var(--hint);font-size:14px}
@@ -570,12 +582,18 @@ body{-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;letter
 .poll-opt.sel{background:var(--text);color:var(--bg);border-color:var(--text)}
 .poll-ans{font-size:11px;color:#07c160;padding:8px 12px;background:rgba(7,193,96,.06)}
 .poll-wait{font-size:11px;color:var(--hint);padding:8px 12px;background:var(--input);cursor:pointer}
+/* 我方深色气泡内的问卷对比度（方案 §21）：白字 + 浅色高对比选项 */
+.msg-row.me .poll-q{color:#f5f5f5}
+.msg-row.me .poll-q span{color:rgba(255,255,255,.5)!important}
+.msg-row.me .poll-opt{color:rgba(255,255,255,.9);border-color:rgba(255,255,255,.28);background:rgba(255,255,255,.08)}
+.msg-row.me .poll-opt.sel{background:#fff;color:#1a1a1a;border-color:#fff}
+.msg-row.me .poll-wait{color:rgba(255,255,255,.65);background:rgba(255,255,255,.1)}
+.msg-row.me .poll-ans{color:#7fd7a0;background:rgba(127,215,160,.14)}
 #modal-actions{display:flex;gap:10px;margin-top:14px}
 #modal-actions .modal-item{flex:1;margin:0;padding:12px 4px;border-radius:12px;border:1px solid var(--input);background:var(--bg);text-align:center;font-size:15px;cursor:pointer}
 #modal-actions .modal-item:active{background:var(--input)}
-.sb-signal{display:inline-flex;align-items:flex-end;gap:1.5px;height:10px}
-.sig-bar{width:2.5px;border-radius:1px;background:currentColor;animation:sigbar 1s ease-in-out infinite}
-@keyframes sigbar{0%,100%{height:3px;opacity:.25}50%{height:9px;opacity:1}}
+.sb-signal{display:inline-flex;align-items:flex-end;gap:2px;height:12px}
+.sig-bar{width:3px;border-radius:2px;background:currentColor;opacity:.25;transition:opacity .7s ease,transform .7s ease;transform-origin:bottom}
 .cp-dur-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
 .cp-dur{border:1px solid var(--input);border-radius:14px;padding:14px 0;text-align:center;cursor:pointer;background:var(--bg)}
 .cp-dur b{display:block;font-size:20px}
@@ -596,13 +614,21 @@ body{-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;letter
 .wl-foot{text-align:right;font-size:12px;color:var(--hint);margin-top:12px;line-height:1.8}
 .diary-paper{background:linear-gradient(transparent 23px,#e9e5dd 24px);background-size:100% 24px;border:1px solid var(--input);border-radius:14px;padding:18px 16px;min-height:130px;line-height:24px;font-size:14px;font-family:inherit}
 .diary-entry{background:var(--card);border:1px solid var(--input);border-radius:14px;padding:13px 14px;margin-bottom:10px}
+.diary-entry .d-head{display:flex;justify-content:space-between;align-items:center;font-size:11px}
+.diary-entry .d-owner{color:var(--sub);font-weight:600;letter-spacing:1px}
+.diary-entry.locked{position:relative;border-left:3px solid #b8a58a}
 .diary-entry .d-sub{font-size:10px;color:var(--hint);letter-spacing:1px}
 .diary-entry .d-text{font-size:14px;line-height:1.8;margin-top:6px;white-space:pre-wrap}
 .diary-entry .d-time{font-size:11px;color:var(--hint);margin-top:6px}
 .diary-entry .d-btns{display:flex;gap:8px;margin-top:8px;font-size:12px}
-.diary-entry .d-btns span{cursor:pointer;padding:4px 10px;border:1px solid var(--input);border-radius:8px;color:var(--sub)}
+.diary-entry .d-btns span{cursor:pointer;padding:5px 10px;border:1px solid var(--input);border-radius:8px;color:var(--sub);display:inline-flex;align-items:center;gap:3px}
 .diary-entry .d-btns span:active{background:var(--input)}
 .diary-sec{font-size:13px;font-weight:600;margin:18px 0 10px;display:flex;align-items:center;gap:6px}
+.mem-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px}
+.mem-stat{background:var(--input);border-radius:12px;padding:12px 6px;text-align:center;cursor:pointer}
+.mem-stat:active{background:#e0ded8}
+.mem-stat b{display:block;font-size:21px;font-weight:700;line-height:1.2}
+.mem-stat span{font-size:11px;color:var(--sub)}
 .diary-blur-wrap{position:relative;overflow:hidden;border-radius:14px;margin-bottom:10px}
 .diary-blur{filter:blur(9px);user-select:none;pointer-events:none;opacity:.75}
 .diary-lock-overlay{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(247,246,243,.55);backdrop-filter:blur(2px);z-index:2;border-radius:14px}
@@ -660,9 +686,9 @@ body{-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;letter
 <!-- ===== HOME SCREEN ===== -->
 <div id="screen-home" class="screen home-screen">
   <div class="status-bar">
-    <span class="time" id="status-time" style="visibility:hidden">--:--</span>
+    <span class="time" id="status-time">--:--</span>
     <span class="notch-spacer"></span>
-    <span class="sb-right"><span id="sb-signal" class="sb-signal"></span><span class="time" id="sb-status-time">--:--</span></span>
+    <span class="sb-right"><span id="sb-signal" class="sb-signal"></span></span>
   </div>
   <div class="widget-area">
     <div class="widget-avatars" id="widget-avatars">
@@ -674,17 +700,17 @@ body{-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;letter
   </div>
   <!-- 便签两张（A/B，可编辑，桌面固定显示） -->
   <div style="display:flex;gap:10px;padding:0 calc(var(--sal) + 10px);margin-top:14px;flex-shrink:0">
-    <div class="note-card" onclick="editNote('a')"><div class="note-head">便签 A</div><div class="note-body" id="note-a">${''}</div></div>
-    <div class="note-card" onclick="editNote('b')"><div class="note-head">便签 B</div><div class="note-body" id="note-b">${''}</div></div>
+    <div class="note-card" onclick="editNote('a')"><div class="note-head" id="note-head-a">我的便签</div><div class="note-body" id="note-a">${''}</div></div>
+    <div class="note-card" onclick="editNote('b')"><div class="note-head" id="note-head-b">他的便签</div><div class="note-body" id="note-b">${''}</div></div>
   </div>
-  <!-- 应用网格：桌面只放「信箱/日记/数据与回忆/表情/感应房间/字迹」，四个 Tab 不重复 -->
+  <!-- 应用网格：桌面只放「信箱/日记/数据与回忆/表情/感应房间/拼写」，四个 Tab 不重复 -->
   <div class="app-grid" id="app-grid">
     <div class="app-item" onclick="openApp('mailbox')"><div class="app-icon" style="background:var(--c-purple)">信</div><div class="app-label">信箱</div></div>
     <div class="app-item" onclick="openApp('diary')"><div class="app-icon" style="background:#8c7aa9">记</div><div class="app-label">日记</div></div>
     <div class="app-item" onclick="openApp('memory')"><div class="app-icon" style="background:#8c8c8c">忆</div><div class="app-label">数据与回忆</div></div>
     <div class="app-item" onclick="openApp('emoji')"><div class="app-icon" style="background:var(--c-green)">表</div><div class="app-label">表情</div></div>
     <div class="app-item" onclick="openApp('sense')"><div class="app-icon" style="background:#7a9a8c">感</div><div class="app-label">感应房间</div></div>
-    <div class="app-item" onclick="openApp('writing')"><div class="app-icon" style="background:#a97a5c">迹</div><div class="app-label">字迹</div></div>
+    <div class="app-item" onclick="openApp('writing')"><div class="app-icon" style="background:#a97a5c">拼</div><div class="app-label">拼写</div></div>
   </div>
   <!-- 手机底部标签栏（4 个一级入口，与网格互斥） -->
   <div class="tabbar" id="tabbar">
@@ -772,8 +798,8 @@ body{-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;letter
   <div class="app-header"><div class="back" onclick="goBack()">&#8249;</div><h1>信箱</h1><div class="chat-head-actions"><div class="act" onclick="writeLetterModal()" title="写信">&#9998;</div><div class="act" onclick="mailboxMore()" title="更多">&#8943;</div></div></div>
   <div class="app-body" id="mailbox-body">
     <div class="tabs">
-      <button class="tab active" onclick="switchMailboxTab('inbox',this)">收到的信</button>
-      <button class="tab" onclick="switchMailboxTab('sent',this)">寄出的信</button>
+      <button class="tab active" onclick="switchMailboxTab('sent',this)">寄出的信</button>
+      <button class="tab" onclick="switchMailboxTab('inbox',this)">收到的信</button>
     </div>
     <div id="mailbox-list"></div>
   </div>
@@ -783,13 +809,17 @@ body{-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;letter
 <div id="app-diary" class="app-page">
   <div class="app-header"><div class="back" onclick="goBack()">&#8249;</div><h1>日记</h1><div class="act" style="opacity:.25">&#8942;</div></div>
   <div class="app-body" id="diary-body">
+    <div class="tabs">
+      <button class="tab active" onclick="switchDiaryTab('mine',this)">我的日记</button>
+      <button class="tab" onclick="switchDiaryTab('other',this)">TA 的日记</button>
+    </div>
     <div id="diary-list"></div>
   </div>
 </div>
 
 <!-- MOMENTS（朋友圈 · 第二 Tab） -->
 <div id="app-moments" class="app-page">
-  <div class="app-header"><div class="back" onclick="goBack()">&#8249;</div><h1>朋友圈</h1><div class="chat-head-actions"><div class="act" onclick="openNotifCenter()" title="提醒"><span id="mom-notif-badge" style="display:none;position:absolute;top:5px;right:5px;width:8px;height:8px;border-radius:50%;background:#e74c3c"></span>&#128276;</div><div class="act" onclick="openCreateMoment()" title="发布">&#9998;</div><div class="act" onclick="openMomentsSettings()">&#8942;</div></div></div>
+  <div class="app-header"><div class="back" onclick="goBack()">&#8249;</div><h1>朋友圈</h1><div class="chat-head-actions"><div class="act" onclick="openNotifCenter()" title="提醒"><span id="mom-notif-badge" style="display:none;position:absolute;top:5px;right:5px;width:8px;height:8px;border-radius:50%;background:#e74c3c"></span><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg></div><div class="act" onclick="openCreateMoment()" title="发布"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg></div><div class="act" onclick="openMomentsSettings()" title="更多"><svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="12" cy="19" r="1.6"/></svg></div></div></div>
   <div class="app-body" id="moments-body"></div>
 </div>
 
@@ -805,9 +835,9 @@ body{-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;letter
   <div class="app-body" id="videolog-body"></div>
 </div>
 
-<!-- WRITING（字迹：TA 在意识空间的手写轨迹） -->
+<!-- SPELLING（拼写：TA 在意识空间的拼音练习本） -->
 <div id="app-writing" class="app-page">
-  <div class="app-header"><div class="back" onclick="goBack()">&#8249;</div><h1>字迹</h1><div class="act" style="opacity:.25">&#8942;</div></div>
+  <div class="app-header"><div class="back" onclick="goBack()">&#8249;</div><h1>拼写</h1><div class="act" style="opacity:.25">&#8942;</div></div>
   <div class="app-body" id="writing-body"></div>
 </div>
 
@@ -815,7 +845,7 @@ body{-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;letter
 <div id="app-sense" class="app-page">
   <div class="room-header">
     <div class="back" onclick="goBack()" style="width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:21px;color:var(--text);cursor:pointer">&#8249;</div>
-    <div class="room-title" id="room-title">房间</div>
+    <div class="room-title" id="room-title" onclick="showLayoutMenu()" style="cursor:pointer">房间 &#9662;</div>
     <button class="room-add" onclick="showRoomPicker()">+</button>
   </div>
   <div class="room-toolbar">
@@ -841,7 +871,7 @@ body{-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;letter
 
 <!-- CARDS（字卡库 · 第三 Tab） -->
 <div id="app-cards" class="app-page">
-  <div class="app-header"><div class="back" onclick="goBack()">&#8249;</div><h1>字卡</h1><div class="act" onclick="addCard()" title="添加字卡">&#43;</div></div>
+  <div class="app-header"><div class="back" onclick="goBack()">&#8249;</div><h1>字卡</h1><div class="act" onclick="addCardGroup()" title="新建分组"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></div></div>
   <div class="app-body" id="cards-body"></div>
 </div>
 
@@ -943,7 +973,7 @@ let state = {
     momentProb:25
   },
   // 问卷回答期限（秒）：问卷提交后 TA 最迟在 deadlineSec 内回应（与回复时间取更早者）
-  surveySettings:{deadlineSec:60},
+  surveySettings:{deadlineSec:60,earlySubmitProb:30,multiMin:1,multiMax:6},
   // 系统通知：真正的浏览器/手机级通知（页面在前台或后台时都可用）
   notify:{enabled:false, chat:true, moments:true, letters:true},
   // 桌面便签两张（A/B），TA 的便签可作为内部内容来源
@@ -1036,7 +1066,10 @@ function migrateProb(){
   ['fastSec','slowSec','c1','c2','c3','c4','c5','normalProb','emojiProb','pokeProb','quoteProb','heartProb','qaProb','proactive','readIgnoreProb','multiEnabled','multiProb','minPerBubble','maxPerBubble','pollProb'].forEach(k=>delete state.prob[k]);
   saveKey('prob');
   // surveySettings / notify / notes 默认补齐（对象级深合并已在 loadSettings 完成，这里补缺省键）
-  if(!state.surveySettings||!state.surveySettings.deadlineSec)state.surveySettings={deadlineSec:60};
+  if(!state.surveySettings||!state.surveySettings.deadlineSec)state.surveySettings={deadlineSec:60,earlySubmitProb:30,multiMin:1,multiMax:6};
+  if(state.surveySettings.earlySubmitProb===undefined)state.surveySettings.earlySubmitProb=30;
+  if(state.surveySettings.multiMin===undefined)state.surveySettings.multiMin=1;
+  if(state.surveySettings.multiMax===undefined)state.surveySettings.multiMax=6;
   if(!state.notify)state.notify={enabled:false,chat:true,moments:true,letters:true};
   if(!Array.isArray(state.notes)||state.notes.length<2)state.notes=[{id:'a',owner:'me',text:''},{id:'b',owner:'me',text:''}];
 }
@@ -1148,8 +1181,11 @@ function updateHome(){
   paintAvatar(document.getElementById('home-avatar-other'),state.other);
   if(state.meetTime){const d=Math.floor((Date.now()-state.meetTime)/86400000);document.getElementById('home-sign').textContent=`已相伴 ${d} 天`;}
   else{document.getElementById('home-sign').textContent='你在左边 我紧靠右';}
-  // 桌面便签
+  // 桌面便签（我的便签 / {TA昵称}便签，动态绑定昵称）
   const na=document.getElementById('note-a'),nb=document.getElementById('note-b');
+  const nha=document.getElementById('note-head-a'),nhb=document.getElementById('note-head-b');
+  if(nha)nha.textContent='我的便签';
+  if(nhb)nhb.textContent=state.other.name+'的便签';
   if(na)na.textContent=((state.notes||[])[0]||{}).text||'写点什么…';
   if(nb)nb.textContent=((state.notes||[])[1]||{}).text||'写点什么…';
   updateTabBadge('chat',0);countUnreadLetters().then(n=>updateTabBadge('chat',n));
@@ -1158,7 +1194,8 @@ function updateHome(){
 function editNote(id){
   const idx=id==='a'?0:1;
   const cur=(state.notes&&state.notes[idx]&&state.notes[idx].text)||'';
-  showModal('便签 '+id.toUpperCase(),`<textarea class="textarea-full" id="note-input" style="min-height:120px" placeholder="写点什么…">${esc(cur)}</textarea>
+  const title=id==='a'?'我的便签':state.other.name+'的便签';
+  showModal(title,`<textarea class="textarea-full" id="note-input" style="min-height:120px" placeholder="写点什么…">${esc(cur)}</textarea>
     <div class="modal-btn-row"><button class="modal-btn" onclick="closeModal()">取消</button><button class="modal-btn primary" onclick="saveNote('${id}')">保存</button></div>`);
   setTimeout(()=>{const i=document.getElementById('note-input');if(i)i.focus();},80);
 }
@@ -1190,33 +1227,37 @@ async function refreshAllBadges(){
   updateTabBadge('cards',0);
 }
 /* 信号强弱：动态跳动，模拟链接强度；每 2.5 秒随机一次强弱 */
+const SIG_SEQ=[1,2,3,2,4,3,5,4,5,3];  // 楼梯式离散状态：1→2→3→2→4→3→5→4…
 function renderSignal(){
   const el=document.getElementById('sb-signal');if(!el)return;
   if(!el.childElementCount){
     for(let i=0;i<5;i++){
       const b=document.createElement('span');
       b.className='sig-bar';
-      b.style.animationDelay=(i*0.16)+'s';
-      b.style.animationDuration=(0.9+Math.random()*0.5)+'s';
+      b.style.height=(5+(i+1)*2)+'px';
+      b.style.opacity=.25;
       el.appendChild(b);
     }
   }
   clearTimeout(renderSignal._t);
-  renderSignal._t=setTimeout(()=>{
+  let idx=0;
+  const step=()=>{
+    const n=SIG_SEQ[idx%SIG_SEQ.length];
     const bars=el.children;
-    const n=3+Math.floor(Math.random()*3);
     for(let i=0;i<bars.length;i++){
-      bars[i].style.display=i<n?'inline-block':'none';
-      bars[i].style.animationDuration=(0.7+Math.random()*0.8)+'s';
+      bars[i].style.opacity=i<n?1:.25;
+      bars[i].style.transform=i<n?'scaleY(1)':'scaleY(.6)';
     }
-    renderSignal();
-  },2500);
+    idx++;
+    const hold=2600+Math.random()*2600;   // 楼梯式呼吸：2.6~5.2 秒换一次
+    renderSignal._t=setTimeout(step,hold);
+  };
+  step();
 }
 setInterval(()=>{
   const now=new Date();
   const t=String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0');
   document.getElementById('status-time').textContent=t;
-  document.getElementById('sb-status-time').textContent=t;
   const ct=document.getElementById('chat-status-time');if(ct)ct.textContent=t;
   renderSignal();
 },1000);
@@ -1482,6 +1523,7 @@ function fmtChatDate(t){
   return d.getFullYear()+'年'+(d.getMonth()+1)+'月'+d.getDate()+'日';
 }
 function fmtChatTime(t){const d=new Date(t);return String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');}
+function fmtChatTimeSec(t){const d=new Date(t);return String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0')+':'+String(d.getSeconds()).padStart(2,'0');}
 /* ---- 消息渲染 ---- */
 const TYPE_LABEL={text:'[文字]',image:'[图片]',voice:'[语音]',music:'[音乐]',card:'[字卡]',location:'[位置]',file:'[文件]',poll:'[题目]'};
 function msgPreviewText(m){
@@ -1589,7 +1631,7 @@ function buildMsgRow(m){
   const av=document.createElement('div');av.className='msg-avatar';av.innerHTML=avatarHtml(m.sender);
   if(!isMe){av.style.cursor='pointer';av.title='双击拍一拍';av.ondblclick=e=>{e.stopPropagation();pokeChat();};}
   acol.appendChild(av);
-  const ts=document.createElement('span');ts.className='msg-time';ts.textContent=fmtChatTime(m.time);
+  const ts=document.createElement('span');ts.className='msg-time';ts.textContent=fmtChatTimeSec(m.time);
   acol.appendChild(ts);
   const body=document.createElement('div');body.className='msg-body';
   body.innerHTML=bubbleInnerHtml(m);
@@ -1611,9 +1653,14 @@ function appendMsgRow(m,stick){
   const el=document.getElementById('chat-content');if(!el)return;
   const atBottom=el.scrollTop+el.clientHeight>=el.scrollHeight-60;
   const label=fmtChatDate(m.time);
-  const last=el.lastElementChild;
-  const lastLabel=(last&&last.classList.contains('chat-date'))?last.textContent:'';
-  if(label!==lastLabel){const d=document.createElement('div');d.className='chat-date';d.textContent=label;el.appendChild(d);}
+  // 日期分隔只由日期变化决定：向上找最近一个真正的日期分隔（跳过 查看更早消息/新消息分隔）
+  let lastDate='';
+  let scan=el.lastElementChild;
+  while(scan){
+    if(scan.classList.contains('chat-date')&&!scan.classList.contains('load-more')&&!scan.classList.contains('chat-unread')){lastDate=scan.textContent;break;}
+    scan=scan.previousElementSibling;
+  }
+  if(label!==lastDate){const d=document.createElement('div');d.className='chat-date';d.textContent=label;el.appendChild(d);}
   if(m.sender!=='sys'&&!chatUnreadShown&&m.sender==='other'&&m.time>(state.chat.lastReadAt||0)){
     chatUnreadShown=true;
     const u=document.createElement('div');u.className='chat-unread';u.textContent='以下为新消息';u.onclick=()=>{el.scrollTop=u.offsetTop-60;};
@@ -2121,7 +2168,7 @@ function showPlusMenu(){
   document.getElementById('btn-plus').classList.toggle('off',!open);
 }
 function chatPickMedia(){
-  showModal('发送图片',`<div class="modal-item" onclick="closeModal();chatPickPhoto()">&#128247; 拍照</div><div class="modal-item" onclick="closeModal();chatPickImage(true)">&#128193; 从相册选择（可多选）</div><div class="modal-item" style="color:var(--hint)" onclick="closeModal()">取消</div>`);
+  showModal('发送图片',`<div class="modal-item" onclick="closeModal();chatPickPhoto()">&#128247; 拍照</div><div class="modal-item" onclick="closeModal();chatPickImage(true)">&#128193; 从相册选择（可多选）</div>`,'<div class="modal-btn-row"><button class="modal-btn" onclick="closeModal()">取消</button></div>');
 }
 function chatPickPhoto(){
   const input=document.createElement('input');input.type='file';input.accept='image/*';input.capture='environment';
@@ -2134,7 +2181,7 @@ function chatPickPhoto(){
 const GIFTS=['&#9749;','&#129374;','&#127800;','&#127801;','&#127874;','&#127855;','&#127853;','&#127817;','&#127850;','&#128059;','&#128214;','&#127963;','&#127769;','&#11088;','&#127808;','&#128142;','&#129703;','&#127748;','&#127859;','&#128144;','&#127748;&#65039;'];
 const GIFT_NAMES=['咖啡','奶茶','鲜花','玫瑰','蛋糕','甜点','巧克力','水果','饼干','泰迪熊','书','明信片','月亮','星星','幸运符','香','围巾','雨伞','早餐','晚安花束','香薰'];
 function sendGift(){
-  showModal('送礼物',`<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;padding:8px 2px">${GIFTS.map((g,i)=>`<div class="plus-item" style="padding:14px 0" onclick="closeModal();doSendGift(${i})"><div style="width:46px;height:46px;border-radius:14px;background:var(--input);display:flex;align-items:center;justify-content:center;font-size:26px">${g}</div><div class="plus-label">${GIFT_NAMES[i]}</div></div>`).join('')}</div>`,'<div class="modal-item" style="color:var(--hint)" onclick="closeModal()">取消</div>');
+  showModal('送礼物',`<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;padding:8px 2px">${GIFTS.map((g,i)=>`<div class="plus-item" style="padding:14px 0" onclick="closeModal();doSendGift(${i})"><div style="width:46px;height:46px;border-radius:14px;background:var(--input);display:flex;align-items:center;justify-content:center;font-size:26px">${g}</div><div class="plus-label">${GIFT_NAMES[i]}</div></div>`).join('')}</div>`,'<div class="modal-btn-row"><button class="modal-btn" onclick="closeModal()">取消</button></div>');
 }
 async function doSendGift(i){
   await sendMessageObject({type:'gift',content:GIFT_NAMES[i],sub:GIFTS[i]});
@@ -2447,20 +2494,25 @@ function applyChatBg(){
 }
 
 /* ===== 聊天记录搜索 ===== */
+/* 索引页（方案 §3）：未输入关键词时，只显示 TA 的消息索引（日期分组+时间+内容，点击定位高亮）；输入关键词后搜索全部记录 */
 function renderChatSearch(){
   const box=document.getElementById('chat-search-result');
+  const input=document.getElementById('chat-search-input');
+  const q=(input?input.value:'').trim();
   dbGetAll('messages').then(all=>{
-    const list=all.filter(m=>!m.recalled).sort((a,b)=>b.time-a.time);
+    let list=all.filter(m=>!m.recalled).sort((a,b)=>b.time-a.time);
+    if(!q)list=list.filter(m=>m.sender==='other');   // 索引：只有 TA 的信息
+    if(q)list=list.filter(m=>msgPreviewText(m).toLowerCase().includes(q.toLowerCase())||(m.content||'').toLowerCase().includes(q.toLowerCase()));
     const dates=[...new Set(list.map(m=>fmtChatDate(m.time)))];
-    if(!list.length){box.innerHTML='<div class="empty">还没有聊天记录</div>';return;}
-    box.innerHTML=`<div class="cs-group"><div class="cs-item" style="cursor:default"><span class="cs-ico">&#128197;</span><span class="cs-label">共 ${list.length} 条记录</span></div></div>`
+    if(!list.length){box.innerHTML=q?'<div class="empty">没有匹配的记录</div>':'<div class="empty">TA 还没有发过消息</div>';return;}
+    box.innerHTML=`<div class="cs-group"><div class="cs-item" style="cursor:default"><span class="cs-ico">&#128197;</span><span class="cs-label">${q?'搜索到 ':''}${list.length} 条${q?'记录':'TA 的消息'}</span></div></div>`
       +dates.map(d=>{
         const day=list.filter(m=>fmtChatDate(m.time)===d);
         return `<div class="chat-date" style="margin:16px auto">${d} · ${day.length} 条</div>`
           +day.map(m=>`<div class="search-result" onclick="goSearchMsg(${m.id})">
-              <div class="sr-sender">${esc(who(m.sender))}${m.sender==='me'?'（我）':''}</div>
+              <div class="sr-sender">${esc(who(m.sender))}${m.sender==='me'?'（我）':''}${m.type==='text'?'':`<span style="color:var(--hint)"> · ${TYPE_LABEL[m.type]||''}</span>`}</div>
               <div class="sr-text">${esc(msgPreviewText(m)||'（空）')}</div>
-              <div class="sr-time">${fmtChatTime(m.time)}</div></div>`).join('');
+              <div class="sr-time">${fmtChatTimeSec(m.time)}</div></div>`).join('');
       }).join('');
   });
 }
@@ -2489,24 +2541,37 @@ function onChatSearch(q){
 }
 
 /* ===== MAILBOX ===== */
-const REPLY_TEXTS=[
-  '收到你的信了，很想你。今晚一定回你一封更长的。',
-  '信纸上的字我都认真读完了，心里暖暖的。',
-  '最近有点忙，但看到你的信总会停下来。',
-  '你说的话我都记在心里了，等我忙完这阵好好陪你。',
-  '读信的时候笑了一下，谢谢你记得我。',
-  '窗外在下雨，忽然有点想见你。',
-  '这封信我看了两遍，像是听到了你的声音。',
-  '累了就早点休息，明天我们继续聊天。'
+/* 回信三级独立概率（方案 §8.4）：相关回应 45% / 情感回应 30% / 延伸关怀 25%；内容为多段（多字卡式） */
+const REPLY_TIER_RELATE=[
+  '读到你的信，我先看了三遍。','你写给我的每一个字，我都放在心上了。',
+  '信里的话我反复读，像是在听你说话。','看到你写的内容，我心里踏实了很多。'
 ];
-let mailboxTab='inbox';
+const REPLY_TIER_FEEL=[
+  '收到你的信了，很想你。今晚一定回你一封更长的。','信纸上的字我都认真读完了，心里暖暖的。',
+  '读信的时候笑了一下，谢谢你记得我。','这封信我看了两遍，像是听到了你的声音。'
+];
+const REPLY_TIER_CARE=[
+  '最近有点忙，但看到你的信总会停下来。','你说的话我都记在心里了，等我忙完这阵好好陪你。',
+  '窗外在下雨，忽然有点想见你。','累了就早点休息，明天我们继续聊天。'
+];
+function _buildLetterReply(l){
+  const r=Math.random()*100;
+  const pool=r<45?REPLY_TIER_RELATE:(r<75?REPLY_TIER_FEEL:REPLY_TIER_CARE);
+  const tier=r<45?'relate':(r<75?'feel':'care');
+  const p1=pool[Math.floor(Math.random()*pool.length)];
+  const p2=REPLY_TIER_FEEL[Math.floor(Math.random()*REPLY_TIER_FEEL.length)];
+  // 多段组合：首段（按 tier 选）+ 次段（情感收束）；相关回应时引用来信开头
+  const lead=(tier==='relate'&&l.content)?'你写“'+String(l.content).replace(/\s+/g,' ').slice(0,24)+(String(l.content).length>24?'…':'')+'”，我收到了。\n\n':'';
+  return lead+p1+'\n\n'+p2;
+}
+let mailboxTab='sent';   // 寄出在前（方案：寄出的信/收到的信位置互换）
 function switchMailboxTab(tab,btn){mailboxTab=tab;document.querySelectorAll('#app-mailbox .tab').forEach(t=>t.classList.remove('active'));if(btn)btn.classList.add('active');renderMailbox();}
 async function processPendingReplies(){
   const now=Date.now();
   const letters=await dbGetAll('letters');
   const due=letters.filter(l=>l.sender==='me'&&l.status==='waiting'&&l.replyAt&&l.replyAt<=now);
   for(const l of due){
-    const text=REPLY_TEXTS[Math.floor(Math.random()*REPLY_TEXTS.length)];
+    const text=_buildLetterReply(l);
     const reply=await dbPut('letters',{sender:'other',title:'RE: '+(l.title||'无标题'),content:text,time:now,status:'replied',read:false,replyTo:l.id,threadId:l.threadId||('letter-'+l.id)});
     l.status='replied';l.repliedId=reply;
     await dbPut('letters',l);
@@ -2599,17 +2664,17 @@ async function sendLetter(){
 function writeLetterModal(){
   const list=document.createElement('div');
   renderWriteLetter(list);
-  showModal('写封信',list.innerHTML,'<div class="modal-item" style="color:var(--hint)" onclick="closeModal()">取消</div>');
+  showModal('写封信',list.innerHTML,'<div class="modal-btn-row"><button class="modal-btn" onclick="closeModal()">取消</button></div>');
 }
 function mailboxMore(){
   const list=document.createElement('div');
   renderMailboxData(list);
-  showModal('信件数据',list.innerHTML,'<div class="modal-item" onclick="closeModal()">取消</div>');
+  showModal('信件数据',list.innerHTML,'<div class="modal-btn-row"><button class="modal-btn" onclick="closeModal()">取消</button></div>');
 }
-async function viewLetter(id){const letters=await dbGetAll('letters');const l=letters.find(x=>x.id===id);if(!l)return;const tid=l.threadId||('letter-'+(l.replyTo||l.id));const thread=letters.filter(x=>(x.threadId||('letter-'+(x.replyTo||x.id)))===tid).sort((a,b)=>a.time-b.time);for(const x of thread)if(x.sender==='other'&&!x.read){x.read=true;await dbPut('letters',x);}updateTabBadge('chat',await countUnreadLetters());const html=thread.map(x=>`<div style="padding:12px 13px;background:${x.sender==='me'?'#1a1a1a':'#fff'};color:${x.sender==='me'?'#fff':'var(--text)'};border-radius:12px;margin-bottom:10px"><div style="font-size:11px;opacity:.58;margin-bottom:6px">${esc(x.sender==='me'?state.me.name:state.other.name)} · ${fmtFull(x.time)}${x.status==='waiting'?' · 等待回信':''}</div><div style="font-size:14px;line-height:1.9;white-space:pre-wrap">${esc(x.content)}</div></div>`).join('');showModal('往来信件',html+(l.sender==='other'?'<div class="modal-item" onclick="closeModal();replyLetter('+l.id+')">回复 TA</div>':'<div class="modal-item" onclick="closeModal();editLetter('+l.id+')">✎ 修改这封信</div>'));}
+async function viewLetter(id){const letters=await dbGetAll('letters');const l=letters.find(x=>x.id===id);if(!l)return;const tid=l.threadId||('letter-'+(l.replyTo||l.id));const thread=letters.filter(x=>(x.threadId||('letter-'+(x.replyTo||x.id)))===tid).sort((a,b)=>a.time-b.time);for(const x of thread)if(x.sender==='other'&&!x.read){x.read=true;await dbPut('letters',x);}updateTabBadge('chat',await countUnreadLetters());const html=thread.map(x=>`<div style="padding:12px 13px;background:${x.sender==='me'?'#1a1a1a':'#fff'};color:${x.sender==='me'?'#fff':'var(--text)'};border-radius:12px;margin-bottom:10px"><div style="font-size:11px;opacity:.58;margin-bottom:6px">${esc(x.sender==='me'?state.me.name:state.other.name)} · ${fmtFull(x.time)}${x.status==='waiting'?' · 等待回信':''}</div><div style="font-size:14px;line-height:1.9;white-space:pre-wrap">${esc(x.content)}</div></div>`).join('');showModal('往来信件',html,(l.sender==='other'?'<div class="modal-btn-row"><button class="modal-btn" onclick="closeModal()">取消</button><button class="modal-btn primary" onclick="closeModal();replyLetter('+l.id+')">回复 TA</button></div>':'<div class="modal-btn-row"><button class="modal-btn" onclick="closeModal()">取消</button><button class="modal-btn primary" onclick="closeModal();editLetter('+l.id+')">修改这封信</button></div>'));}
 async function editLetter(id){
   const letters=await dbGetAll('letters');const l=letters.find(x=>x.id===id);if(!l||l.sender!=='me')return;
-  showModal('编辑寄出的信',`<textarea class="textarea-full" id="letter-content" style="min-height:120px">${esc(l.content)}</textarea><button class="btn-pill primary" style="width:100%;margin-top:12px" onclick="saveLetterEdit(${id})">保存</button>`);
+  showModal('编辑寄出的信',`<textarea class="textarea-full" id="letter-content" style="min-height:120px">${esc(l.content)}</textarea>`,'<div class="modal-btn-row"><button class="modal-btn" onclick="closeModal()">取消</button><button class="modal-btn primary" onclick="saveLetterEdit(${id})">保存修改</button></div>');
 }
 async function saveLetterEdit(id){
   const letters=await dbGetAll('letters');const l=letters.find(x=>x.id===id);if(!l)return;
@@ -2618,7 +2683,7 @@ async function saveLetterEdit(id){
   l.content=content;l.time=Date.now();await dbPut('letters',l);closeModal();renderMailbox();showToast('信件已更新');
 }
 function replyLetter(id){
-  showModal('回信',`<textarea class="textarea-full" id="letter-content" placeholder="写下你的回信…" style="min-height:140px"></textarea><button class="btn-pill primary" style="width:100%;margin-top:12px" onclick="saveLetterReply(${id})">寄出回信</button>`);
+  showModal('回信',`<textarea class="textarea-full" id="letter-content" placeholder="写下你的回信…" style="min-height:140px"></textarea>`,'<div class="modal-btn-row"><button class="modal-btn" onclick="closeModal()">取消</button><button class="modal-btn primary" onclick="saveLetterReply(${id})">寄出回信</button></div>');
 }
 async function saveLetterReply(id){
   const content=document.getElementById('letter-content').value.trim();
@@ -2634,48 +2699,72 @@ function fmtDiaryFull(t){
   const wd=['日','一','二','三','四','五','六'][d.getDay()];
   return d.getFullYear()+'年'+(d.getMonth()+1)+'月'+d.getDate()+'日 星期'+wd+' '+String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');
 }
+/* 线性图标（全局统一风格） */
+const ICO_EDIT='<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3l4 4L7 21l-5 1 1-5z"/></svg>';
+const ICO_DEL='<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M6 6l1 15h10l1-15"/></svg>';
+/* 线性图标集（我的页等：去 emoji 装饰，统一线性风格） */
+const ICO={};
+function _ico(p){return ICO[p]||'<span style="font-size:17px">◆</span>';}
+ICO.user='<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg>';
+ICO.cam='<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h9l3-2h4a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V8a1 1 0 0 1 1-1Z"/><circle cx="10.5" cy="12.5" r="2.8"/></svg>';
+ICO.chat='<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a8 8 0 0 1-8 8H4l2-3a8 8 0 1 1 15-5Z"/></svg>';
+ICO.pair='<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="9" r="3.4"/><circle cx="16" cy="9" r="3.4"/><path d="M3 20c0-3.2 2.2-4.6 5-4.6s5 1.4 5 4.6"/><path d="M14 15.4c2.8 0 5 1.4 5 4.6"/></svg>';
+ICO.mail='<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/></svg>';
+ICO.room='<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Z"/><path d="M9 12l2 2 4-4"/></svg>';
+ICO.video='<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="6" width="13" height="12" rx="2"/><path d="M15.5 10.5l6-3v9l-6-3"/></svg>';
+ICO.card='<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 9h18M7 15h4"/></svg>';
+ICO.smile='<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M8.5 14.5s1.2 1.8 3.5 1.8 3.5-1.8 3.5-1.8"/><path d="M9 9.5h.01M15 9.5h.01"/></svg>';
+ICO.chart='<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V10M10 20V4M16 20v-8M22 20H2"/></svg>';
+ICO.poke='<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M8 11V7a3 3 0 0 1 6 0v4"/><path d="M8 11H5a1 1 0 0 0-1 1v5a5 5 0 0 0 5 5h2a5 5 0 0 0 5-5v-5a1 1 0 0 0-1-1H8Z"/></svg>';
+ICO.book='<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20V3H6.5A2.5 2.5 0 0 0 4 5.5v14Z"/><path d="M4 19.5A2.5 2.5 0 0 0 6.5 22H20v-5"/></svg>';
+ICO.lock='<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="10" width="16" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>';
+ICO.heart='<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20s-7-4.5-9.5-9A5.2 5.2 0 0 1 12 6.4 5.2 5.2 0 0 1 21.5 11c-2.5 4.5-9.5 9-9.5 9Z"/></svg>';
+ICO.star='<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l2.7 5.8 6.3.7-4.7 4.2 1.3 6.3L12 17.2 6.4 20l1.3-6.3L3 9.5l6.3-.7L12 3Z"/></svg>';
+ICO.bell='<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg>';
+ICO.bulb='<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6M10 22h4"/><path d="M12 2a7 7 0 0 0-4 12.7c.6.5 1 1.4 1 2.3h6c0-.9.4-1.8 1-2.3A7 7 0 0 0 12 2Z"/></svg>';
+let diaryTab='mine';
+function switchDiaryTab(tab,btn){diaryTab=tab;document.querySelectorAll('#app-diary .tab').forEach(t=>t.classList.remove('active'));if(btn)btn.classList.add('active');renderDiary();}
 async function renderDiary(){
   const list=document.getElementById('diary-list');if(!list)return;
   list.innerHTML='';
   const diaries=await dbGetAll('diaries');
   for(const d of diaries)if(d.owner==='other'&&!d.read){d.read=true;await dbPut('diaries',d);}
-  updateTabBadge('moments',0);
   const mine=diaries.filter(d=>d.owner==='me').sort((a,b)=>b.time-a.time);
-  list.innerHTML+='<div class="diary-sec">&#128221; 我的日记</div>';
-  if(!mine.length){list.innerHTML+='<div class="empty" style="padding:18px 0">还没有日记<br>写下第一篇吧</div>';}
-  else for(const d of mine){
-    list.innerHTML+=`<div class="diary-entry"><div class="d-text">${esc(d.content)}</div><div class="d-time">${fmtDiaryFull(d.time)}</div>${d.taReply?'<div style="font-size:12px;color:var(--sub);margin-top:6px">&#128172; '+esc(state.other.name)+'：「'+esc(d.taReply)+'」</div>':''}<div class="d-btns"><span onclick="editDiary(${d.id})">&#9998; 编辑</span><span style="color:#c0392b" onclick="delDiary(${d.id})">&#10005; 删除</span></div></div>`;
-  }
-  list.innerHTML+='<button class="btn-pill primary" style="width:100%;margin-top:10px" onclick="openWriteDiary()">&#128221; 写日记</button>';
   const others=diaries.filter(d=>d.owner==='other').sort((a,b)=>b.time-a.time);
-  list.innerHTML+='<div class="diary-sec" style="margin-top:24px">&#128274; TA 的日记</div>';
-  if(!others.length){
-    list.innerHTML+='<div class="empty" style="padding:18px 0">TA 还没有写日记</div>';
+  if(diaryTab==='mine'){
+    if(!mine.length){list.innerHTML='<div class="empty" style="padding:24px 0">还没有日记<br>写下第一篇吧</div>';}
+    else for(const d of mine){
+      list.innerHTML+=`<div class="diary-entry locked"><div class="d-head"><span class="d-owner">${esc(state.me.name)}</span><span class="d-time">${fmtDiaryFull(d.time)}</span></div>
+        <div class="d-text">${esc(d.content)}</div>
+        ${d.taReply?`<div style="font-size:12px;color:var(--sub);margin-top:6px;border-top:1px dashed var(--input);padding-top:6px">${esc(state.other.name)}：「${esc(d.taReply)}」</div>`:''}
+        <div class="d-btns"><span onclick="editDiary(${d.id})" title="编辑">${ICO_EDIT}</span><span style="color:#c0392b" onclick="delDiary(${d.id})" title="删除">${ICO_DEL}</span></div></div>`;
+    }
+    list.innerHTML+='<button class="btn-pill primary" style="width:100%;margin-top:10px" onclick="openWriteDiary()">写日记</button>';
   }else{
-    const granted=diaryReqAt&&(Date.now()-diaryReqAt)>=60000;
-    for(const d of others){
-      if(granted){
-        list.innerHTML+=`<div class="diary-entry"><div class="d-sub">${esc(state.other.name)}</div><div class="d-text">${esc(d.content)}</div><div class="d-time">${fmtDiaryFull(d.time)}</div></div>`;
+    if(!others.length){list.innerHTML='<div class="empty" style="padding:24px 0">TA 还没有写日记</div>';}
+    else for(const d of others){
+      const g=(state.stats.diaryGrants||{})[d.id];
+      if(g){
+        list.innerHTML+=`<div class="diary-entry"><div class="d-head"><span class="d-owner">${esc(state.other.name)}</span><span class="d-time">${fmtDiaryFull(d.time)}</span></div><div class="d-text">${esc(d.content)}</div></div>`;
       }else{
-        list.innerHTML+=`<div class="diary-blur-wrap"><div class="diary-blur diary-entry" style="margin:0"><div class="d-sub">${esc(state.other.name)}</div><div class="d-text">${esc(d.content)}</div><div class="d-time">${fmtDiaryFull(d.time)}</div></div><div class="diary-lock-overlay"><div style="font-size:13px;color:var(--sub);margin-bottom:8px;padding:0 10px;text-align:center">${diaryReqAt?'申请中…约 60 秒后自动解锁':'TA 的日记已加密模糊'}</div><button class="btn-pill primary" onclick="requestDiaryAccess()">${diaryReqAt?'重新申请':'申请查看'}</button></div></div>`;
+        list.innerHTML+=`<div class="diary-blur-wrap"><div class="diary-blur diary-entry" style="margin:0"><div class="d-head"><span class="d-owner">${esc(state.other.name)}</span><span class="d-time">${fmtDiaryFull(d.time)}</span></div><div class="d-text">${esc(d.content)}</div></div><div class="diary-lock-overlay"><div style="font-size:13px;color:var(--sub);margin-bottom:8px;padding:0 10px;text-align:center">TA 的日记已加密模糊<br>申请后可查看这一篇</div><button class="btn-pill primary" onclick="requestDiaryAccess(${d.id})">申请查看</button></div></div>`;
       }
     }
-    if(!granted){
-      if(renderDiary._t)clearInterval(renderDiary._t);
-      renderDiary._t=setInterval(()=>{
-        const g=diaryReqAt&&(Date.now()-diaryReqAt)>=60000;
-        if(g){clearInterval(renderDiary._t);renderDiary._t=null;renderDiary();}
-      },4000);
-    }else if(renderDiary._t){clearInterval(renderDiary._t);renderDiary._t=null;}
   }
+  updateTabBadge('moments',0);
+  refreshAllBadges();
 }
-function requestDiaryAccess(){diaryReqAt=Date.now();showToast('申请已发送，等待 TA 同意');renderDiary();}
+function requestDiaryAccess(id){
+  state.stats.diaryGrants=state.stats.diaryGrants||{};
+  state.stats.diaryGrants[id]=Date.now();
+  saveKey('stats');
+  showToast(state.other.name+' 同意你查看这篇日记');
+  renderDiary();
+}
 function openWriteDiary(){
-  showModal('写日记',`<div style="text-align:center;font-size:15px;font-weight:600;padding:4px 0 12px">&#128221; 写日记</div>
-    <textarea class="textarea-full diary-paper" id="diary-content" placeholder="写下今天的心情..."></textarea>
-    <div style="text-align:right;font-size:11px;color:var(--hint);margin-top:8px">保存后自动记录：${fmtDiaryFull(Date.now())}</div>
-    <button class="btn-pill primary" style="width:100%;margin-top:12px" onclick="saveDiary()">保存</button>`,
-    '<div class="modal-item" style="color:var(--hint)" onclick="closeModal()">取消</div>');
+  showModal('写日记',`<textarea class="textarea-full diary-paper" id="diary-content" placeholder="写下今天的心情..."></textarea>
+    <div style="text-align:right;font-size:11px;color:var(--hint);margin-top:8px">保存后自动记录：${fmtDiaryFull(Date.now())}</div>`,
+    '<div class="modal-btn-row"><button class="modal-btn" onclick="closeModal()">取消</button><button class="modal-btn primary" onclick="saveDiary()">保存</button></div>');
 }
 async function saveDiary(){
   const content=document.getElementById('diary-content').value.trim();
@@ -2695,7 +2784,7 @@ async function saveDiary(){
 }
 async function editDiary(id){
   const diaries=await dbGetAll('diaries');const d=diaries.find(x=>x.id===id);if(!d||d.owner!=='me')return;
-  showModal('编辑日记',`<textarea class="textarea-full diary-paper" id="diary-content" style="min-height:120px">${esc(d.content)}</textarea><button class="btn-pill primary" style="width:100%;margin-top:12px" onclick="saveDiaryEdit(${id})">保存修改</button>`,'<div class="modal-item" style="color:var(--hint)" onclick="closeModal()">取消</div>');
+  showModal('编辑日记',`<textarea class="textarea-full diary-paper" id="diary-content" style="min-height:120px">${esc(d.content)}</textarea>`,'<div class="modal-btn-row"><button class="modal-btn" onclick="closeModal()">取消</button><button class="modal-btn primary" onclick="saveDiaryEdit(${id})">保存修改</button></div>');
 }
 async function saveDiaryEdit(id){
   const diaries=await dbGetAll('diaries');const d=diaries.find(x=>x.id===id);if(!d)return;
@@ -2746,18 +2835,9 @@ async function ensureTaDiary(){
 const HEART_ICO='<svg viewBox="0 0 24 24" style="width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:1.8;vertical-align:-2px;margin-right:3px"><path d="M12 20.5s-7.5-4.7-9.2-9.3C1.6 8 3.4 5 6.6 5c1.9 0 3.4 1.1 4.2 2.6h2.4C14 6.1 15.5 5 17.4 5c3.2 0 5 3 3.8 6.2-1.7 4.6-9.2 9.3-9.2 9.3Z"/></svg>';
 const COMMENT_ICO='<svg viewBox="0 0 24 24" style="width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:1.8;vertical-align:-2px;margin-right:3px"><path d="M21 11.5a8.5 8.5 0 0 1-8.5 8.5c-1.4 0-2.7-.3-3.9-.9L3 21l1.9-5.6A8.5 8.5 0 1 1 21 11.5Z"/></svg>';
 function openMomentsSettings(){
-  const p=state.prob;
   const postOn=state.stats.momentsAllowPost===0?'关闭':'开启';
-  const cOn=state.stats.momentsAllowComment===0?'关闭':'开启';
-  const eOn=state.stats.momentsAllowEmoji===0?'关闭':'开启';
-  const rateLabels=['很少发布','偶尔发布','经常发布'];
-  const rate=p.momentProb>=60?2:(p.momentProb>=25?1:0);
-  showModal('朋友圈设置',`<div style="padding:4px 2px 10px;font-size:12px;color:var(--hint)">TA 在朋友圈里的行为</div>
-    <div style="padding:10px 2px;font-size:14px">TA 多久发布一次：<b>${rateLabels[rate]}</b></div>
-    <div style="display:flex;gap:8px;margin-top:8px">${rateLabels.map((l,i)=>`<button class="btn-pill ${rate===i?'primary':'ghost'}" style="flex:1;padding:10px 0;font-size:12px" onclick="setMomentRate(${i})">${l}</button>`).join('')}</div>
-    <div class="modal-item" onclick="toggleMomentsOpt('post')">允许 TA 发布动态：${postOn}</div>
-    <div class="modal-item" onclick="toggleMomentsOpt('comment')">允许 TA 评论你的动态：${cOn}</div>
-    <div class="modal-item" onclick="toggleMomentsOpt('emoji')">允许 TA 表情回应：${eOn}</div>`);
+  showModal('朋友圈设置',`<div style="padding:4px 2px 10px;font-size:12px;color:var(--hint)">功能能力开关：是否允许 TA 发布朋友圈。TA 是否真的发布，由 TA 的行为节奏自行决定。</div>
+    <div class="modal-item" onclick="toggleMomentsOpt('post')"><span style="flex:1">允许 TA 发布朋友圈</span><span class="cs-switch${postOn==='开启'?' on':''}" onclick="event.stopPropagation();toggleMomentsOpt('post')"></span></div>`,'<div class="modal-btn-row"><button class="modal-btn" onclick="closeModal()">取消</button></div>');
 }
 function setMomentRate(i){const v=[10,25,60][i]||25;state.prob.momentProb=v;saveKey('prob');openMomentsSettings();}
 function toggleMomentsOpt(k){
@@ -2899,13 +2979,16 @@ function processMomentReplies(){
 async function momentMenu(id){
   const moments=await dbGetAll('moments');const m=moments.find(x=>x.id===id);if(!m)return;
   if(m.owner==='me'){
-    showModal('我的动态',`<div class="modal-item" style="color:#c0392b" onclick="closeModal();delMoment('${id}')">删除此动态</div><div class="modal-item" onclick="closeModal()">取消</div>`);
+    showModal('我的动态',`<div class="modal-item" style="color:#c0392b" onclick="closeModal();confirmDelMoment('${id}')">删除此动态</div>`,'<div class="modal-btn-row"><button class="modal-btn" onclick="closeModal()">取消</button></div>');
   }else{
     const cOn=state.stats.momentsAllowComment===0?'开启':'关闭';
     const eOn=state.stats.momentsAllowEmoji===0?'开启':'关闭';
     const hid=isHiddenMoment(id)?'取消隐藏':'隐藏该动态';
-    showModal('TA 的动态',`<div class="modal-item" onclick="closeModal();hideMoment('${id}')">${hid}</div><div class="modal-item" onclick="closeModal();toggleMomentAllow('comment')">允许 TA 评论：${cOn}</div><div class="modal-item" onclick="closeModal();toggleMomentAllow('emoji')">允许 TA 表情回应：${eOn}</div><div class="modal-item" style="color:#c0392b" onclick="closeModal();delMoment('${id}')">删除此动态</div>`);
+    showModal('TA 的动态',`<div class="modal-item" onclick="closeModal();hideMoment('${id}')">${hid}</div><div class="modal-item" onclick="closeModal();toggleMomentAllow('comment')">允许 TA 评论：${cOn}</div><div class="modal-item" onclick="closeModal();toggleMomentAllow('emoji')">允许 TA 表情回应：${eOn}</div><div class="modal-item" style="color:#c0392b" onclick="closeModal();confirmDelMoment('${id}')">删除此动态</div>`,'<div class="modal-btn-row"><button class="modal-btn" onclick="closeModal()">取消</button></div>');
   }
+}
+function confirmDelMoment(id){
+  showModal('删除这条朋友圈？','<div style="padding:6px 2px 4px;font-size:13px;color:var(--sub)">删除后不可恢复。</div>','<div class="modal-btn-row"><button class="modal-btn" onclick="closeModal()">取消</button><button class="modal-btn primary" style="color:#fff;background:#c0392b" onclick="delMoment(\''+id+'\')">确认删除</button></div>');
 }
 async function hideMoment(id){
   state.stats.hiddenMoments=state.stats.hiddenMoments||[];
@@ -2974,138 +3057,92 @@ async function saveMoment(){
   }
 }
 
-/* ===== WRITING（字迹：TA 手写轨迹。字母笔画为简化点序列，坐标 0~100 宽、0~70 高） ===== */
-const LETTER_STROKES={
-  a:[[[10,70],[18,45],[40,30],[38,62],[58,55],[62,70]],[[16,47],[62,47]]],
-  b:[[[12,70],[12,8]],[[12,38],[38,26],[46,48],[34,70]]],
-  c:[[[60,28],[34,34],[26,50],[36,66],[62,66]]],
-  d:[[[88,70],[88,10]],[[88,38],[62,26],[54,48],[66,70]]],
-  e:[[[62,26],[30,32],[22,48],[34,66],[62,66]],[[24,48],[64,48]]],
-  f:[[[58,10],[58,66]],[[20,22],[84,22]],[[40,22],[40,40]]],
-  g:[[[58,66],[30,64],[22,48],[30,30],[58,34],[66,52],[54,70]],[[24,48],[66,48]]],
-  h:[[[12,70],[12,10]],[[88,40],[88,70]],[[12,38],[50,24],[88,40]]],
-  i:[[[50,14],[50,70]],[[50,4],[50,6]]],
-  j:[[[70,14],[70,60],[56,70],[40,64]],[[70,4],[70,6]]],
-  k:[[[14,70],[14,10]],[[88,20],[14,50]],[[28,38],[88,70]]],
-  l:[[[16,10],[16,66],[34,70]]],
-  m:[[[10,70],[10,28],[42,48],[74,28],[74,70]]],
-  n:[[[12,70],[12,28],[68,28],[68,70]]],
-  o:[[[50,28],[22,40],[22,60],[50,70],[78,60],[78,40],[50,28]]],
-  p:[[[14,70],[14,26]],[[14,38],[46,28],[54,48],[40,68],[14,60]]],
-  q:[[[58,26],[86,38],[86,58],[58,70],[30,58],[30,38],[58,26]],[[40,70],[80,78]]],
-  r:[[[14,70],[14,26]],[[16,36],[50,26],[54,44],[38,50],[14,44]]],
-  s:[[[64,28],[34,32],[22,44],[36,58],[64,58],[58,70],[26,66]]],
-  t:[[[40,10],[40,70]],[[14,28],[70,28]]],
-  u:[[[12,30],[12,62],[44,70],[76,60],[76,30]]],
-  v:[[[14,28],[44,70],[84,28]]],
-  w:[[[10,28],[28,70],[46,34],[62,70],[82,28]]],
-  x:[[[14,14],[84,70]],[[84,14],[14,70]]],
-  y:[[[10,14],[44,50],[44,70]],[[76,14],[44,50]]],
-  z:[[[14,16],[82,16],[14,68],[82,68]]],
-  ' ':[],
-  '-':[[[20,40],[80,40]]]
-};
-const WRITE_PRESETS=['star','trace','love','dream','moon','hello'];
-let writeAnimStop=false,writeWord='love',writeTimer=null;
-function renderWriting(){
+/* ===== SPELLING（拼写：TA 在意识空间的拼音练习本。这是「他」的功能——像在纸上完成拼写练习） ===== */
+const ALPHABET='abcdefghijklmnopqrstuvwxyz'.split('');
+let spellLetters=[];
+let spellView='board';          // board | history
+const SPELL_MAX=5;              // 最多 5 个字母
+function spellTodayStr(){const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
+function loadSpellHistory(){try{return JSON.parse(localStorage.getItem('xingji-spelling')||'[]');}catch(e){return [];}}
+function saveSpellHistory(h){try{localStorage.setItem('xingji-spelling',JSON.stringify(h));}catch(e){}}
+function getTodaySpell(){
+  const h=loadSpellHistory();const t=spellTodayStr();
+  let d=h.find(x=>x.date===t);
+  if(!d){d={date:t,startedAt:Date.now(),updatedAt:Date.now(),letters:[],completed:false};h.push(d);saveSpellHistory(h);}
+  return d;
+}
+function persistTodaySpell(){
+  const h=loadSpellHistory();const t=spellTodayStr();
+  let d=h.find(x=>x.date===t);
+  if(!d){d={date:t,startedAt:Date.now(),updatedAt:Date.now(),letters:[],completed:false};h.push(d);}
+  d.letters=spellLetters.slice();d.updatedAt=Date.now();d.completed=spellLetters.length>0;
+  saveSpellHistory(h);
+}
+function renderWriting(){   // 拼写画板（页面 id 沿用 app-writing）
   const body=document.getElementById('writing-body');if(!body)return;
-  const recs=state.writings||[];
+  const d=getTodaySpell();
+  if(spellView==='history'){renderSpellHistory(body);return;}
   body.innerHTML=`
-    <div class="list-card" style="padding:14px">
-      <div style="font-size:13px;color:var(--sub);margin-bottom:8px">让 TA 在意识空间写下一段字迹</div>
-      <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px">${WRITE_PRESETS.map(w=>`<button class="btn-pill ${w===writeWord?'primary':'ghost'}" style="padding:7px 12px;font-size:12px" onclick="pickWriteWord('${w}')">${w}</button>`).join('')}
-        <button class="btn-pill ghost" style="padding:7px 12px;font-size:12px" onclick="customWriteWord()">✏️ 自定义</button>
+    <div class="list-card" style="padding:12px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:2px">
+        <span style="font-size:13px;color:var(--text)">${esc(state.other.name)} 在拼写</span>
+        <span style="font-size:12px;color:var(--sub);cursor:pointer;display:flex;align-items:center;gap:3px" onclick="spellView='history';renderWriting()">&#9201; 记录</span>
       </div>
-      <div style="font-size:11px;color:var(--hint);margin-bottom:6px">当前字迹：<b style="color:var(--text)">${esc(writeWord)}</b></div>
-      <canvas id="write-canvas" width="340" height="120" style="width:100%;background:repeating-linear-gradient(0deg,#f2efe8 0 2px,transparent 2px 24px),repeating-linear-gradient(90deg,#f2efe8 0 2px,transparent 2px 24px),#fffdf8;border-radius:12px;border:1px solid var(--input)"></canvas>
-      <div style="display:flex;gap:8px;margin-top:10px">
-        <button class="btn-pill primary" style="flex:1" onclick="playWriting()">✍️ 请 TA 写一遍</button>
-        <button class="btn-pill ghost" style="flex:1" onclick="clearWriteCanvas()">清除</button>
+      <div style="font-size:11px;color:var(--hint);margin-bottom:8px">${d.date}${d.completed?' · 已完成':''}</div>
+      <div class="spell-book">
+        <div class="spell-cell-row">
+          ${spellLetters.length?spellLetters.map((ch,i)=>`<div class="spell-cell"><span class="spell-char">${esc(ch)}</span><span class="spell-del" onclick="delSpellLetter(${i})">&#10005;</span></div>`).join(''):'<div class="spell-cell empty">&#160;</div><div class="spell-cell empty">&#160;</div><div class="spell-cell empty">&#160;</div><div class="spell-cell empty">&#160;</div><div class="spell-cell empty">&#160;</div>'}
+        </div>
+        <div class="spell-line" style="top:26%"></div>
+        <div class="spell-line" style="top:52%"></div>
+        <div class="spell-line" style="top:78%"></div>
+        <div class="spell-line" style="top:100%"></div>
       </div>
-      <div style="display:flex;gap:8px;margin-top:8px">
-        <button class="btn-pill ghost" style="flex:1" onclick="saveWriting()">收藏这行字迹</button>
-      </div>
+      <div style="font-size:11px;color:var(--hint);margin-top:6px">${spellLetters.length} / ${SPELL_MAX} 个字母${spellLetters.length>=SPELL_MAX?' · 已满，可点 × 修改':''}</div>
     </div>
-    <div class="list-card">
-      <div class="list-card-title">TA 的字迹记录</div>
-      ${recs.length?recs.slice(0,20).map(r=>`<div class="fav-item" style="cursor:pointer" onclick="replayWriting('${esc(r.text)}')"><span style="font-family:Georgia,serif;font-size:17px;letter-spacing:2px">${esc(r.text)}</span><span style="font-size:11px;color:var(--hint);flex-shrink:0">${fmtFull(r.time)}</span></div>`).join(''):'<div class="empty" style="padding:14px 0">还没有字迹记录，先让 TA 写一遍吧</div>'}
+    <div class="list-card" style="padding:10px 12px">
+      <div style="font-size:12px;color:var(--sub);margin-bottom:8px">点击字母，帮他拼写</div>
+      <div class="spell-keys">${ALPHABET.map(ch=>`<button class="spell-key" onclick="addSpellLetter('${ch}')">${ch}</button>`).join('')}</div>
+      <div style="display:flex;gap:8px;margin-top:12px">
+        <button class="btn-pill primary" style="flex:1" onclick="spellDone()">完成今天的拼写</button>
+        <button class="btn-pill ghost" style="flex:1" onclick="clearSpell()">一键清除</button>
+      </div>
     </div>`;
-  drawWordStatic(writeWord);
 }
-function pickWriteWord(w){writeWord=w;renderWriting();}
-function customWriteWord(){
-  appPrompt('自定义字迹','',t=>{
-    const v=(t||'').trim().toLowerCase().replace(/[^a-z ]/g,'').slice(0,20);
-    if(!v)return false;
-    writeWord=v;renderWriting();return false;
-  });
+function renderSpellHistory(body){
+  const h=loadSpellHistory().slice().reverse();
+  body.innerHTML=`
+    <div class="list-card" style="padding:12px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+        <span style="font-size:13px;font-weight:600">拼写记录</span>
+        <span style="font-size:12px;color:var(--sub);cursor:pointer" onclick="spellView='board';renderWriting()">&#8592; 返回拼写</span>
+      </div>
+      ${h.length?h.map(r=>`<div class="fav-item"><span style="font-size:11px;color:var(--hint);flex-shrink:0">${esc(r.date)}</span><span style="flex:1;font-family:Georgia,serif;font-size:17px;letter-spacing:3px">${esc(r.letters.join('')||'—')}</span><span style="font-size:11px;color:${r.completed?'#27ae60':'var(--hint)'};flex-shrink:0">${r.completed?'已完成':'未完成'}</span></div>`).join(''):'<div class="empty" style="padding:20px 0">还没有拼写记录</div>'}
+    </div>`;
 }
-function drawWordStatic(word){
-  const cv=document.getElementById('write-canvas');if(!cv)return;
-  const ctx=cv.getContext('2d');
-  ctx.clearRect(0,0,cv.width,cv.height);
-  ctx.strokeStyle='#4a4a4a';ctx.lineWidth=2.2;ctx.lineCap='round';ctx.lineJoin='round';
-  drawWordOnCtx(ctx,word,0,0,2.6,2.6);
-}
-function drawWordOnCtx(ctx,word,offX,offY,sx,sy){
-  let x=offX;
-  const letters=word.split('');
-  for(const ch of letters){
-    const strokes=LETTER_STROKES[ch]||[];
-    if(ch===' '){x+=26*sx;continue;}
-    const maxW=ch==='w'||ch==='m'?90:(ch==='i'||ch==='l'||ch==='t'?40:80);
-    for(const st of strokes){
-      ctx.beginPath();
-      st.forEach((p,i)=>{const px=x+p[0]*sx,py=offY+p[1]*sy;if(i===0)ctx.moveTo(px,py);else ctx.lineTo(px,py);});
-      ctx.stroke();
-    }
-    x+=maxW*sx+16*sx;
-  }
-}
-function playWriting(){
-  const cv=document.getElementById('write-canvas');if(!cv)return;
-  const ctx=cv.getContext('2d');
-  ctx.clearRect(0,0,cv.width,cv.height);
-  ctx.strokeStyle='#4a4a4a';ctx.lineWidth=2.2;ctx.lineCap='round';ctx.lineJoin='round';
-  if(writeTimer){clearTimeout(writeTimer);writeTimer=null;}
-  const sx=2.6,sy=2.6;
-  let x=0,seg=0,pts=0;
-  const letters=writeWord.split('');
-  const plan=[];
-  for(const ch of letters){
-    const strokes=LETTER_STROKES[ch]||[];
-    if(ch===' '){x+=26*sx;continue;}
-    for(const st of strokes)plan.push({x,st});
-    const maxW=ch==='w'||ch==='m'?90:(ch==='i'||ch==='l'||ch==='t'?40:80);
-    x+=maxW*sx+16*sx;
-  }
-  function nextStroke(){
-    if(writeAnimStop||seg>=plan.length){writeAnimStop=false;return;}
-    const {x:px,st}=plan[seg++];
-    ctx.beginPath();
-    st.forEach((p,i)=>{const X=px+p[0]*sx,Y=p[1]*sy;if(i===0){ctx.moveTo(X,Y);}else{ctx.lineTo(X,Y);}});
-    ctx.stroke();
-    writeTimer=setTimeout(nextStroke,90+Math.random()*80);
-  }
-  nextStroke();
+function addSpellLetter(ch){
+  if(spellLetters.length>=SPELL_MAX){showToast('最多拼写 '+SPELL_MAX+' 个字母');return;}
+  spellLetters.push(ch);persistTodaySpell();renderWriting();
   haptic&&haptic();
 }
-function replayWriting(text){
-  writeWord=text;renderWriting();
-  setTimeout(()=>playWriting(),120);
+function delSpellLetter(i){
+  if(i<0||i>=spellLetters.length)return;
+  spellLetters.splice(i,1);persistTodaySpell();renderWriting();
 }
-function clearWriteCanvas(){
-  if(writeTimer){clearTimeout(writeTimer);writeTimer=null;}
-  writeAnimStop=true;
-  const cv=document.getElementById('write-canvas');if(!cv)return;
-  cv.getContext('2d').clearRect(0,0,cv.width,cv.height);
+function clearSpell(){
+  if(!spellLetters.length)return;
+  spellLetters=[];persistTodaySpell();renderWriting();showToast('已清除');
 }
-function saveWriting(){
-  state.writings=state.writings||[];
-  state.writings.unshift({text:writeWord,time:Date.now()});
-  if(state.writings.length>50)state.writings=state.writings.slice(0,50);
-  saveKey('writings');renderWriting();showToast('已收藏字迹：'+writeWord);
+function spellDone(){
+  persistTodaySpell();
+  if(!spellLetters.length){showToast('今天还没有拼写内容');return;}
+  const d=getTodaySpell();d.completed=true;persistTodaySpell();
+  showToast('今天的拼写已记录');
+  renderWriting();
+  // 他拼写完成后，小概率在聊天里轻轻说一句（统一回复引擎的候选之一）
+  if(Math.random()<0.5)enqueueTaJob({type:'text',text:SPELL_PRAISES[Math.floor(Math.random()*SPELL_PRAISES.length)]});
 }
+const SPELL_PRAISES=['今天的拼写我认真写了。','拼好的字母，都是想对你说的。','我在纸上写了一会儿，心里很安静。','拼写练习完成了，想见你。'];
 
 /* ===== ROOM / SENSE ===== */
 const FURNITURE_ITEMS=['衣','桌','柜','椅','床','窗','门','沙','书','画','灯','花','茶','琴','镜','毯'];
@@ -3132,16 +3169,60 @@ let roomPresets={'房间':{cols:6,rows:4,grid:Array(24).fill(null)}};
 let roomPickerOpen=false,dragFromIdx=-1;
 
 function initRoom(){
-  // 感应页：固定 4 行 × 6 列；首次进入给默认「房间」预置温和布局（可自行替换/清空）
+  // 感应页：布局系统。默认 4 行 × 6 列、格子里没有任何字（方案：房间只是默认首个布局，内容由用户放置）
   roomState.cols=6;roomState.rows=4;roomState.grid=Array(24).fill(null);roomState.taPos=-1;roomState.preset='房间';
   const saved=localStorage.getItem('xingji-room');
-  if(!saved){
-    // 默认布局：窗 桌 椅 床 灯 书（房间中央留空给 TA）
-    const def=['窗',null,null,null,null,'衣','书','桌',null,null,'椅','灯',null,null,null,null,null,null,'茶','柜','床',null,'花','镜'];
-    roomState.grid=def.slice(0,24);
-    saveRoom();
+  if(saved){
+    try{const d=JSON.parse(saved);roomPresets=Object.assign(roomPresets,d.presets||{});roomState.preset=d.preset||'房间';}catch(e){}
+    const p=roomPresets[roomState.preset]||roomPresets['房间'];
+    roomState.cols=p.cols||6;roomState.rows=p.rows||4;
+    roomState.grid=(p.grid&&p.grid.length>=p.cols*p.rows)?p.grid.slice(0,p.cols*p.rows):Array(p.cols*p.rows).fill(null);
+  }else{
+    saveRoom();   // 首次：建立空布局结构
   }
   renderRoom();
+}
+function showLayoutMenu(){
+  const names=Object.keys(roomPresets);
+  const rows=names.map(n=>`<div class="modal-item" onclick="loadLayout('${esc(n)}')">${esc(n)}${n===roomState.preset?' <span style="color:var(--hint)">（当前）</span>':''}</div>`).join('');
+  showModal('布局',`<div style="font-size:11px;color:var(--hint);padding:0 2px 6px">房间只是默认布局，可新增/切换/保存/删除</div>${rows}
+    <div class="modal-item" onclick="closeModal();newLayout()">＋ 新增布局</div>
+    <div class="modal-item" onclick="closeModal();saveRoom();showToast('已保存当前布局')">保存当前布局</div>
+    <div class="modal-item" style="color:#c0392b" onclick="closeModal();delLayoutMenu()">删除布局…</div>`,
+    '<div class="modal-btn-row"><button class="modal-btn" onclick="closeModal()">取消</button></div>');
+}
+function loadLayout(name){
+  const p=roomPresets[name];if(!p)return;
+  roomState.preset=name;roomState.cols=p.cols||6;roomState.rows=p.rows||4;
+  roomState.grid=(p.grid&&p.grid.length>=p.cols*p.rows)?p.grid.slice(0,p.cols*p.rows):Array(p.cols*p.rows).fill(null);
+  if(roomState.taPos>=roomState.grid.length)roomState.taPos=-1;
+  saveRoom();renderRoom();showToast('已切换到「'+name+'」');
+}
+function newLayout(){
+  appPrompt('新增布局','布局名称',n=>{
+    const v=(n||'').trim();
+    if(!v)return false;
+    if(roomPresets[v]){showToast('同名布局已存在');return true;}
+    roomPresets[v]={cols:roomState.cols,rows:roomState.rows,grid:[...roomState.grid]};
+    roomState.preset=v;saveRoom();renderRoom();showToast('已创建布局「'+v+'」');
+    return false;
+  });
+}
+function delLayoutMenu(){
+  const names=Object.keys(roomPresets).filter(n=>n!=='房间');
+  if(!names.length){showToast('只有默认「房间」布局，不能删除');return;}
+  showModal('删除布局',names.map(n=>`<div class="modal-item" onclick="closeModal();confirmDelLayout('${esc(n)}')">${esc(n)}</div>`).join(''),
+    '<div class="modal-btn-row"><button class="modal-btn" onclick="closeModal()">取消</button></div>');
+}
+function confirmDelLayout(name){
+  showModal('删除布局「'+name+'」？','<div style="padding:6px 2px 4px;font-size:13px;color:var(--sub)">删除后该布局的家具摆放不可恢复。</div>',
+    '<div class="modal-btn-row"><button class="modal-btn" onclick="closeModal()">取消</button><button class="modal-btn primary" style="color:#fff;background:#c0392b" onclick="doDelLayout(\''+name+'\')">确认删除</button></div>');
+}
+function doDelLayout(name){
+  if(!roomPresets[name])return;
+  delete roomPresets[name];
+  if(roomState.preset===name){roomState.preset='房间';const p=roomPresets['房间'];roomState.cols=p.cols;roomState.rows=p.rows;roomState.grid=[...p.grid];}
+  saveRoom();closeModal();renderRoom();showToast('布局已删除');
 }
 function roomDims(){return{cols:roomState.cols,rows:roomState.rows,total:roomState.cols*roomState.rows};}
 function saveRoom(){
@@ -3472,10 +3553,19 @@ function renderProbability(){
       <div style="font-size:11px;color:var(--hint);margin-top:6px">其余比例使用系统预设字卡。</div>
     </div>
     <div class="list-card">
-      <div class="list-card-title">问卷回答期限</div>
+      <div class="list-card-title">问卷行为</div>
       <div style="margin-top:10px;font-size:12px;color:var(--sub)">问卷最迟作答 <b id="lb-deadlineSec">${iv('deadlineSec',state.surveySettings&&state.surveySettings.deadlineSec?state.surveySettings.deadlineSec:60)}</b> 秒</div>
-      <input type="range" min="20" max="300" value="${state.surveySettings&&state.surveySettings.deadlineSec?state.surveySettings.deadlineSec:60}" oninput="setSurveyDeadline(this.value)" style="width:100%">
-      <div style="font-size:11px;color:var(--hint);margin-top:8px">发送问卷后，TA 会在（问卷期限 与 回复时间）中更早的时刻作答。</div>
+      <input type="range" min="20" max="300" value="${state.surveySettings&&state.surveySettings.deadlineSec?state.surveySettings.deadlineSec:60}" oninput="setSurveySetting('deadlineSec',this.value)" style="width:100%">
+      <div style="margin-top:8px;font-size:12px;color:var(--sub)">提前交卷概率 <b id="lb-earlySubmitProb">${state.surveySettings&&state.surveySettings.earlySubmitProb!==undefined?state.surveySettings.earlySubmitProb:30}</b>%</div>
+      <input type="range" min="0" max="100" value="${state.surveySettings&&state.surveySettings.earlySubmitProb!==undefined?state.surveySettings.earlySubmitProb:30}" oninput="setSurveySetting('earlySubmitProb',this.value)" style="width:100%">
+      <div style="font-size:11px;color:var(--hint);margin-top:6px">开启后，部分问卷 TA 会在期限结束前提前交卷。</div>
+      <div style="margin-top:12px;font-size:12px;color:var(--sub)">多选题最少选 <b id="lb-multiMin">${state.surveySettings&&state.surveySettings.multiMin!==undefined?state.surveySettings.multiMin:1}</b> 项 / 最多选 <b id="lb-multiMax">${state.surveySettings&&state.surveySettings.multiMax!==undefined?state.surveySettings.multiMax:6}</b> 项</div>
+      <div style="display:flex;gap:10px;margin-top:6px">
+        <input type="range" min="1" max="4" value="${state.surveySettings&&state.surveySettings.multiMin!==undefined?state.surveySettings.multiMin:1}" oninput="setSurveySetting('multiMin',this.value)" style="width:100%">
+        <input type="range" min="2" max="8" value="${state.surveySettings&&state.surveySettings.multiMax!==undefined?state.surveySettings.multiMax:6}" oninput="setSurveySetting('multiMax',this.value)" style="width:100%">
+      </div>
+      <div style="font-size:11px;color:var(--hint);margin-top:6px">多选题作答时，所选数量必须介于最少与最多之间。</div>
+      <div style="font-size:11px;color:var(--hint);margin-top:6px">发送问卷后，TA 会在（问卷期限 与 回复时间）中更早的时刻作答。</div>
     </div>
     <div class="list-card">
       <div class="list-card-title">主动消息</div>
@@ -3492,9 +3582,12 @@ function renderProbability(){
     </div>
     <button class="btn-pill ghost" style="width:100%;margin-top:4px" onclick="resetProb()">恢复默认设置</button>`;
 }
-function setSurveyDeadline(v){
-  state.surveySettings=state.surveySettings||{deadlineSec:60};
-  state.surveySettings.deadlineSec=Math.max(20,Math.min(600,parseInt(v)||60));
+function setSurveySetting(key,v){
+  state.surveySettings=state.surveySettings||{deadlineSec:60,earlySubmitProb:30,multiMin:1,multiMax:6};
+  if(key==='deadlineSec')state.surveySettings.deadlineSec=Math.max(20,Math.min(600,parseInt(v)||60));
+  else if(key==='earlySubmitProb')state.surveySettings.earlySubmitProb=Math.max(0,Math.min(100,parseInt(v)||30));
+  else if(key==='multiMin'){let n=Math.max(1,Math.min(4,parseInt(v)||1));if(n>state.surveySettings.multiMax)state.surveySettings.multiMax=n;state.surveySettings.multiMin=n;}
+  else if(key==='multiMax'){let n=Math.max(2,Math.min(8,parseInt(v)||6));if(n<state.surveySettings.multiMin)state.surveySettings.multiMin=n;state.surveySettings.multiMax=n;}
   saveKey('surveySettings');renderProbability();
 }
 function setProb(key,val){
@@ -3552,7 +3645,8 @@ async function renderCards(){
       <span>全部 <b>${all.length}</b></span><span>可用 <b>${enabledCount}</b></span><span>停用 <b>${all.length-enabledCount}</b></span><span>累计使用 <b>${totalUse}</b></span>
     </div>
     <div class="tabs" style="overflow-x:auto;flex-wrap:nowrap">${names.map((n,i)=>`<button class="tab${cardGroupFilter===n?' active':''}" style="flex:0 0 auto;padding:8px 14px" onclick="pickCardGroup(${i})">${esc(n)}</button>`).join('')}
-    <button class="tab" style="flex:0 0 auto;padding:8px 14px" onclick="manageCardGroups()">+ 分组</button></div>
+    <button class="tab" style="flex:0 0 auto;padding:8px 14px" onclick="addCard()">＋ 字卡</button>
+    <button class="tab" style="flex:0 0 auto;padding:8px 14px" onclick="manageCardGroups()">分组管理</button></div>
     <div class="card-toolbar">${[['time','最新添加'],['use','最常使用'],['lastUsed','最近使用'],['unused','从未使用']].map(([k,l])=>`<button class="btn-pill ${cardSortMode===k?'primary':'ghost'}" style="flex:1" onclick="cardSortMode='${k}';renderCardList()">${l}</button>`).join('')}</div>
     <div class="search-bar">&#128269;<input type="text" id="card-search" placeholder="搜索字卡" oninput="filterCards(this.value)"></div>
     <div id="card-list"></div>`;
@@ -3570,7 +3664,7 @@ async function toggleCardEnabled(id){
 }
 async function toggleGroupReply(){
   const groups=await dbGetAll('cardGroups');
-  showModal('分组参与回复',groups.map(g=>`<div class="modal-item" onclick="toggleGroupEnabled('${esc(g.name)}')">${esc(g.name)}：${g.enabled===false?'<span style="color:#c0392b">已停用</span>':'参与回复'}</div>`).join('')+'<div class="modal-item" onclick="closeModal()">取消</div>');
+  showModal('分组参与回复',groups.map(g=>`<div class="modal-item" onclick="toggleGroupEnabled('${esc(g.name)}')">${esc(g.name)}：${g.enabled===false?'<span style="color:#c0392b">已停用</span>':'参与回复'}</div>`).join('')+'<div class="modal-btn-row"><button class="modal-btn" onclick="closeModal()">取消</button></div>');
 }
 async function toggleGroupEnabled(name){
   const gs=await dbGetAll('cardGroups');const g=gs.find(x=>x.name===name);if(!g)return;
@@ -3588,10 +3682,8 @@ function filterCards(q){
   });
 }
 async function addCard(){
-  showModal('添加字卡','<div style="font-size:12px;color:var(--hint);margin-bottom:4px">字卡</div>'
-    +'<div class="modal-item" onclick="closeModal();addSingleCard()">添加字卡</div>'
-    +'<div class="modal-item" onclick="closeModal();bulkAddCards()">批量导入</div>'
-    +'<div class="modal-item" style="color:var(--hint)" onclick="closeModal()">取消</div>');
+  showModal('添加字卡','',
+    '<div class="modal-btn-row"><button class="modal-btn" onclick="closeModal()">取消</button><button class="modal-btn primary" onclick="closeModal();addSingleCard()">单条添加</button><button class="modal-btn primary" onclick="closeModal();bulkAddCards()">批量导入</button></div>');
 }
 async function addSingleCard(){
   const groups=await dbGetAll('cardGroups');
@@ -3599,8 +3691,9 @@ async function addSingleCard(){
   showModal('添加字卡',`<div style="font-size:12px;color:var(--sub);margin-bottom:6px">选择分组</div>
     <select class="app-input" id="card-new-group" style="width:100%;padding:9px 12px;background:var(--input);border:none;border-radius:10px">${opts}</select>
     <div style="font-size:12px;color:var(--sub);margin:10px 0 6px">内容</div>
-    <input class="app-input" id="card-new-text" placeholder="例如：早安" style="width:100%">
-    <button class="btn-pill primary" style="width:100%;margin-top:12px" onclick="saveCardSingle()">保存</button>`);
+    <textarea class="app-input auto-grow" id="card-new-text" placeholder="例如：早安" style="width:100%;resize:none;min-height:90px" oninput="autosize(this)"></textarea>`,
+    '<div class="modal-btn-row"><button class="modal-btn" onclick="closeModal()">取消</button><button class="modal-btn primary" onclick="saveCardSingle()">保存</button></div>');
+  setTimeout(()=>{const ta=document.getElementById('card-new-text');if(ta)autosize(ta);},60);
 }
 async function saveCardSingle(){
   const group=document.getElementById('card-new-group').value||'默认';
@@ -3629,8 +3722,8 @@ async function delCardGroup(){
   const groups=await dbGetAll('cardGroups');
   const normal=groups.filter(g=>g.name!=='默认');
   if(!normal.length){showToast('默认分组不可删除');return;}
-  showModal('删除分组',normal.map(g=>`<div class="modal-item" onclick="closeModal();confirmDelGroup('${esc(g.name)}')">${esc(g.name)}</div>`).join('')
-    +'<div class="modal-item" onclick="closeModal()">取消</div>');
+  showModal('删除分组',normal.map(g=>`<div class="modal-item" onclick="closeModal();confirmDelGroup('${esc(g.name)}')">${esc(g.name)}</div>`).join(''),
+    '<div class="modal-btn-row"><button class="modal-btn" onclick="closeModal()">取消</button></div>');
 }
 async function confirmDelGroup(name){
   const gs=await dbGetAll('cardGroups');
@@ -3677,35 +3770,46 @@ function addCardGroup(){
     dbPut('cardGroups',{name:v}).then(()=>{cardGroupFilter=v;renderCards();showToast('分组已创建');});
   });
 }
-/* 分组管理：新建 / 删除 / 停用开关（默认分组不可删除） */
+/* 分组管理：新建 / 重命名 / 删除 / 停用开关（默认分组不可删除） */
 async function manageCardGroups(){
   const groups=await dbGetAll('cardGroups');
   showModal('分组管理',
     groups.map(g=>`<div class="modal-item" style="display:flex;align-items:center;gap:10px">
       <span style="flex:1;text-align:left">${esc(g.name)}${g.name==='默认'?'<span style="font-size:10px;color:var(--hint);margin-left:6px">不可删除</span>':''}</span>
       <span class="cs-switch${g.enabled!==false?' on':''}" style="transform:scale(.8)" onclick="toggleGroupEnabled('${esc(g.name)}')"></span>
-      ${g.name==='默认'?'':`<span style="color:#c0392b;font-size:12px;padding:4px 8px" onclick="closeModal();confirmDelGroup('${esc(g.name)}')">删除</span>`}
+      <span style="font-size:12px;padding:4px 6px" onclick="closeModal();renameCardGroup('${esc(g.name)}')" title="重命名">${ICO_EDIT}</span>
+      ${g.name==='默认'?'':`<span style="color:#c0392b;font-size:12px;padding:4px 6px" onclick="closeModal();confirmDelGroup('${esc(g.name)}')" title="删除">${ICO_DEL}</span>`}
     </div>`).join('')
-    +'<div class="modal-item" style="color:var(--primary)" onclick="closeModal();addCardGroup()">＋ 新建分组</div>'
-    +'<div class="modal-item" style="color:var(--hint)" onclick="closeModal()">取消</div>');
+    +'<div class="modal-item" style="color:var(--primary)" onclick="closeModal();addCardGroup()">＋ 新建分组</div>',
+    '<div class="modal-btn-row"><button class="modal-btn" onclick="closeModal()">取消</button></div>');
 }
-function bulkAddCards(){
-  appPrompt('批量导入（每行一张，自动查重）\n格式：文字|分组','',async t=>{
-    const lines=(t||'').split(/\n+/).map(x=>x.trim()).filter(Boolean);
-    if(!lines.length){showToast('没有内容');return false;}
-    const all=await dbGetAll('cards');
-    const exist=new Set(all.map(c=>c.text));
-    let added=0,skip=0;
-    for(const line of lines){
-      if(exist.has(line)){skip++;continue;}
-      exist.add(line);
-      const parts=line.split('|');
-      await dbPut('cards',{text:parts[0].trim(),group:(parts[1]||'默认').trim(),time:Date.now(),useCount:0});
-      added++;
-    }
-    renderCards();showToast(`导入 ${added} 张，跳过重复 ${skip} 张`);
+async function renameCardGroup(name){
+  appPrompt('重命名分组',name,async t=>{
+    const v=(t||'').trim();if(!v)return false;
+    if(v===name)return false;
+    const gs=await dbGetAll('cardGroups');
+    if(gs.some(g=>g.name===v)){showToast('同名分组已存在');return false;}
+    const g=gs.find(x=>x.name===name);if(!g)return false;
+    g.name=v;await dbPut('cardGroups',g);
+    const cards=await dbGetAll('cards');
+    for(const c of cards)if((c.group||'默认')===name){c.group=v;await dbPut('cards',c);}
+    if(cardGroupFilter===name)cardGroupFilter=v;
+    renderCards();showToast('分组已重命名');
   });
 }
+function bulkAddCards(){
+  showModal('批量导入','<div style="font-size:12px;color:var(--sub);margin-bottom:6px">选择目标分组</div>'
+    +'<select class="app-input" id="card-new-group" style="width:100%;padding:9px 12px;background:var(--input);border:none;border-radius:10px"><option>默认</option></select>'
+    +'<div style="font-size:12px;color:var(--sub);margin:10px 0 6px">内容（一行一张，自动查重）</div>'
+    +'<textarea class="app-input auto-grow" id="card-new-text" placeholder="每行一张字卡&#10;例如：&#10;早安&#10;晚安&#10;想你了" style="width:100%;resize:none;min-height:150px" oninput="autosize(this)"></textarea>',
+    '<div class="modal-btn-row"><button class="modal-btn" onclick="closeModal()">取消</button><button class="modal-btn primary" onclick="saveCardsBatch()">批量导入</button></div>');
+  dbGetAll('cardGroups').then(gs=>{
+    const sel=document.getElementById('card-new-group');if(!sel)return;
+    sel.innerHTML=gs.map(g=>`<option value="${esc(g.name)}">${esc(g.name)}</option>`).join('');
+  });
+  setTimeout(()=>{const ta=document.getElementById('card-new-text');if(ta)autosize(ta);},60);
+}
+function autosize(ta){if(!ta)return;ta.style.height='auto';ta.style.height=Math.min(340,Math.max(90,ta.scrollHeight+2))+'px';}
 
 /* ===== EMOJI（表情包管理） ===== */
 async function renderEmojis(){
@@ -3763,13 +3867,19 @@ async function renderMemory(){
       <div style="font-size:13px;color:var(--sub)">第一次说话</div>
       <div style="font-size:16px;font-weight:600;margin:6px 0;color:var(--text)">${first?fmtFull(first.getTime()):'还没有留下记录'}</div>
     </div>
-    <div class="list-card"><div class="list-card-title" style="display:flex;align-items:center;justify-content:space-between"><span>相遇天数</span><span style="font-size:12px;font-weight:400;color:var(--sub);cursor:pointer" onclick="setMeetTime()">✏️ 修改日期</span></div>
+    <div class="list-card"><div class="list-card-title" style="display:flex;align-items:center;justify-content:space-between"><span>相遇天数</span><span style="font-size:12px;font-weight:400;color:var(--sub);cursor:pointer;display:inline-flex;align-items:center;gap:3px" onclick="setMeetTime()">${ICO_EDIT} 修改日期</span></div>
       <div style="font-size:34px;font-weight:700;letter-spacing:2px;margin-top:4px">${days?days:'—'}<span style="font-size:14px;font-weight:400;color:var(--sub)"> 天</span></div></div>
     <div class="list-card">
-      <div class="list-card-title">收藏的消息 <span style="font-size:11px;color:var(--hint);font-weight:400">（长按聊天消息可收藏）</span></div>
-      ${favs.length?favs.slice(0,20).map(m=>`<div class="fav-item" onclick="openFavMsg(${m.id})"><span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc((m.content||'').slice(0,60))}</span><span style="font-size:11px;color:var(--hint);flex-shrink:0">${fmtFull(m.time)}</span></div>`).join(''):'<div class="empty" style="padding:14px 0">还没有收藏的消息</div>'}
-    </div>
-    <div class="empty" style="font-size:12px;line-height:1.8;text-align:left">数据总览、备份与迁移请在「数据」标签页查看。</div>`;
+      <div class="list-card-title">我们的数字</div>
+      <div class="mem-stats">
+        <div class="mem-stat" onclick="openApp('chat')"><b>${msgs.length}</b><span>条消息</span></div>
+        <div class="mem-stat" onclick="openApp('diary')"><b>${diaries.length}</b><span>篇日记</span></div>
+        <div class="mem-stat" onclick="openApp('mailbox')"><b>${letters.length}</b><span>封信件</span></div>
+        <div class="mem-stat" onclick="openApp('moments')"><b>${moments.length}</b><span>条动态</span></div>
+        <div class="mem-stat" onclick="openApp('cards')"><b>${(await dbGetAll('cards')).length}</b><span>张字卡</span></div>
+        <div class="mem-stat"><b>${favs.length}</b><span>条收藏</span></div>
+      </div>
+    </div>`;
 }
 function openFavMsg(id){
   chatPageSize=99999;
@@ -3791,42 +3901,42 @@ function renderProfile(){
       </div>
     </div>
     <div class="cs-group">
-      <div class="cs-item" onclick="editName('me')"><span class="cs-ico">&#128100;</span><span class="cs-label">我的昵称</span><span class="cs-val">${esc(state.me.name)}</span><span class="cs-arrow">&#8250;</span></div>
-      <div class="cs-item" onclick="pickAvatar('me')"><span class="cs-ico">&#128247;</span><span class="cs-label">我的头像</span><span class="cs-thumb">${avatarHtml('me')}</span><span class="cs-arrow">&#8250;</span></div>
-      <div class="cs-item" onclick="editStatus('me')"><span class="cs-ico">&#128172;</span><span class="cs-label">我的状态</span><span class="cs-val">${esc(state.me.status||'在线')}</span><span class="cs-arrow">&#8250;</span></div>
-      <div class="cs-item" onclick="editName('other')"><span class="cs-ico">&#128106;</span><span class="cs-label">TA 的昵称</span><span class="cs-val">${esc(state.other.name)}</span><span class="cs-arrow">&#8250;</span></div>
-      <div class="cs-item" onclick="pickAvatar('other')"><span class="cs-ico">&#128247;</span><span class="cs-label">TA 的头像</span><span class="cs-thumb">${avatarHtml('other')}</span><span class="cs-arrow">&#8250;</span></div>
-      <div class="cs-item" onclick="editStatus('other')"><span class="cs-ico">&#128172;</span><span class="cs-label">TA 的状态</span><span class="cs-val">${esc(state.other.status||'在线')}</span><span class="cs-arrow">&#8250;</span></div>
+      <div class="cs-item" onclick="editName('me')"><span class="cs-ico">${ICO.user}</span><span class="cs-label">我的昵称</span><span class="cs-val">${esc(state.me.name)}</span><span class="cs-arrow">&#8250;</span></div>
+      <div class="cs-item" onclick="pickAvatar('me')"><span class="cs-ico">${ICO.cam}</span><span class="cs-label">我的头像</span><span class="cs-thumb">${avatarHtml('me')}</span><span class="cs-arrow">&#8250;</span></div>
+      <div class="cs-item" onclick="editStatus('me')"><span class="cs-ico">${ICO.chat}</span><span class="cs-label">我的状态</span><span class="cs-val">${esc(state.me.status||'在线')}</span><span class="cs-arrow">&#8250;</span></div>
+      <div class="cs-item" onclick="editName('other')"><span class="cs-ico">${ICO.pair}</span><span class="cs-label">TA 的昵称</span><span class="cs-val">${esc(state.other.name)}</span><span class="cs-arrow">&#8250;</span></div>
+      <div class="cs-item" onclick="pickAvatar('other')"><span class="cs-ico">${ICO.cam}</span><span class="cs-label">TA 的头像</span><span class="cs-thumb">${avatarHtml('other')}</span><span class="cs-arrow">&#8250;</span></div>
+      <div class="cs-item" onclick="editStatus('other')"><span class="cs-ico">${ICO.chat}</span><span class="cs-label">TA 的状态</span><span class="cs-val">${esc(state.other.status||'在线')}</span><span class="cs-arrow">&#8250;</span></div>
     </div>
     <div class="cs-group-title">传讯</div>
     <div class="cs-group">
-      <div class="cs-item" onclick="openApp('mailbox')"><span class="cs-ico">&#128233;</span><span class="cs-label">信箱</span><span class="cs-arrow">&#8250;</span></div>
-      <div class="cs-item" onclick="openApp('sense')"><span class="cs-ico">&#128302;</span><span class="cs-label">感应房间</span><span class="cs-arrow">&#8250;</span></div>
-      <div class="cs-item" onclick="openApp('videolog')"><span class="cs-ico">&#128250;</span><span class="cs-label">视频记录</span><span class="cs-arrow">&#8250;</span></div>
+      <div class="cs-item" onclick="openApp('mailbox')"><span class="cs-ico">${ICO.mail}</span><span class="cs-label">信箱</span><span class="cs-arrow">&#8250;</span></div>
+      <div class="cs-item" onclick="openApp('sense')"><span class="cs-ico">${ICO.room}</span><span class="cs-label">感应房间</span><span class="cs-arrow">&#8250;</span></div>
+      <div class="cs-item" onclick="openApp('videolog')"><span class="cs-ico">${ICO.video}</span><span class="cs-label">视频记录</span><span class="cs-arrow">&#8250;</span></div>
     </div>
     <div class="cs-group-title">内容</div>
     <div class="cs-group">
-      <div class="cs-item" onclick="openApp('cards')"><span class="cs-ico">&#128220;</span><span class="cs-label">字卡管理</span><span class="cs-arrow">&#8250;</span></div>
-      <div class="cs-item" onclick="openApp('emoji')"><span class="cs-ico">&#9786;</span><span class="cs-label">表情管理</span><span class="cs-arrow">&#8250;</span></div>
-      <div class="cs-item" onclick="openApp('probability')"><span class="cs-ico">&#128202;</span><span class="cs-label">回复设置</span><span class="cs-arrow">&#8250;</span></div>
-      <div class="cs-item" onclick="editMyPoke()"><span class="cs-ico">&#128072;</span><span class="cs-label">我的拍一拍</span><span class="cs-val">${esc(state.stats.myPoke||'拍了拍TA的肩膀')}</span><span class="cs-arrow">&#8250;</span></div>
-      <div class="cs-item" onclick="managePokes()"><span class="cs-ico">&#128073;</span><span class="cs-label">TA 拍我</span><span class="cs-val">${(allPokeTexts()||[]).length} 条动作</span><span class="cs-arrow">&#8250;</span></div>
+      <div class="cs-item" onclick="openApp('cards')"><span class="cs-ico">${ICO.card}</span><span class="cs-label">字卡管理</span><span class="cs-arrow">&#8250;</span></div>
+      <div class="cs-item" onclick="openApp('emoji')"><span class="cs-ico">${ICO.smile}</span><span class="cs-label">表情管理</span><span class="cs-arrow">&#8250;</span></div>
+      <div class="cs-item" onclick="openApp('probability')"><span class="cs-ico">${ICO.chart}</span><span class="cs-label">回复设置</span><span class="cs-arrow">&#8250;</span></div>
+      <div class="cs-item" onclick="editMyPoke()"><span class="cs-ico">${ICO.poke}</span><span class="cs-label">我的拍一拍</span><span class="cs-val">${esc(state.stats.myPoke||'拍了拍TA的肩膀')}</span><span class="cs-arrow">&#8250;</span></div>
+      <div class="cs-item" onclick="managePokes()"><span class="cs-ico">${ICO.poke}</span><span class="cs-label">TA 拍我</span><span class="cs-val">${(allPokeTexts()||[]).length} 条动作</span><span class="cs-arrow">&#8250;</span></div>
     </div>
     <div class="cs-group-title">记录</div>
     <div class="cs-group">
-      <div class="cs-item" onclick="openApp('diary')"><span class="cs-ico">&#128214;</span><span class="cs-label">日记</span><span class="cs-arrow">&#8250;</span></div>
-      <div class="cs-item" onclick="openApp('memory')"><span class="cs-ico">&#128214;</span><span class="cs-label">数据与回忆</span><span class="cs-arrow">&#8250;</span></div>
+      <div class="cs-item" onclick="openApp('diary')"><span class="cs-ico">${ICO.book}</span><span class="cs-label">日记</span><span class="cs-arrow">&#8250;</span></div>
+      <div class="cs-item" onclick="openApp('memory')"><span class="cs-ico">${ICO.chart}</span><span class="cs-label">数据与回忆</span><span class="cs-arrow">&#8250;</span></div>
     </div>
     <div class="cs-group-title">安全</div>
     <div class="cs-group">
-      <div class="cs-item" onclick="setupPin()"><span class="cs-ico">&#128274;</span><span class="cs-label">应用锁密码</span><span class="cs-val">${state.pin.code==='0000'?'未修改':'已设置'}</span><span class="cs-arrow">&#8250;</span></div>
-      <div class="cs-item" onclick="setMeetTime()"><span class="cs-ico">&#128150;</span><span class="cs-label">相遇时间</span><span class="cs-val">${state.meetTime?fmtFull(state.meetTime):'未设置'}</span><span class="cs-arrow">&#8250;</span></div>
-      <div class="cs-item" onclick="editSplashText()"><span class="cs-ico">&#10022;</span><span class="cs-label">开屏语</span><span class="cs-arrow">&#8250;</span></div>
+      <div class="cs-item" onclick="setupPin()"><span class="cs-ico">${ICO.lock}</span><span class="cs-label">应用锁密码</span><span class="cs-val">${state.pin.code==='0000'?'未修改':'已设置'}</span><span class="cs-arrow">&#8250;</span></div>
+      <div class="cs-item" onclick="setMeetTime()"><span class="cs-ico">${ICO.heart}</span><span class="cs-label">相遇时间</span><span class="cs-val">${state.meetTime?fmtFull(state.meetTime):'未设置'}</span><span class="cs-arrow">&#8250;</span></div>
+      <div class="cs-item" onclick="editSplashText()"><span class="cs-ico">${ICO.star}</span><span class="cs-label">开屏语</span><span class="cs-arrow">&#8250;</span></div>
     </div>
     <div class="cs-group-title">通知</div>
     <div class="cs-group">
-      <div class="cs-item" onclick="openNotifySettings()"><span class="cs-ico">&#128276;</span><span class="cs-label">消息通知</span><span class="cs-val">${state.notify.enabled?'已开启':'未开启'}</span><span class="cs-arrow">&#8250;</span></div>
-      <div class="cs-item" onclick="showNotifyHint()"><span class="cs-ico">&#128161;</span><span class="cs-label">后台保持在线</span><span class="cs-arrow">&#8250;</span></div>
+      <div class="cs-item" onclick="openNotifySettings()"><span class="cs-ico">${ICO.bell}</span><span class="cs-label">消息通知</span><span class="cs-val">${state.notify.enabled?'已开启':'未开启'}</span><span class="cs-arrow">&#8250;</span></div>
+      <div class="cs-item" onclick="showNotifyHint()"><span class="cs-ico">${ICO.bulb}</span><span class="cs-label">后台保持在线</span><span class="cs-arrow">&#8250;</span></div>
     </div>
     <div style="text-align:center;color:var(--hint);font-size:11px;padding:10px 0 4px">星迹 · STAR TRACE<br>数据全部保存在本机浏览器</div>`;
 }
@@ -3992,8 +4102,28 @@ function saveMeetTime(){
 }
 
 /* ===== DATA（数据管理：完整备份 / 选择性导出 / 选择性导入 / 保留 ID） ===== */
-const STORES=['messages','letters','diaries','moments','cardGroups','cards','emojis','settings'];
-const STORE_LABELS={messages:'聊天记录',letters:'信件',diaries:'日记',moments:'朋友圈',cardGroups:'字卡分组',cards:'字卡',emojis:'表情包',settings:'设置'};
+const STORES=['messages','letters','diaries','moments','cardGroups','cards','emojis','pokeGroups','settings'];
+const STORE_LABELS={messages:'聊天记录',letters:'信件',diaries:'日记',moments:'朋友圈',cardGroups:'字卡分组',cards:'字卡',emojis:'表情包',pokeGroups:'拍一拍',settings:'设置'};
+/* pokeGroups 不在 IndexedDB：存于 state.stats.pokeGroups（localStorage），导出/导入特殊读写 */
+async function _readStoreData(name){
+  if(name==='pokeGroups')return Object.values((state.stats&&state.stats.pokeGroups)||{});
+  return await dbGetAll(name);
+}
+async function _writeStoreData(name,items,mode){
+  if(name==='pokeGroups'){
+    const obj={};
+    (items||[]).forEach(arr=>{const k='g'+Math.random().toString(36).slice(2,7);obj[k]=arr;});
+    state.stats.pokeGroups=obj;saveKey('stats');return;
+  }
+  if(mode!=='merge'){const cur=await dbGetAll(name);for(const it of cur)await dbDelete(name,it.id);}
+  const existing=mode==='merge'?await dbGetAll(name):[];
+  const existKeys=new Set(existing.map(x=>x.id));
+  for(const item of items){
+    const rec={...item};
+    if(rec.id!==undefined&&!existKeys.has(rec.id)){await dbPut(name,rec);existKeys.add(rec.id);}
+    else{delete rec.id;await dbPut(name,rec);}
+  }
+}
 const SCHEMA_VERSION=2;
 /* 完整备份：schemaVersion / appVersion / exportedAt / stores，保留所有 ID */
 async function exportData(){
@@ -4002,7 +4132,7 @@ async function exportData(){
     app:'xingji', schemaVersion:SCHEMA_VERSION, appVersion:APP_VERSION,
     exportedAt:new Date().toISOString(), stores:{}
   };
-  for(const s of STORES)data.stores[s]=await dbGetAll(s);
+  for(const s of STORES)data.stores[s]=await _readStoreData(s);
   const json=JSON.stringify(data);
   const blob=new Blob([json],{type:'application/json'});
   const name=`xingji-backup-${new Date().toISOString().slice(0,10)}.json`;
@@ -4018,22 +4148,45 @@ function downloadBlob(blob,name){
 }
 /* 选择性导出：按类别勾选（默认全选） */
 let exportSel=new Set(STORES);
-function renderDataPage(){
+async function renderDataPage(){
   // 兼容独立数据页（data-body）与「数据与回忆」页（memory-body）
   const body=document.getElementById('data-body')||document.getElementById('memory-body');
-  if(body)body.innerHTML=`
+  if(!body)return;
+  // 数据总览：各类别条数
+  const counts={};
+  for(const s of STORES){counts[s]=(await _readStoreData(s)).length;}
+  const msgs=await dbGetAll('messages');
+  const favs=msgs.filter(m=>m.fav).sort((a,b)=>b.time-a.time);
+  body.innerHTML=`
+    <div class="cs-group-title">数据总览</div>
+    <div class="list-card">
+      <div class="mem-stats">
+        <div class="mem-stat" onclick="openApp('chat')"><b>${counts.messages||0}</b><span>条消息</span></div>
+        <div class="mem-stat"><b>${counts.letters||0}</b><span>封信件</span></div>
+        <div class="mem-stat"><b>${counts.diaries||0}</b><span>篇日记</span></div>
+        <div class="mem-stat"><b>${counts.moments||0}</b><span>条动态</span></div>
+        <div class="mem-stat"><b>${counts.cards||0}</b><span>张字卡</span></div>
+        <div class="mem-stat"><b>${counts.pokeGroups||0}</b><span>组拍一拍</span></div>
+        <div class="mem-stat"><b>${counts.emojis||0}</b><span>个表情包</span></div>
+        <div class="mem-stat"><b>${favs.length}</b><span>条收藏</span></div>
+      </div>
+    </div>
+    <div class="cs-group-title">收藏的消息</div>
+    <div class="list-card">
+      ${favs.length?favs.slice(0,20).map(m=>`<div class="fav-item" onclick="openFavMsg(${m.id})"><span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc((m.content||'').slice(0,60))}</span><span style="font-size:11px;color:var(--hint);flex-shrink:0">${fmtFull(m.time)}</span></div>`).join(''):'<div class="empty" style="padding:14px 0">还没有收藏的消息<br>在聊天里长按消息可收藏</div>'}
+    </div>
+    <div class="cs-group-title">备份与迁移</div>
     <div class="cs-group">
-      <div class="cs-item" onclick="exportData()"><span class="cs-ico">&#128229;</span><span class="cs-label">完整备份</span><span class="cs-val">保留全部 ID</span><span class="cs-arrow">&#8250;</span></div>
-      <div class="cs-item" onclick="showExportSelect()"><span class="cs-ico">&#128230;</span><span class="cs-label">选择性导出</span><span class="cs-val">按类别勾选</span><span class="cs-arrow">&#8250;</span></div>
-      <div class="cs-item" onclick="showImportMenu()"><span class="cs-ico">&#128228;</span><span class="cs-label">选择性导入</span><span class="cs-val">合并 / 覆盖所选</span><span class="cs-arrow">&#8250;</span></div>
+      <div class="cs-item" onclick="exportData()"><span class="cs-ico">${ICO.mail}</span><span class="cs-label">完整备份</span><span class="cs-val">保留全部 ID</span><span class="cs-arrow">&#8250;</span></div>
+      <div class="cs-item" onclick="showExportSelect()"><span class="cs-ico">${ICO.card}</span><span class="cs-label">自定义导出</span><span class="cs-val">按类别勾选</span><span class="cs-arrow">&#8250;</span></div>
+      <div class="cs-item" onclick="showImportMenu()"><span class="cs-ico">${ICO.book}</span><span class="cs-label">导入数据</span><span class="cs-val">合并 / 覆盖</span><span class="cs-arrow">&#8250;</span></div>
     </div>
     <div class="cs-group">
-      <div class="cs-item" onclick="nukeDB()" style="color:#c0392b"><span class="cs-ico">&#128465;</span><span class="cs-label">清空全部数据</span></div>
-      <div class="cs-item" onclick="factoryReset()" style="color:#c0392b"><span class="cs-ico">&#128267;</span><span class="cs-label">恢复出厂设置</span></div>
+      <div class="cs-item" onclick="nukeDB()" style="color:#c0392b"><span class="cs-ico">${ICO.lock}</span><span class="cs-label">清空全部数据</span></div>
+      <div class="cs-item" onclick="factoryReset()" style="color:#c0392b"><span class="cs-ico">${ICO.star}</span><span class="cs-label">恢复出厂设置</span></div>
     </div>
     <div class="empty" style="font-size:12px;line-height:1.8;text-align:left">
-      提示：网站为单文件 HTML，挂载在 GitHub Pages 后，用手机浏览器打开即可。<br>
-      数据存放于本机 IndexedDB，换设备请先导出 JSON 再导入。
+      数据存放于本机浏览器（IndexedDB），换设备请先导出 JSON 再导入。
     </div>`;
 }
 function showExportSelect(){
@@ -4049,7 +4202,7 @@ async function doExportSelect(){
   const sel=[...exportSel];
   if(!sel.length){showToast('请至少选择一项');return;}
   const data={app:'xingji',schemaVersion:SCHEMA_VERSION,appVersion:APP_VERSION,exportedAt:new Date().toISOString(),stores:{}};
-  for(const s of sel)data.stores[s]=await dbGetAll(s);
+  for(const s of sel)data.stores[s]=await _readStoreData(s);
   const blob=new Blob([JSON.stringify(data)],{type:'application/json'});
   downloadBlob(blob,`xingji-${sel.length}类-${new Date().toISOString().slice(0,10)}.json`);
   closeModal();
@@ -4059,8 +4212,8 @@ function showImportMenu(){
   showModal('选择性导入',
     '<div class="modal-item" onclick="closeModal();pickImportFile(\'merge\')">合并导入（保留现有，仅追加缺失）</div>'
     +'<div class="modal-item" onclick="closeModal();showImportOverwrite()">覆盖导入（替换所选类别）</div>'
-    +'<div class="modal-item" onclick="closeModal();pickImportFile(\'full\')">完整导入（覆盖全部数据）</div>'
-    +'<div class="modal-item" style="color:var(--hint)" onclick="closeModal()">取消</div>');
+    +'<div class="modal-item" onclick="closeModal();pickImportFile(\'full\')">完整导入（覆盖全部数据）</div>',
+    '<div class="modal-btn-row"><button class="modal-btn" onclick="closeModal()">取消</button></div>');
 }
 let importMode='merge',importSel=new Set(STORES);
 function showImportOverwrite(){
@@ -4086,23 +4239,7 @@ function pickImportFile(mode){
       if(!dirty.length){showToast('文件中没有所选类别的数据');return;}
       showToast(`正在导入 ${dirty.length} 类…`);
       for(const s of dirty){
-        const items=stores[s];
-        if(importMode!=='merge'){
-          const cur=await dbGetAll(s);
-          for(const item of cur)await dbDelete(s,item.id);
-        }
-        const existing=importMode==='merge'?await dbGetAll(s):[];
-        const existKeys=new Set(existing.map(x=>x.id));
-        for(const item of items){
-          const rec={...item};
-          // 保留原始 ID（若与现有冲突则回退重新分配）
-          if(rec.id!==undefined&&!existKeys.has(rec.id)){
-            await dbPut(s,rec);existKeys.add(rec.id);
-          }else{
-            delete rec.id;
-            await dbPut(s,rec);
-          }
-        }
+        await _writeStoreData(s,stores[s],importMode);
       }
       if(dirty.includes('settings')){await loadSettings();}
       showToast('导入完成');
@@ -4113,14 +4250,14 @@ function pickImportFile(mode){
 }
 async function factoryReset(){
   appConfirm('恢复出厂设置','将清空全部数据并恢复默认设置，且会清除所有自定义配置。<b>此操作不可恢复！</b>建议先导出备份。',async()=>{
-    for(const s of STORES){const all=await dbGetAll(s);for(const item of all)await dbDelete(s,item.id);}
+    for(const s of STORES){if(s==='pokeGroups'){state.stats.pokeGroups={};saveKey('stats');continue;}const all=await dbGetAll(s);for(const item of all)await dbDelete(s,item.id);}
     try{localStorage.removeItem('xingji-room');}catch(e){}
     location.reload();
   });
 }
 function nukeDB(){
   appConfirm('清空全部数据','确定要清空所有数据吗？<b>此操作不可恢复！</b>建议先导出备份。',async()=>{
-    for(const s of STORES){const all=await dbGetAll(s);for(const item of all)await dbDelete(s,item.id);}
+    for(const s of STORES){if(s==='pokeGroups'){state.stats.pokeGroups={};saveKey('stats');continue;}const all=await dbGetAll(s);for(const item of all)await dbDelete(s,item.id);}
     try{localStorage.removeItem('xingji-room');}catch(e){}
     showToast('所有数据已清空，正在重启…');
     setTimeout(()=>location.reload(),700);
