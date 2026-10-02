@@ -4317,21 +4317,52 @@ function confirmDownload(name,onConfirm){
   window.__downloadConfirm=onConfirm;
 }
 async function confirmDownloadGo(){const cb=window.__downloadConfirm;window.__downloadConfirm=null;closeModal();if(cb)await cb();}
-function downloadBlob(blob,name){
+async function downloadBlob(blob,name){
+  const isQQ=/QQ\\//i.test(navigator.userAgent)||/MQQBrowser/i.test(navigator.userAgent);
+  if(isQQ){
+    try{const text=await blob.text();showQqBackup(text,name);}
+    catch(e){showToast('QQ 内置浏览器暂时无法读取备份，请改用系统浏览器');}
+    return;
+  }
   const url=URL.createObjectURL(blob);
   const a=document.createElement('a');
   a.href=url;a.download=name;a.rel='noopener';
   document.body.appendChild(a);
   try{a.click();}catch(e){}
   a.remove();
-  const isQQ=/QQ\\//i.test(navigator.userAgent);
-  if(isQQ){
-    setTimeout(()=>{try{window.open(url,'_blank','noopener');}catch(e){}},450);
-    showToast('已发起下载；若 QQ 未保存，请在新页面中选择下载');
-  }else{
-    showToast('已发起下载，请到“下载”文件夹查看');
-  }
+  showToast('已发起下载，请到“下载”文件夹查看');
   setTimeout(()=>URL.revokeObjectURL(url),60000);
+}
+function showQqBackup(text,name){
+  const size=(new Blob([text]).size/1024/1024).toFixed(2);
+  const safeName=esc(name);
+  const html='<div style="padding:2px 0 8px;font-size:13px;line-height:1.8;color:var(--sub)">QQ 内置浏览器不稳定支持网页文件下载，所以这次不再把“已发起下载”当成成功。<br><b style="color:var(--text)">'+safeName+'</b> · '+size+' MB<br>备份内容已经在本页面生成，<b style="color:var(--text)">不会修改或删除你现有的数据</b>。</div>'
+    +'<textarea id="qq-backup-text" readonly style="width:100%;height:190px;border:1px solid var(--input);border-radius:10px;background:#f7f7f5;padding:10px;font-size:10px;line-height:1.5;color:#555;resize:none;box-sizing:border-box">'+esc(text)+'</textarea>'
+    +'<div style="font-size:11px;color:var(--hint);margin-top:7px;line-height:1.6">推荐先点“系统分享/保存”。如果 QQ 不弹系统面板，再点“复制全部”，把备份文本保存到安全位置。</div>';
+  showModal('QQ 数据备份',html,
+    '<div class="modal-btn-row"><button class="modal-btn" onclick="qqCopyBackup()">复制全部</button><button class="modal-btn primary" onclick="qqShareBackup()">系统分享/保存</button></div>');
+  window.__qqBackupText=text;window.__qqBackupName=name;
+}
+async function qqShareBackup(){
+  const text=window.__qqBackupText||'',name=window.__qqBackupName||'星迹_备份.json';
+  try{
+    const file=new File([text],name,{type:'application/json'});
+    if(navigator.share&&(!navigator.canShare||navigator.canShare({files:[file]}))){
+      await navigator.share({title:'星迹数据备份',text:'星迹数据备份文件：'+name,files:[file]});
+      showToast('已交给系统分享/保存');return;
+    }
+  }catch(e){}
+  showToast('当前 QQ 不支持文件分享，请使用“复制全部”');
+}
+async function qqCopyBackup(){
+  const text=window.__qqBackupText||'';
+  try{
+    if(navigator.clipboard&&window.isSecureContext){await navigator.clipboard.writeText(text);showToast('备份已复制，请立即保存到安全位置');}
+    else{const ta=document.getElementById('qq-backup-text');ta.focus();ta.select();document.execCommand('copy');showToast('备份已复制，请立即保存到安全位置');}
+  }catch(e){
+    const ta=document.getElementById('qq-backup-text');if(ta){ta.focus();ta.select();}
+    showToast('自动复制失败，请长按文本框后选择“全选/复制”');
+  }
 }
 /* 选择性导出：按类别勾选（默认全选） */
 let exportSel=new Set(STORES);
@@ -4369,10 +4400,33 @@ function showImportMenu(){
   showModal('选择性导入',
     '<div class="modal-item" onclick="closeModal();pickImportFile(\'merge\')">合并导入（保留现有，仅追加缺失）</div>'
     +'<div class="modal-item" onclick="closeModal();showImportOverwrite()">覆盖导入（替换所选类别）</div>'
-    +'<div class="modal-item" onclick="closeModal();pickImportFile(\'full\')">完整导入（覆盖全部数据）</div>',
+    +'<div class="modal-item" onclick="closeModal();pickImportFile(\'full\')">完整导入（覆盖全部数据）</div>'
+    +'<div class="modal-item" onclick="showImportText(\'merge\')">从备份文本恢复（QQ 兜底）</div>',
     '<div class="modal-btn-row"><button class="modal-btn" onclick="closeModal()">取消</button></div>');
 }
 let importMode='merge',importSel=new Set(STORES);
+function showImportText(mode='merge'){
+  importMode=mode;
+  showModal('粘贴备份文本',
+    '<div style="font-size:12px;color:var(--sub);line-height:1.7;margin-bottom:7px">把之前复制保存的「星迹数据备份」完整粘贴到下面。导入前不会自动清除现有数据。</div>'
+    +'<textarea id="paste-backup-text" placeholder="在这里粘贴完整 JSON 备份文本" style="width:100%;height:210px;border:1px solid var(--input);border-radius:10px;padding:10px;font-size:10px;line-height:1.5;box-sizing:border-box;resize:none"></textarea>',
+    '<div class="modal-btn-row"><button class="modal-btn" onclick="closeModal()">取消</button><button class="modal-btn primary" onclick="importBackupText()">恢复备份</button></div>');
+}
+async function importBackupText(){
+  const el=document.getElementById('paste-backup-text'),txt=el&&el.value?el.value.trim():'';
+  if(!txt){showToast('请先粘贴备份文本');return;}
+  try{
+    const data=JSON.parse(txt),stores=(data&&data.stores)||(data&&data.messages?data:{messages:data});
+    if(!stores||typeof stores!=='object'||Object.keys(stores).length===0)throw new Error('empty');
+    const sel=importMode==='overwrite'?[...importSel]:(importMode==='full'?STORES:Object.keys(stores));
+    const dirty=sel.filter(s=>Array.isArray(stores[s])&&stores[s].length);
+    if(!dirty.length){showToast('备份里没有可恢复的数据');return;}
+    showToast('正在恢复 '+dirty.length+' 类数据…');
+    for(const s of dirty)await _writeStoreData(s,stores[s],importMode);
+    if(dirty.includes('settings'))await loadSettings();
+    closeModal();showToast('恢复完成，正在刷新…');setTimeout(()=>location.reload(),700);
+  }catch(e){showToast('备份文本无效或没有完整粘贴，请重新复制');}
+}
 function showImportOverwrite(){
   importSel=new Set(STORES);
   showModal('覆盖导入 · 选择类别',
