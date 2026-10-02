@@ -2906,7 +2906,7 @@ async function renderMoments(){
       <span class="mom-act ${m.likedByMe?'liked':''}" onclick="likeMoment('${m.id}',this)">${HEART_ICO}${likeByMe}${m.likes?`<i>${m.likes}</i>`:''}</span>
       <span class="mom-act" onclick="commentMoment('${m.id}')">${COMMENT_ICO}评论${(m.comments||[]).length?`<i>${m.comments.length}</i>`:''}</span>
     </div>
-    ${(m.comments||[]).map((c,ci)=>`<div class="moment-comment" onclick="replyMomentComment('${m.id}',${ci})" style="cursor:pointer"><b>${esc(c.name)}</b>${c.replyTo?' <span style="color:var(--hint)">回复</span> <b>'+esc(c.replyTo.name||'')+'</b>':''}：${esc(c.text)}</div>`).join('')}
+    ${(m.comments||[]).map((c,ci)=>`<div class="moment-comment" onclick="replyMomentComment('${m.id}',${ci})" style="cursor:pointer;margin-left:${c.replyTo?'18px':'0'}"><b>${esc(c.name)}</b>${c.replyTo?' <span style="color:var(--hint)">回复</span> <b>'+esc(c.replyTo.name||'')+'</b>':''}：${esc(c.text)}${c.card?'<span class="moment-reply-card"> · 字卡：'+esc(c.card)+'</span>':''}</div>`).join('')}
     </div>`;
   }
   if(notifUnread>0){
