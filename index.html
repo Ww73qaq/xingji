@@ -2056,6 +2056,21 @@ function closeEmojiPanel(){
   const p=document.getElementById('emoji-panel');if(p)p.classList.remove('show');
   document.getElementById('btn-emoji')?.classList.remove('off');
 }
+/* 内置小黄脸拍一拍动作（其他数据保持空态真空，仅拍一拍内置） */
+const POKE_ACTIONS=[
+  {name:'😊 戳一戳',action:'戳了戳'},
+  {name:'🥺 蹭一蹭',action:'蹭了蹭'},
+  {name:'😳 戳脸颊',action:'戳了戳你的脸颊'},
+  {name:'🥰 抱抱',action:'伸手抱了抱'},
+  {name:'😤 捏脸',action:'轻轻捏了捏你的脸'},
+  {name:'😴 靠肩',action:'把脑袋靠在了你的肩上'},
+  {name:'😏 挑眉',action:'朝你挑了挑眉'},
+  {name:'😭 晃胳膊',action:'晃了晃你的胳膊'},
+  {name:'😌 摸头',action:'抬手摸了摸你的头'},
+  {name:'😘 比心',action:'朝你比了个心'},
+  {name:'🤔 歪头',action:'歪头看了你一眼'},
+  {name:'🙄 翻白眼',action:'无奈地翻了个白眼'},
+];
 function setEmojiTab(t){emojiTab=t;renderEmojiPanel();}
 function renderEmojiPanel(){
   const tabs=document.getElementById('emoji-tabs'),body=document.getElementById('emoji-body');
@@ -2085,7 +2100,7 @@ function renderEmojiPanel(){
     });
     return;
   }
-  // 拍一拍
+  // 拍一拍（内置小黄脸动作）
   POKE_ACTIONS.forEach(p=>{
     const d=document.createElement('div');d.className='ecell';d.style.fontSize='13px';d.style.fontWeight='600';d.textContent=p.name;
     d.onclick=()=>{pokeTa(p.action);};
@@ -2296,7 +2311,7 @@ async function sendSurvey(){
 function ensurePokeGroups(){
   if(!state.stats)state.stats={};
   if(!state.stats.pokeGroups){
-    state.stats.pokeGroups={'默认':Array.isArray(state.stats.pokes)?state.stats.pokes.slice():['拍了拍你','亲了亲你','揉了揉你的头发']};
+    state.stats.pokeGroups={'默认':Array.isArray(state.stats.pokes)?state.stats.pokes.slice():['😊 戳了戳你','🥺 蹭了蹭你','😌 摸了摸你的头','🥰 抱了抱你','😤 捏了捏你的脸','😴 靠在了你肩上','😏 朝你挑了挑眉','😭 晃了晃你的胳膊','😘 朝你比了个心','🤔 歪头看你']};
     state.stats.pokeGroup='默认'; saveKey('stats');
   }
   if(!state.stats.pokeGroup||!state.stats.pokeGroups[state.stats.pokeGroup])state.stats.pokeGroup=Object.keys(state.stats.pokeGroups)[0]||'默认';
