@@ -2896,7 +2896,7 @@ async function renderMoments(){
       <span class="mom-act ${m.likedByMe?'liked':''}" onclick="likeMoment('${m.id}',this)">${HEART_ICO}${likeByMe}${m.likes?`<i>${m.likes}</i>`:''}</span>
       <span class="mom-act" onclick="commentMoment('${m.id}')">${COMMENT_ICO}评论${(m.comments||[]).length?`<i>${m.comments.length}</i>`:''}</span>
     </div>
-    ${(m.comments||[]).map(c=>`<div class="moment-comment"><b>${esc(c.name)}</b>：${esc(c.text)}</div>`).join('')}
+    ${(m.comments||[]).map((c,ci)=>`<div class="moment-comment" onclick="replyMomentComment('${m.id}',${ci})" style="cursor:pointer"><b>${esc(c.name)}</b>${c.replyTo?' <span style="color:var(--hint)">回复</span> <b>'+esc(c.replyTo.name||'')+'</b>':''}：${esc(c.text)}</div>`).join('')}
     </div>`;
   }
   if(notifUnread>0){
@@ -2930,16 +2930,37 @@ async function sendMomentComment(id){
   const m=moments.find(x=>x.id===id);if(!m)return;
   m.comments=m.comments||[];
   m.comments.push({name:'我',text:v,time:Date.now()});
+  const commentIndex=m.comments.length-1;
   await dbPut('moments',m);closeModal();renderMoments();showToast('评论已发布');
   if(m.owner==='other'&&state.stats.momentsAllowComment!==0&&Math.random()<0.65){
     // TA 回评：持久化排队，按回复时间（replyDelaySec）触发，刷新不丢
     const delay=(Number(state.prob.replyDelaySec)||20)*1000+Math.random()*6000;
     state.stats.momentReplyQueue=state.stats.momentReplyQueue||[];
-    state.stats.momentReplyQueue.push({id:'mr_'+Date.now().toString(36),momentId:id,at:Date.now()+delay});
+    state.stats.momentReplyQueue.push({id:'mr_'+Date.now().toString(36),momentId:id,replyToIndex:commentIndex,at:Date.now()+delay});
     saveKey('stats');
   }
 }
 /* 朋友圈提醒中心：赞 / 评论 / TA 回复 / 新动态（红点 → 点击跳转定位） */
+function replyMomentComment(momentId,commentIndex){
+  dbGetAll('moments').then(moments=>{
+    const m=moments.find(x=>String(x.id)===String(momentId));if(!m)return;
+    const c=(m.comments||[])[commentIndex];if(!c)return;
+    showModal('回复 '+(c.name||'评论'),'<input id="comment-input" class="app-input" placeholder="回复 '+esc(c.name||'评论')+'" style="width:100%"><div class="modal-btn-row"><button class="modal-btn" onclick="closeModal()">取消</button><button class="modal-btn primary" onclick="sendMomentReply(\''+String(momentId)+'\','+commentIndex+')">回复</button></div>',null,'bottom');
+    setTimeout(()=>document.getElementById('comment-input')?.focus(),80);
+  });
+}
+async function sendMomentReply(momentId,commentIndex){
+  const inp=document.getElementById('comment-input'),v=(inp?.value||'').trim();if(!v){showToast('回复不能为空');return;}
+  const moments=await dbGetAll('moments'),m=moments.find(x=>String(x.id)===String(momentId));if(!m)return;
+  const target=(m.comments||[])[commentIndex];if(!target)return;
+  m.comments=m.comments||[];m.comments.push({name:'我',text:v,time:Date.now(),replyTo:{name:target.name,index:commentIndex}});
+  await dbPut('moments',m);closeModal();renderMoments();showToast('回复已发布');
+  if(m.owner==='other'&&state.stats.momentsAllowComment!==0&&Math.random()<0.75){
+    const delay=(Number(state.prob.replyDelaySec)||20)*1000+Math.random()*6000;
+    state.stats.momentReplyQueue=state.stats.momentReplyQueue||[];
+    state.stats.momentReplyQueue.push({id:'mr_'+Date.now().toString(36),momentId:m.id,replyToIndex:m.comments.length-1,at:Date.now()+delay});saveKey('stats');
+  }
+}
 function pushNotif(n){
   state.stats.notifCenter=state.stats.notifCenter||[];
   state.stats.notifCenter.unshift({id:'n_'+Date.now().toString(36),type:n.type,from:n.from||state.other.name,text:n.text||'',momentId:n.momentId||null,time:Date.now(),read:false});
@@ -2976,7 +2997,8 @@ function processMomentReplies(){
     const ms=await dbGetAll('moments');const mm=ms.find(y=>y.id===Number(x.momentId));if(!mm)return;
     mm.comments=mm.comments||[];
     const text=MOMENT_COMMENTS[Math.floor(Math.random()*MOMENT_COMMENTS.length)];
-    mm.comments.push({name:state.other.name,text:text,time:Date.now()});
+    const target=Number.isInteger(x.replyToIndex)?mm.comments[x.replyToIndex]:null;
+    mm.comments.push({name:state.other.name,text:text,time:Date.now(),replyTo:target?{name:target.name,index:x.replyToIndex}:null});
     await dbPut('moments',mm);
     pushNotif({type:'comment',from:state.other.name,text:'回复了你的评论：'+text.slice(0,16),momentId:mm.id});
     notifySystem(`${state.other.name} 回复了你`,text.slice(0,50),()=>switchTab('moments'));
@@ -3655,7 +3677,9 @@ async function renderCards(){
     </div>
     <div class="tabs" style="overflow-x:auto;flex-wrap:nowrap">${names.map((n,i)=>`<button class="tab${cardGroupFilter===n?' active':''}" style="flex:0 0 auto;padding:8px 14px" onclick="pickCardGroup(${i})">${esc(n)}</button>`).join('')}
     <button class="tab" style="flex:0 0 auto;padding:8px 14px" onclick="addCard()">＋ 字卡</button>
-    <button class="tab" style="flex:0 0 auto;padding:8px 14px" onclick="manageCardGroups()">分组管理</button></div>
+    <button class="tab" style="flex:0 0 auto;padding:8px 14px" onclick="exportCards()">导出</button>
+    <button class="tab" style="flex:0 0 auto;padding:8px 14px" onclick="importCards()">导入</button>
+    <button class="tab" style="flex:0 0 auto;padding:8px 14px" onclick="manageCardGroups()">分组</button></div>
     <div class="card-toolbar">${[['time','最新添加'],['use','最常使用'],['lastUsed','最近使用'],['unused','从未使用']].map(([k,l])=>`<button class="btn-pill ${cardSortMode===k?'primary':'ghost'}" style="flex:1" onclick="cardSortMode='${k}';renderCardList()">${l}</button>`).join('')}</div>
     <div class="search-bar">&#128269;<input type="text" id="card-search" placeholder="搜索字卡" oninput="filterCards(this.value)"></div>
     <div id="card-list"></div>`;
@@ -3760,6 +3784,41 @@ function sendCardPokeDo(kind){
     sendMsgObj({type:'text',content:state.other.name+' 拍了拍你：「'+cardPokeText+'」'});
     showToast('TA 拍了拍你');
   }
+}
+async function exportCards(){
+  const groups=await dbGetAll('cardGroups'),cards=await dbGetAll('cards');
+  const data={app:'xingji-cards',schemaVersion:1,exportedAt:new Date().toISOString(),cardGroups:groups,cards:cards};
+  downloadBlob(new Blob([JSON.stringify(data)],{type:'application/json'}),'xingji-cards-'+new Date().toISOString().slice(0,10)+'.json');
+  showToast('已导出 '+cards.length+' 张字卡及 '+groups.length+' 个分组');
+}
+function importCards(){
+  const input=document.createElement('input');input.type='file';input.accept='.json,application/json';
+  input.onchange=async e=>{
+    const f=e.target.files&&e.target.files[0];if(!f)return;
+    try{
+      const data=JSON.parse(await f.text()),groups=Array.isArray(data.cardGroups)?data.cardGroups:[],cards=Array.isArray(data.cards)?data.cards:[];
+      if(!groups.length&&!cards.length){showToast('文件里没有可导入的字卡');return;}
+      showModal('导入字卡','<div style="font-size:13px;line-height:1.7;color:var(--sub)">发现 '+cards.length+' 张字卡、'+groups.length+' 个分组。请选择导入方式。</div>',
+        '<div class="modal-btn-row"><button class="modal-btn" onclick="closeModal();window.__cardImportMode(\'merge\')">合并</button><button class="modal-btn primary" onclick="closeModal();window.__cardImportMode(\'replace\')">覆盖字卡</button></div>');
+      window.__cardImportMode=async mode=>{
+        if(mode==='replace'){
+          for(const c of await dbGetAll('cards'))await dbDelete('cards',c.id);
+          for(const g of await dbGetAll('cardGroups'))if(g.name!=='默认')await dbDelete('cardGroups',g.id);
+        }
+        const gs=await dbGetAll('cardGroups'),gn=new Set(gs.map(g=>g.name));
+        for(const g of groups)if(g&&g.name&&!gn.has(g.name)){await dbPut('cardGroups',{name:g.name,enabled:g.enabled!==false});gn.add(g.name);}
+        const existing=await dbGetAll('cards'),seen=new Set(existing.map(c=>c.text));let added=0,skipped=0;
+        for(const c of cards){
+          const text=String(c.text||'').trim();if(!text)continue;
+          if(mode==='merge'&&seen.has(text)){skipped++;continue;}
+          const rec={...c,text,group:c.group||'默认',time:Number(c.time)||Date.now(),useCount:Number(c.useCount)||0};
+          if(mode==='replace')delete rec.id;
+          await dbPut('cards',rec);seen.add(text);added++;
+        }
+        renderCards();showToast('字卡导入完成：新增 '+added+' 张'+(skipped?'，跳过重复 '+skipped+' 张':''));
+      };
+    }catch(err){console.error(err);showToast('字卡导入失败：文件格式不正确');}
+  };input.click();
 }
 async function editCard(id){
   const all=await dbGetAll('cards');const c=all.find(x=>x.id===id);if(!c)return;
@@ -4180,8 +4239,8 @@ async function renderDataPage(){
     </div>
     <div class="cs-group-title">备份与迁移</div>
     <div class="cs-group">
-      <div class="cs-item" onclick="exportData()"><span class="cs-ico">${ICO.mail}</span><span class="cs-label">完整备份</span><span class="cs-val">保留全部 ID</span><span class="cs-arrow">&#8250;</span></div>
-      <div class="cs-item" onclick="showExportSelect()"><span class="cs-ico">${ICO.card}</span><span class="cs-label">自定义导出</span><span class="cs-val">按类别勾选</span><span class="cs-arrow">&#8250;</span></div>
+      <div class="cs-item" onclick="exportData()"><span class="cs-ico">${ICO.mail}</span><span class="cs-label">完整备份</span><span class="cs-val">聊天 / 信件 / 字卡 / 互动</span><span class="cs-arrow">&#8250;</span></div>
+      <div class="cs-item" onclick="showExportSelect()"><span class="cs-ico">${ICO.card}</span><span class="cs-label">自定义导出所有数据</span><span class="cs-val">可选聊天、信件、字卡、拍一拍、表情包等</span><span class="cs-arrow">&#8250;</span></div>
       <div class="cs-item" onclick="showImportMenu()"><span class="cs-ico">${ICO.book}</span><span class="cs-label">导入数据</span><span class="cs-val">合并 / 覆盖</span><span class="cs-arrow">&#8250;</span></div>
     </div>
     <div class="cs-group">
@@ -4189,7 +4248,7 @@ async function renderDataPage(){
       <div class="cs-item" onclick="factoryReset()" style="color:#c0392b"><span class="cs-ico">${ICO.star}</span><span class="cs-label">恢复出厂设置</span></div>
     </div>
     <div class="empty" style="font-size:12px;line-height:1.8;text-align:left">
-      数据存放于本机浏览器（IndexedDB），换设备请先导出 JSON 再导入。
+      数据存放于本机浏览器（IndexedDB）。导出可按类别选择；字卡、聊天记录、信件等均可独立迁移。
     </div>`;
 }
 function showExportSelect(){
