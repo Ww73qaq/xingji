@@ -948,7 +948,7 @@ body{-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;letter
 <script src="js/chat-engine.js"></script>
 <script>
 /* 版本号 */
-const APP_VERSION='3.2.4';
+const APP_VERSION='3.2.7';
 /* ===== STATE ===== */
 let state = {
   me:{name:'我',avatar:'',status:'在线'}, other:{name:'TA',avatar:'',status:'在线'},
@@ -3975,12 +3975,13 @@ let memdataTab='memory';
 function switchMemdataTab(t,btn){
   memdataTab=t;
   document.querySelectorAll('#memdata-tabs .tab').forEach(x=>x.classList.toggle('active',x===btn));
-  renderMemory();
+  if(t==='data') renderDataPage('memory-body');
+  else renderMemory();
 }
 async function renderMemory(){
   const body=document.getElementById('memory-body');
   if(!body)return;
-  if(memdataTab==='data'){renderDataPage();return;}
+  if(memdataTab==='data'){await renderDataPage('memory-body');return;}
   const msgs=await dbGetAll('messages');
   const letters=await dbGetAll('letters');
   const diaries=await dbGetAll('diaries');
@@ -4318,8 +4319,8 @@ function downloadBlob(blob,name){
 }
 /* 选择性导出：按类别勾选（默认全选） */
 let exportSel=new Set(STORES);
-async function renderDataPage(){
-  const body=document.getElementById('data-body')||document.getElementById('memory-body');
+async function renderDataPage(targetId='data-body'){
+  const body=document.getElementById(targetId)||document.getElementById('data-body');
   if(!body)return;
   const msgs=await dbGetAll('messages');
   const favs=msgs.filter(m=>m.fav).sort((a,b)=>b.time-a.time);
