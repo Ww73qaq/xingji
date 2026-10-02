@@ -3114,21 +3114,21 @@ function renderWriting(){   // 拼写画板：18 个字母固定三行六列，�
   if(spellView==='history'){renderSpellHistory(body);return;}
   const cells=Array.from({length:SPELL_MAX},(_,i)=>{
     const ch=spellLetters[i];
-    return ch?\`<div class="spell-cell"><span class="spell-char">${{esc(ch)}</span><span class="spell-del" onclick="delSpellLetter(${{i})">&#10005;</span></div>\`:'<div class="spell-cell empty">&#160;</div>';
+    return ch?\`<div class="spell-cell"><span class="spell-char">${esc(ch)}</span><span class="spell-del" onclick="delSpellLetter(${i})">&#10005;</span></div>\`:'<div class="spell-cell empty">&#160;</div>';
   }).join('');
   body.innerHTML=\`
     <div class="list-card" style="padding:12px">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:2px">
-        <span style="font-size:13px;color:var(--text)">${{esc(state.other.name)} 在拼写</span>
+        <span style="font-size:13px;color:var(--text)">${esc(state.other.name)} 在拼写</span>
         <span style="font-size:12px;color:var(--sub);cursor:pointer;display:flex;align-items:center;gap:3px" onclick="spellView='history';renderWriting()">&#9201; 记录</span>
       </div>
-      <div style="font-size:11px;color:var(--hint);margin-bottom:8px">${{d.date}${{d.completed?' · 已完成':''}</div>
-      <div class="spell-book"><div class="spell-cell-row">${{cells}</div></div>
-      <div style="font-size:11px;color:var(--hint);margin-top:6px">${{spellLetters.length} / ${{SPELL_MAX} 个字母${{spellLetters.length>=SPELL_MAX?' · 已满，可点 × 修改':' · 一排 6 个，共 3 排'}</div>
+      <div style="font-size:11px;color:var(--hint);margin-bottom:8px">${d.date}${d.completed?' · 已完成':''}</div>
+      <div class="spell-book"><div class="spell-cell-row">${cells}</div></div>
+      <div style="font-size:11px;color:var(--hint);margin-top:6px">${spellLetters.length} / ${SPELL_MAX} 个字母${spellLetters.length>=SPELL_MAX?' · 已满，可点 × 修改':' · 一排 6 个，共 3 排'}</div>
     </div>
     <div class="list-card" style="padding:10px 12px">
       <div style="font-size:12px;color:var(--sub);margin-bottom:8px">点击字母，帮他拼写</div>
-      <div class="spell-keys">${{ALPHABET.map(ch=>\`<button class="spell-key" onclick="addSpellLetter('${{ch}')">${{ch}</button>\`).join('')}</div>
+      <div class="spell-keys">${ALPHABET.map(ch=>\`<button class="spell-key" onclick="addSpellLetter('${ch}')">${ch}</button>\`).join('')}</div>
       <div style="display:flex;gap:8px;margin-top:12px">
         <button class="btn-pill primary" style="flex:1" onclick="spellDone()">完成今天的拼写</button>
         <button class="btn-pill ghost" style="flex:1" onclick="clearSpell()">一键清除</button>
@@ -3931,30 +3931,30 @@ async function renderMemory(){
   body.innerHTML=\`
     <div class="list-card" style="text-align:center;padding:22px 16px">
       <div style="font-size:13px;color:var(--sub)">第一次说话</div>
-      <div style="font-size:16px;font-weight:600;margin:6px 0;color:var(--text)">${{first?fmtFull(first.getTime()):'还没有留下记录'}</div>
+      <div style="font-size:16px;font-weight:600;margin:6px 0;color:var(--text)">${first?fmtFull(first.getTime()):'还没有留下记录'}</div>
     </div>
-    <div class="list-card"><div class="list-card-title" style="display:flex;align-items:center;justify-content:space-between"><span>相遇天数</span><span style="font-size:12px;font-weight:400;color:var(--sub);cursor:pointer;display:inline-flex;align-items:center;gap:3px" onclick="setMeetTime()">${{ICO_EDIT} 修改日期</span></div>
-      <div style="font-size:34px;font-weight:700;letter-spacing:2px;margin-top:4px">${{days?days:'—'}<span style="font-size:14px;font-weight:400;color:var(--sub)"> 天</span></div></div>
+    <div class="list-card"><div class="list-card-title" style="display:flex;align-items:center;justify-content:space-between"><span>相遇天数</span><span style="font-size:12px;font-weight:400;color:var(--sub);cursor:pointer;display:inline-flex;align-items:center;gap:3px" onclick="setMeetTime()">${ICO_EDIT} 修改日期</span></div>
+      <div style="font-size:34px;font-weight:700;letter-spacing:2px;margin-top:4px">${days?days:'—'}<span style="font-size:14px;font-weight:400;color:var(--sub)"> 天</span></div></div>
     <div class="list-card">
       <div class="list-card-title">我们的数字</div>
       <div class="mem-stats">
-        <div class="mem-stat" onclick="openApp('chat')"><b>${{msgs.length}</b><span>条消息</span></div>
-        <div class="mem-stat" onclick="openApp('diary')"><b>${{diaries.length}</b><span>篇日记</span></div>
-        <div class="mem-stat" onclick="openApp('mailbox')"><b>${{letters.length}</b><span>封信件</span></div>
-        <div class="mem-stat" onclick="openApp('moments')"><b>${{moments.length}</b><span>条动态</span></div>
-        <div class="mem-stat" onclick="openApp('cards')"><b>${{cards.length}</b><span>张字卡</span></div>
-        <div class="mem-stat"><b>${{pokeCount}</b><span>组拍一拍</span></div>
-        <div class="mem-stat" onclick="openApp('emoji')"><b>${{emojis.length}</b><span>个表情包</span></div>
-        <div class="mem-stat" onclick="switchMemdataTab('data',document.querySelector('#memdata-tabs .tab:nth-child(2)'))"><b>${{favCount}</b><span>条收藏</span></div>
+        <div class="mem-stat" onclick="openApp('chat')"><b>${msgs.length}</b><span>条消息</span></div>
+        <div class="mem-stat" onclick="openApp('diary')"><b>${diaries.length}</b><span>篇日记</span></div>
+        <div class="mem-stat" onclick="openApp('mailbox')"><b>${letters.length}</b><span>封信件</span></div>
+        <div class="mem-stat" onclick="openApp('moments')"><b>${moments.length}</b><span>条动态</span></div>
+        <div class="mem-stat" onclick="openApp('cards')"><b>${cards.length}</b><span>张字卡</span></div>
+        <div class="mem-stat"><b>${pokeCount}</b><span>组拍一拍</span></div>
+        <div class="mem-stat" onclick="openApp('emoji')"><b>${emojis.length}</b><span>个表情包</span></div>
+        <div class="mem-stat" onclick="switchMemdataTab('data',document.querySelector('#memdata-tabs .tab:nth-child(2)'))"><b>${favCount}</b><span>条收藏</span></div>
       </div>
     </div>
     <div class="cs-group-title">备份与迁移</div>
     <div class="cs-group">
-      <div class="cs-item" onclick="exportCards()"><span class="cs-ico">${{ICO.card}</span><span class="cs-label">导出字卡</span><span class="cs-val">只导出字卡与分组</span><span class="cs-arrow">&#8250;</span></div>
-      <div class="cs-item" onclick="importCards()"><span class="cs-ico">${{ICO.book}</span><span class="cs-label">导入字卡</span><span class="cs-val">合并到当前字卡库</span><span class="cs-arrow">&#8250;</span></div>
-      <div class="cs-item" onclick="exportData()"><span class="cs-ico">${{ICO.mail}</span><span class="cs-label">完整备份</span><span class="cs-val">聊天 / 信件 / 日记 / 朋友圈等</span><span class="cs-arrow">&#8250;</span></div>
-      <div class="cs-item" onclick="showExportSelect()"><span class="cs-ico">${{ICO.chart}</span><span class="cs-label">自定义导出</span><span class="cs-val">按类别选择数据</span><span class="cs-arrow">&#8250;</span></div>
-      <div class="cs-item" onclick="showImportMenu()"><span class="cs-ico">${{ICO.book}</span><span class="cs-label">导入数据</span><span class="cs-val">合并 / 覆盖 / 完整</span><span class="cs-arrow">&#8250;</span></div>
+      <div class="cs-item" onclick="exportCards()"><span class="cs-ico">${ICO.card}</span><span class="cs-label">导出字卡</span><span class="cs-val">只导出字卡与分组</span><span class="cs-arrow">&#8250;</span></div>
+      <div class="cs-item" onclick="importCards()"><span class="cs-ico">${ICO.book}</span><span class="cs-label">导入字卡</span><span class="cs-val">合并到当前字卡库</span><span class="cs-arrow">&#8250;</span></div>
+      <div class="cs-item" onclick="exportData()"><span class="cs-ico">${ICO.mail}</span><span class="cs-label">完整备份</span><span class="cs-val">聊天 / 信件 / 日记 / 朋友圈等</span><span class="cs-arrow">&#8250;</span></div>
+      <div class="cs-item" onclick="showExportSelect()"><span class="cs-ico">${ICO.chart}</span><span class="cs-label">自定义导出</span><span class="cs-val">按类别选择数据</span><span class="cs-arrow">&#8250;</span></div>
+      <div class="cs-item" onclick="showImportMenu()"><span class="cs-ico">${ICO.book}</span><span class="cs-label">导入数据</span><span class="cs-val">合并 / 覆盖 / 完整</span><span class="cs-arrow">&#8250;</span></div>
     </div>
     <div class="empty" style="font-size:12px;line-height:1.8;text-align:left">这里集中保存「数据与回忆」的全部数据入口；「数据」Tab 只负责查看收藏消息。</div>\`;
 }
@@ -4227,7 +4227,7 @@ async function renderDataPage(){
   body.innerHTML=\`
     <div class="cs-group-title">收藏消息</div>
     <div class="list-card">
-      ${{favs.length?favs.map(m=>\`<div class="fav-item" onclick="openFavMsg(${{m.id})"><span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${{esc((m.content||'').slice(0,80))}</span><span style="font-size:11px;color:var(--hint);flex-shrink:0">${{fmtFull(m.time)}</span></div>\`).join(''):'<div class="empty" style="padding:24px 0">还没有收藏的消息<br>在聊天里长按消息可收藏</div>'}
+      ${favs.length?favs.map(m=>\`<div class="fav-item" onclick="openFavMsg(${m.id})"><span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc((m.content||'').slice(0,80))}</span><span style="font-size:11px;color:var(--hint);flex-shrink:0">${fmtFull(m.time)}</span></div>\`).join(''):'<div class="empty" style="padding:24px 0">还没有收藏的消息<br>在聊天里长按消息可收藏</div>'}
     </div>\`;
 }
 function showExportSelect(){
