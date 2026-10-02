@@ -3063,7 +3063,7 @@ async function scheduleTaMomentInteraction(momentId){
     if(Math.random()<0.8&&!m.taLiked){
       m.likes=(m.likes||0)+1;m.taLiked=true;changed=true;
       pushNotif({type:'like',from:state.other.name,text:'赞了你的动态',momentId:m.id});
-      notifySystem(\${state.other.name} 赞了你的动态\`,(m.content||'').slice(0,50),()=>switchTab('moments'));
+      notifySystem(state.other.name+' 赞了你的动态',(m.content||'').slice(0,50),()=>switchTab('moments'));
     }
     if(Math.random()<0.65){
       m.comments=m.comments||[];
@@ -3071,7 +3071,7 @@ async function scheduleTaMomentInteraction(momentId){
       m.comments.push({name:state.other.name,text:text,time:Date.now(),replyTo:null,fromTa:true});
       changed=true;
       pushNotif({type:'comment',from:state.other.name,text:'评论了你的动态：'+text.slice(0,16),momentId:m.id});
-      notifySystem(\${state.other.name} 评论了你的动态\`,text.slice(0,50),()=>switchTab('moments'));
+      notifySystem(state.other.name+' 评论了你的动态',text.slice(0,50),()=>switchTab('moments'));
     }
     if(changed){await dbPut('moments',m);if(state.currentApp==='moments')renderMoments();}
   },delay);
