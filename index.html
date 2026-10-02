@@ -2906,60 +2906,45 @@ async function renderMoments(){
 function openImageViewerFromUrl(url){openImageViewer({src:url},'图片');}
 async function likeMoment(id,el){
   const moments=await dbGetAll('moments');
-  const m=moments.find(x=>x.id===id);if(!m)return;
-  if(!m.likedByMe){
-    m.likedByMe=true;m.likes=(m.likes||0)+1;await dbPut('moments',m);renderMoments();
-    if(m.owner==='other'&&state.stats.momentsAllowComment!==0&&Math.random()<0.4){
-      // TA 回赞（内部随机）：提醒中心 + 通知
-      pushNotif({type:'like',from:state.other.name,text:'赞了你的动态',momentId:id});
-      notifySystem(`${state.other.name} 赞了你的动态`,m.content.slice(0,40),()=>switchTab('moments'));
-    }
-    showToast(m.owner==='me'?'TA 收到了你的赞':'你赞了 TA 的动态');
-  }
+  const m=moments.find(x=>String(x.id)===String(id));if(!m)return;
+  const liked=!!m.likedByMe;
+  m.likedByMe=!liked;
+  m.likes=Math.max(0,(m.likes||0)+(liked?-1:1));
+  await dbPut('moments',m);
+  renderMoments();
+  showToast(liked?'已取消赞':(m.owner==='other'?'你赞了 TA 的动态':'已赞，你的动态会被 TA 看到'));
 }
 async function commentMoment(id){
-  // 评论 bottom sheet（微信式底部输入，非居中大弹窗）
-  showModal('评论','<input id="comment-input" class="app-input" placeholder="评论" value="" style="width:100%"><div class="modal-btn-row"><button class="modal-btn" onclick="closeModal()">取消</button><button class="modal-btn primary" onclick="sendMomentComment(\''+id+'\')">发送</button></div>',null,'bottom');
-  setTimeout(()=>{const i=document.getElementById('comment-input');if(i){i.focus();}},80);
+  showModal('评论','<input id="comment-input" class="app-input" placeholder="说点什么…" value="" style="width:100%">',
+    '<div class="modal-btn-row"><button class="modal-btn" type="button" onclick="closeModal()">取消</button><button class="modal-btn primary" type="button" onclick="sendMomentComment(\''+String(id)+'\')">发送</button></div>','bottom');
+  setTimeout(()=>{const i=document.getElementById('comment-input');if(i){i.focus();}},100);
 }
 async function sendMomentComment(id){
   const inp=document.getElementById('comment-input');
   const v=inp?(inp.value||'').trim():'';
   if(!v){showToast('评论不能为空');return;}
   const moments=await dbGetAll('moments');
-  const m=moments.find(x=>x.id===id);if(!m)return;
+  const m=moments.find(x=>String(x.id)===String(id));if(!m)return;
   m.comments=m.comments||[];
-  m.comments.push({name:'我',text:v,time:Date.now()});
+  m.comments.push({name:'我',text:v,time:Date.now(),replyTo:null});
   const commentIndex=m.comments.length-1;
-  await dbPut('moments',m);closeModal();renderMoments();showToast('评论已发布');
-  if(m.owner==='other'&&state.stats.momentsAllowComment!==0&&Math.random()<0.65){
-    // TA 回评：持久化排队，按回复时间（replyDelaySec）触发，刷新不丢
+  await dbPut('moments',m);
+  closeModal();renderMoments();showToast('评论已发布');
+  if(m.owner==='other'&&state.stats.momentsAllowComment!==0&&Math.random()<0.8){
     const delay=(Number(state.prob.replyDelaySec)||20)*1000+Math.random()*6000;
     state.stats.momentReplyQueue=state.stats.momentReplyQueue||[];
     state.stats.momentReplyQueue.push({id:'mr_'+Date.now().toString(36),momentId:id,replyToIndex:commentIndex,at:Date.now()+delay});
     saveKey('stats');
   }
 }
-/* 朋友圈提醒中心：赞 / 评论 / TA 回复 / 新动态（红点 → 点击跳转定位） */
 function replyMomentComment(momentId,commentIndex){
   dbGetAll('moments').then(moments=>{
     const m=moments.find(x=>String(x.id)===String(momentId));if(!m)return;
     const c=(m.comments||[])[commentIndex];if(!c)return;
-    showModal('回复 '+(c.name||'评论'),'<input id="comment-input" class="app-input" placeholder="回复 '+esc(c.name||'评论')+'" style="width:100%"><div class="modal-btn-row"><button class="modal-btn" onclick="closeModal()">取消</button><button class="modal-btn primary" onclick="sendMomentReply(\''+String(momentId)+'\','+commentIndex+')">回复</button></div>',null,'bottom');
-    setTimeout(()=>document.getElementById('comment-input')?.focus(),80);
+    showModal('回复 '+(c.name||'评论'),'<input id="comment-input" class="app-input" placeholder="回复 '+esc(c.name||'评论')+'" style="width:100%">',
+      '<div class="modal-btn-row"><button class="modal-btn" type="button" onclick="closeModal()">取消</button><button class="modal-btn primary" type="button" onclick="sendMomentReply(\''+String(momentId)+'\','+commentIndex+')">发送</button></div>','bottom');
+    setTimeout(()=>document.getElementById('comment-input')?.focus(),100);
   });
-}
-async function sendMomentReply(momentId,commentIndex){
-  const inp=document.getElementById('comment-input'),v=(inp?.value||'').trim();if(!v){showToast('回复不能为空');return;}
-  const moments=await dbGetAll('moments'),m=moments.find(x=>String(x.id)===String(momentId));if(!m)return;
-  const target=(m.comments||[])[commentIndex];if(!target)return;
-  m.comments=m.comments||[];m.comments.push({name:'我',text:v,time:Date.now(),replyTo:{name:target.name,index:commentIndex}});
-  await dbPut('moments',m);closeModal();renderMoments();showToast('回复已发布');
-  if(m.owner==='other'&&state.stats.momentsAllowComment!==0&&Math.random()<0.75){
-    const delay=(Number(state.prob.replyDelaySec)||20)*1000+Math.random()*6000;
-    state.stats.momentReplyQueue=state.stats.momentReplyQueue||[];
-    state.stats.momentReplyQueue.push({id:'mr_'+Date.now().toString(36),momentId:m.id,replyToIndex:m.comments.length-1,at:Date.now()+delay});saveKey('stats');
-  }
 }
 function pushNotif(n){
   state.stats.notifCenter=state.stats.notifCenter||[];
