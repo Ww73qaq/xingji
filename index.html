@@ -107,13 +107,13 @@ body{position:fixed;inset:0;width:100%}
 .note-head{font-size:10px;color:var(--hint)}
 .note-body{font-size:12px;color:var(--text);margin-top:3px;white-space:pre-wrap;word-break:break-word;max-height:44px;overflow:hidden;line-height:1.5}
 /* 拼写练习本（4 横线 3 格） */
-.spell-book{position:relative;height:128px;background:#fffdf8;border:1px solid var(--input);border-radius:12px;margin:2px 0 0;overflow:hidden}
-.spell-cell-row{position:absolute;inset:0;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;padding:10px;align-items:stretch}
-.spell-cell{position:relative;min-width:0;min-height:84px;display:flex;align-items:center;justify-content:center;font-family:Georgia,serif;font-size:clamp(14px,5vw,22px);color:var(--text);padding:8px 5px;line-height:1.35;word-break:break-all;border-top:1px solid #d9d5cb;border-bottom:1px solid #d9d5cb}
+.spell-book{position:relative;height:clamp(300px,62vh,520px);background:#fffdf8;border:1px solid var(--input);border-radius:12px;margin:2px 0 0;overflow:hidden}
+.spell-cell-row{position:absolute;inset:0;display:grid;grid-template-columns:repeat(6,minmax(0,1fr));grid-template-rows:repeat(3,minmax(0,1fr));gap:4px;padding:10px;align-items:stretch}
+.spell-cell{position:relative;min-width:0;min-height:0;display:flex;align-items:center;justify-content:center;font-family:Georgia,serif;font-size:clamp(11px,3.1vw,17px);color:var(--text);padding:4px 2px;line-height:1;word-break:break-all;border-top:1px solid #d9d5cb;border-bottom:1px solid #d9d5cb}
 .spell-cell.empty{color:#e2dfd8}
-.spell-char{letter-spacing:1px}
- .spell-del{position:absolute;top:4px;right:4px;width:19px;height:19px;border-radius:50%;background:#c0392b;color:#fff;font-size:11px;display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 1px 3px rgba(0,0,0,.25)}
-.spell-line{display:none}@media(max-width:360px){.spell-cell-row{grid-template-columns:1fr;overflow-y:auto}.spell-book{height:260px}.spell-cell{min-height:70px}}
+.spell-char{letter-spacing:0}
+.spell-del{position:absolute;top:2px;right:2px;width:16px;height:16px;border-radius:50%;background:#c0392b;color:#fff;font-size:9px;display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 1px 3px rgba(0,0,0,.25)}
+.spell-line{display:none}
 .spell-keys{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}
 .spell-key{height:38px;border:1px solid var(--input);border-radius:8px;background:var(--bg);font-size:15px;color:var(--text);font-family:Georgia,serif;cursor:pointer}
 .spell-key:active{background:var(--input)}
@@ -891,7 +891,7 @@ body{-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;letter
 
 <!-- DATA（独立数据管理页，保留兼容 openApp('data')） -->
 <div id="app-data" class="app-page">
-  <div class="app-header"><div class="back" onclick="goBack()">&#8249;</div><h1>数据管理</h1><div class="act" style="opacity:.25">&#8942;</div></div>
+  <div class="app-header"><div class="back" onclick="goBack()">&#8249;</div><h1>收藏消息</h1><div class="act" style="opacity:.25">&#8942;</div></div>
   <div class="app-body" id="data-body"></div>
 </div>
 
@@ -947,7 +947,7 @@ body{-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;letter
 <script src="js/chat-engine.js"></script>
 <script>
 /* 版本号 */
-const APP_VERSION='3.2.1';
+const APP_VERSION='3.2.2';
 /* ===== STATE ===== */
 let state = {
   me:{name:'我',avatar:'',status:'在线'}, other:{name:'TA',avatar:'',status:'在线'},
