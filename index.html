@@ -3114,9 +3114,9 @@ function renderWriting(){   // 拼写画板：18 个字母固定三行六列，�
   if(spellView==='history'){renderSpellHistory(body);return;}
   const cells=Array.from({length:SPELL_MAX},(_,i)=>{
     const ch=spellLetters[i];
-    return ch?\`<div class="spell-cell"><span class="spell-char">${esc(ch)}</span><span class="spell-del" onclick="delSpellLetter(${i})">&#10005;</span></div>\`:'<div class="spell-cell empty">&#160;</div>';
+    return ch?`<div class="spell-cell"><span class="spell-char">${esc(ch)}</span><span class="spell-del" onclick="delSpellLetter(${i})">&#10005;</span></div>`:'<div class="spell-cell empty">&#160;</div>';
   }).join('');
-  body.innerHTML=\`
+  body.innerHTML=`
     <div class="list-card" style="padding:12px">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:2px">
         <span style="font-size:13px;color:var(--text)">${esc(state.other.name)} 在拼写</span>
@@ -3128,12 +3128,12 @@ function renderWriting(){   // 拼写画板：18 个字母固定三行六列，�
     </div>
     <div class="list-card" style="padding:10px 12px">
       <div style="font-size:12px;color:var(--sub);margin-bottom:8px">点击字母，帮他拼写</div>
-      <div class="spell-keys">${ALPHABET.map(ch=>\`<button class="spell-key" onclick="addSpellLetter('${ch}')">${ch}</button>\`).join('')}</div>
+      <div class="spell-keys">${ALPHABET.map(ch=>`<button class="spell-key" onclick="addSpellLetter('${ch}')">${ch}</button>`).join('')}</div>
       <div style="display:flex;gap:8px;margin-top:12px">
         <button class="btn-pill primary" style="flex:1" onclick="spellDone()">完成今天的拼写</button>
         <button class="btn-pill ghost" style="flex:1" onclick="clearSpell()">一键清除</button>
       </div>
-    </div>\`;
+    </div>`;
 }
 function renderSpellHistory(body){
   const h=loadSpellHistory().slice().reverse();
@@ -3928,7 +3928,7 @@ async function renderMemory(){
   const first=msgs.length?new Date(Math.min(...msgs.map(m=>m.time))):null;
   const pokeCount=Array.isArray(state.stats?.pokeGroups)?state.stats.pokeGroups.length:0;
   const favCount=msgs.filter(m=>m.fav).length;
-  body.innerHTML=\`
+  body.innerHTML=`
     <div class="list-card" style="text-align:center;padding:22px 16px">
       <div style="font-size:13px;color:var(--sub)">第一次说话</div>
       <div style="font-size:16px;font-weight:600;margin:6px 0;color:var(--text)">${first?fmtFull(first.getTime()):'还没有留下记录'}</div>
@@ -3956,7 +3956,7 @@ async function renderMemory(){
       <div class="cs-item" onclick="showExportSelect()"><span class="cs-ico">${ICO.chart}</span><span class="cs-label">自定义导出</span><span class="cs-val">按类别选择数据</span><span class="cs-arrow">&#8250;</span></div>
       <div class="cs-item" onclick="showImportMenu()"><span class="cs-ico">${ICO.book}</span><span class="cs-label">导入数据</span><span class="cs-val">合并 / 覆盖 / 完整</span><span class="cs-arrow">&#8250;</span></div>
     </div>
-    <div class="empty" style="font-size:12px;line-height:1.8;text-align:left">这里集中保存「数据与回忆」的全部数据入口；「数据」Tab 只负责查看收藏消息。</div>\`;
+    <div class="empty" style="font-size:12px;line-height:1.8;text-align:left">这里集中保存「数据与回忆」的全部数据入口；「数据」Tab 只负责查看收藏消息。</div>`;
 }
 function openFavMsg(id){chatPageSize=99999;saveScrollTop();navStack=['chat'];navRoot='chat';renderNav();enterPage('chat');setTimeout(()=>jumpToMsg(id),180);}
 
@@ -4224,11 +4224,11 @@ async function renderDataPage(){
   if(!body)return;
   const msgs=await dbGetAll('messages');
   const favs=msgs.filter(m=>m.fav).sort((a,b)=>b.time-a.time);
-  body.innerHTML=\`
+  body.innerHTML=`
     <div class="cs-group-title">收藏消息</div>
     <div class="list-card">
-      ${favs.length?favs.map(m=>\`<div class="fav-item" onclick="openFavMsg(${m.id})"><span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc((m.content||'').slice(0,80))}</span><span style="font-size:11px;color:var(--hint);flex-shrink:0">${fmtFull(m.time)}</span></div>\`).join(''):'<div class="empty" style="padding:24px 0">还没有收藏的消息<br>在聊天里长按消息可收藏</div>'}
-    </div>\`;
+      ${favs.length?favs.map(m=>`<div class="fav-item" onclick="openFavMsg(${m.id})"><span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc((m.content||'').slice(0,80))}</span><span style="font-size:11px;color:var(--hint);flex-shrink:0">${fmtFull(m.time)}</span></div>`).join(''):'<div class="empty" style="padding:24px 0">还没有收藏的消息<br>在聊天里长按消息可收藏</div>'}
+    </div>`;
 }
 function showExportSelect(){
   exportSel=new Set(STORES);
