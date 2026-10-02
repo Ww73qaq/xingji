@@ -2608,9 +2608,8 @@ async function exportLetters(){
   const letters=await dbGetAll('letters');
   const json=JSON.stringify(letters,null,2);
   const blob=new Blob([json],{type:'application/json'});
-  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='xingji-letters-'+new Date().toISOString().slice(0,10)+'.json';a.click();
-  URL.revokeObjectURL(a.href);
-  showToast('已导出 '+letters.length+' 封信件');
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);const name='星迹_信件数据_'+new Date().toISOString().slice(0,10)+'.json';
+  confirmDownload(name,async()=>{const blob=new Blob([JSON.stringify(letters,null,2)],{type:'application/json'});downloadBlob(blob,name);showToast('已导出 '+letters.length+' 封信件');});
 }
 function importLetters(){
   const input=document.createElement('input');input.type='file';input.accept='application/json,.json';
@@ -3847,8 +3846,8 @@ function sendCardPokeDo(kind){
 async function exportCards(){
   const groups=await dbGetAll('cardGroups'),cards=await dbGetAll('cards');
   const data={app:'xingji-cards',schemaVersion:1,exportedAt:new Date().toISOString(),cardGroups:groups,cards:cards};
-  downloadBlob(new Blob([JSON.stringify(data)],{type:'application/json'}),'xingji-cards-'+new Date().toISOString().slice(0,10)+'.json');
-  showToast('已导出 '+cards.length+' 张字卡及 '+groups.length+' 个分组');
+  const name='星迹_字卡备份_'+new Date().toISOString().slice(0,10)+'.json';
+  confirmDownload(name,async()=>{downloadBlob(new Blob([JSON.stringify(data)],{type:'application/json'}),name);showToast('已导出 '+cards.length+' 张字卡及 '+groups.length+' 个分组');});
 }
 function importCards(){
   const input=document.createElement('input');input.type='file';input.accept='.json,application/json';
@@ -4277,6 +4276,8 @@ async function _writeStoreData(name,items,mode){
 const SCHEMA_VERSION=2;
 /* 完整备份：schemaVersion / appVersion / exportedAt / stores，保留所有 ID */
 async function exportData(){
+  const name='星迹_完整备份_'+new Date().toISOString().slice(0,10)+'.json';
+  confirmDownload(name,async()=>{
   showToast('正在打包数据…');
   const data={
     app:'xingji', schemaVersion:SCHEMA_VERSION, appVersion:APP_VERSION,
@@ -4288,7 +4289,14 @@ async function exportData(){
   const name=`xingji-backup-${new Date().toISOString().slice(0,10)}.json`;
   downloadBlob(blob,name);
   showToast(`已导出 ${(blob.size/1024/1024).toFixed(2)}MB 数据`);
+  });
 }
+function confirmDownload(name,onConfirm){
+  showModal('确认下载',`<div style="padding:10px 6px 4px;text-align:center;line-height:1.8;font-size:13px;color:var(--sub)">将保存为<br><b style="display:inline-block;margin-top:4px;color:var(--text);font-size:13px;word-break:break-all">${esc(name)}</b></div>`,
+    '<div class="modal-btn-row single"><button class="modal-btn" onclick="closeModal()">取消</button><button class="modal-btn primary" onclick="confirmDownloadGo()">确认下载</button></div>');
+  window.__downloadConfirm=onConfirm;
+}
+async function confirmDownloadGo(){const cb=window.__downloadConfirm;window.__downloadConfirm=null;closeModal();if(cb)await cb();}
 function downloadBlob(blob,name){
   const a=document.createElement('a');
   const url=URL.createObjectURL(blob);
@@ -4324,9 +4332,9 @@ async function doExportSelect(){
   const data={app:'xingji',schemaVersion:SCHEMA_VERSION,appVersion:APP_VERSION,exportedAt:new Date().toISOString(),stores:{}};
   for(const s of sel)data.stores[s]=await _readStoreData(s);
   const blob=new Blob([JSON.stringify(data)],{type:'application/json'});
-  downloadBlob(blob,`xingji-${sel.length}类-${new Date().toISOString().slice(0,10)}.json`);
+  const name=`星迹_自定义数据_${new Date().toISOString().slice(0,10)}.json`;
+  confirmDownload(name,async()=>{downloadBlob(blob,name);showToast(`已导出 ${sel.length} 类数据`);});
   closeModal();
-  showToast(`已导出 ${sel.length} 类数据`);
 }
 function showImportMenu(){
   showModal('选择性导入',
