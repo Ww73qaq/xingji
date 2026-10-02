@@ -979,7 +979,7 @@ let state = {
   // 日记申请查看时间（持久化：刷新不丢 REQUESTING 状态）
   diaryReqAt:0,
   meetTime:null, quote:'遇你，与你，予你，余你', splashText:'谢绝一切内外意识体进入本网站，暂不开放！\n（本网站是专属于·时停该独立意识体的传讯网站，目前暂不开放，也包括不对时停开放）', muteEndTime:0, muteRequest:null,
-  letters:[], diaries:[], moments:[], currentApp:null, callActive:false, callLogs:[],
+  letters:[], diaries:[], moments:[], currentApp:null, callActive:false,
   chat:{lastReadAt:0, chatBg:'', recallSec:120, showQuote:true},
   stats:{diaryOpen:false,companionTime:0,companionStreak:0,diaryCount:0,momentCount:0,chatCount:0,
     myPoke:'',notifCenter:[],momentReplyQueue:[],hiddenMoments:[]},
@@ -4499,39 +4499,6 @@ function endCall(reason){
   else if(reason==='declined')pushSys(`你拒接了${state.other.name}的来电`);
   else if(reason==='cancel')pushSys(`已取消呼叫${state.other.name}`);
 }
-function logCall(rec){
-  state.callLogs=state.callLogs||[];
-  state.callLogs.unshift(rec);
-  state.callLogs=state.callLogs.slice(0,100);
-  saveKey('callLogs');
-}
-function renderCallLog(){
-  const body=document.getElementById('videolog-body');
-  const logs=state.callLogs||[];
-  if(!logs.length){body.innerHTML='<div class="empty">还没有视频记录<br>去聊天里发起一次视频通话吧</div>';return;}
-  const label=l=>{
-    if(l.status==='completed')return '视频通话 · '+String(Math.floor((l.duration||0)/60)).padStart(2,'0')+':'+String((l.duration||0)%60).padStart(2,'0');
-    if(l.status==='missed')return '未接视频 · 00:00';
-    if(l.status==='declined')return '已拒绝 · 00:00';
-    return '已取消 · 00:00';
-  };
-  const icon=l=>l.status==='completed'?'&#128250;':(l.status==='missed'?'&#128263;':'&#128683;');
-  body.innerHTML=`<div class="cs-group">`+logs.map(l=>{
-    return `<div class="call-log-item"><div class="cl-ico ${l.status==='completed'?'ok':'miss'}">${icon(l)}</div>
-      <div class="cl-main"><div class="cl-name">${esc(state.other.name)}</div><div class="cl-sub">${label(l)}</div></div>
-      <div class="cl-right">${fmtFull(l.time)}</div></div>`;
-  }).join('')+`</div><button class="btn-pill ghost" style="width:100%" onclick="clearCallLogs()">清空视频记录</button>`;
-}
-function expandCall(){
-  // 小窗点击 → 恢复全屏通话界面（视频模式重开 stage）
-  const ov=document.getElementById('call-overlay');
-  if(!ov||!state.callActive)return;
-  ov.classList.add('show');
-  if(callKind==='video')showVideoStage();
-}
-function clearCallLogs(){state.callLogs=[];saveKey('callLogs');renderCallLog();showToast('已清空');}
-
-
 /* ===== MODAL ===== */
 function showModal(title,body,actions,position){
   document.getElementById('modal-title').textContent=title;
