@@ -108,12 +108,12 @@ body{position:fixed;inset:0;width:100%}
 .note-body{font-size:12px;color:var(--text);margin-top:3px;white-space:pre-wrap;word-break:break-word;max-height:44px;overflow:hidden;line-height:1.5}
 /* 拼写练习本（4 横线 3 格） */
 .spell-book{position:relative;height:128px;background:#fffdf8;border:1px solid var(--input);border-radius:12px;margin:2px 0 0;overflow:hidden}
-.spell-cell-row{position:absolute;inset:0;display:flex;justify-content:center;align-items:flex-end;gap:12px;padding:18px 14px 8px}
-.spell-cell{position:relative;width:52px;height:84px;display:flex;align-items:flex-end;justify-content:center;font-family:Georgia,serif;font-size:36px;color:var(--text);padding-bottom:12px}
+.spell-cell-row{position:absolute;inset:0;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;padding:10px;align-items:stretch}
+.spell-cell{position:relative;min-width:0;min-height:84px;display:flex;align-items:center;justify-content:center;font-family:Georgia,serif;font-size:clamp(14px,5vw,22px);color:var(--text);padding:8px 5px;line-height:1.35;word-break:break-all;border-top:1px solid #d9d5cb;border-bottom:1px solid #d9d5cb}
 .spell-cell.empty{color:#e2dfd8}
 .spell-char{letter-spacing:1px}
-.spell-del{position:absolute;top:-6px;right:-8px;width:19px;height:19px;border-radius:50%;background:#c0392b;color:#fff;font-size:11px;display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 1px 3px rgba(0,0,0,.25)}
-.spell-line{position:absolute;left:0;right:0;border-top:1.5px solid #d9d5cb}
+ .spell-del{position:absolute;top:4px;right:4px;width:19px;height:19px;border-radius:50%;background:#c0392b;color:#fff;font-size:11px;display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 1px 3px rgba(0,0,0,.25)}
+.spell-line{display:none}@media(max-width:360px){.spell-cell-row{grid-template-columns:1fr;overflow-y:auto}.spell-book{height:260px}.spell-cell{min-height:70px}}
 .spell-keys{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}
 .spell-key{height:38px;border:1px solid var(--input);border-radius:8px;background:var(--bg);font-size:15px;color:var(--text);font-family:Georgia,serif;cursor:pointer}
 .spell-key:active{background:var(--input)}
@@ -521,7 +521,7 @@ mark{background:#ffe58f;color:inherit;border-radius:2px;padding:0 1px}
 .room-add.small{width:26px;height:26px;font-size:15px;border-radius:8px}
 .room-toolbar{display:flex;align-items:center;gap:6px;padding:8px 14px;background:var(--card);border-bottom:1px solid var(--input);flex-wrap:wrap;flex-shrink:0}
 .room-tool-label{font-size:11px;color:var(--sub)}
-.room-toolbar b{min-width:16px;text-align:center;font-size:13px}
+.room-toolbar b{min-width:18px;text-align:center;font-size:13px}.room-dim{display:flex;align-items:center;gap:5px}.room-size-btn{width:24px;height:24px;border:1px solid var(--input);border-radius:7px;background:var(--bg);font-size:17px;line-height:20px;cursor:pointer}.room-size-btn:active{background:var(--input)}
 .room-tip{font-size:10px;color:var(--hint);margin-left:auto}
 .room-grid{display:grid;gap:8px;padding:14px;flex:1;align-content:start;overflow-y:auto}
 .room-info{background:var(--card);border-radius:var(--r) var(--r) 0 0;padding:14px 14px calc(var(--sab) + 14px);box-shadow:0 -2px 12px rgba(0,0,0,.06);flex-shrink:0}
@@ -843,8 +843,10 @@ body{-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;letter
     <button class="room-add" onclick="showRoomPicker()">+</button>
   </div>
   <div class="room-toolbar">
-    <b id="room-rows-n">4</b><span class="room-tool-label">行 × <b id="room-cols-n">6</b> 列 · 固定</span>
-    <span class="room-tip">点击空格放置 / 点击已有内容编辑</span>
+    <div class="room-dim"><span>行</span><button class="room-size-btn" onclick="roomResize(-1,'rows')">−</button><b id="room-rows-n">4</b><button class="room-size-btn" onclick="roomResize(1,'rows')">＋</button></div>
+    <span class="room-tool-label">×</span>
+    <div class="room-dim"><span>列</span><button class="room-size-btn" onclick="roomResize(-1,'cols')">−</button><b id="room-cols-n">6</b><button class="room-size-btn" onclick="roomResize(1,'cols')">＋</button></div>
+    <span class="room-tip">可随时调整行列；布局会分别保存</span>
   </div>
   <div class="room-grid" id="room-grid"></div>
   <div class="room-info">
@@ -2510,7 +2512,7 @@ function renderChatSearch(){
   dbGetAll('messages').then(all=>{
     let list=all.filter(m=>!m.recalled).sort((a,b)=>b.time-a.time);
     if(!q)list=list.filter(m=>m.sender==='other');   // 索引：只有 TA 的信息
-    if(q)list=list.filter(m=>msgPreviewText(m).toLowerCase().includes(q.toLowerCase())||(m.content||'').toLowerCase().includes(q.toLowerCase()));
+    if(q)list=list.filter(m=>m.sender==='other'&&(msgPreviewText(m).toLowerCase().includes(q.toLowerCase())||(m.content||'').toLowerCase().includes(q.toLowerCase())));
     const dates=[...new Set(list.map(m=>fmtChatDate(m.time)))];
     if(!list.length){box.innerHTML=q?'<div class="empty">没有匹配的记录</div>':'<div class="empty">TA 还没有发过消息</div>';return;}
     box.innerHTML=`<div class="cs-group"><div class="cs-item" style="cursor:default"><span class="cs-ico">&#128197;</span><span class="cs-label">${q?'搜索到 ':''}${list.length} 条${q?'记录':'TA 的消息'}</span></div></div>`
@@ -2524,10 +2526,7 @@ function renderChatSearch(){
       }).join('');
   });
 }
-function goSearchMsg(id){
-  goBack();                       // 退出搜索页回到聊天
-  setTimeout(()=>{chatFirstPaint=false;renderChat(false).then(()=>jumpToMsg(id));},120);
-}
+function goSearchMsg(id){saveScrollTop();navStack=['chat'];navRoot='chat';renderNav();enterPage('chat');setTimeout(()=>{chatFirstPaint=false;chatPageSize=99999;renderChat(false).then(()=>jumpToMsg(id));},120);}
 function onChatSearch(q){
   const box=document.getElementById('chat-search-result');
   q=(q||'').trim();
@@ -3069,7 +3068,9 @@ async function saveMoment(){
 const ALPHABET='abcdefghijklmnopqrstuvwxyz'.split('');
 let spellLetters=[];
 let spellView='board';          // board | history
-const SPELL_MAX=5;              // 最多 5 个字母
+const SPELL_CELL_MAX=6;        // 每格最多 6 个拼音字母
+const SPELL_CELLS=3;
+const SPELL_MAX=SPELL_CELL_MAX*SPELL_CELLS;
 function spellTodayStr(){const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
 function loadSpellHistory(){try{return JSON.parse(localStorage.getItem('xingji-spelling')||'[]');}catch(e){return [];}}
 function saveSpellHistory(h){try{localStorage.setItem('xingji-spelling',JSON.stringify(h));}catch(e){}}
@@ -3889,12 +3890,7 @@ async function renderMemory(){
       </div>
     </div>`;
 }
-function openFavMsg(id){
-  chatPageSize=99999;
-  goHome();
-  openApp('chat');
-  setTimeout(()=>jumpToMsg(id),450);
-}
+function openFavMsg(id){chatPageSize=99999;saveScrollTop();navStack=['chat'];navRoot='chat';renderNav();enterPage('chat');setTimeout(()=>jumpToMsg(id),180);}
 
 /* ===== PROFILE（「我的」标签页 = 原设置页） ===== */
 function renderProfile(){
@@ -4178,7 +4174,7 @@ async function renderDataPage(){
         <div class="mem-stat"><b>${favs.length}</b><span>条收藏</span></div>
       </div>
     </div>
-    <div class="cs-group-title">收藏的消息</div>
+    <div class="cs-group-title">收藏消息</div>
     <div class="list-card">
       ${favs.length?favs.slice(0,20).map(m=>`<div class="fav-item" onclick="openFavMsg(${m.id})"><span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc((m.content||'').slice(0,60))}</span><span style="font-size:11px;color:var(--hint);flex-shrink:0">${fmtFull(m.time)}</span></div>`).join(''):'<div class="empty" style="padding:14px 0">还没有收藏的消息<br>在聊天里长按消息可收藏</div>'}
     </div>
