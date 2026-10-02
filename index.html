@@ -948,7 +948,7 @@ body{-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;letter
 <script src="js/chat-engine.js"></script>
 <script>
 /* 版本号 */
-const APP_VERSION='3.2.7';
+const APP_VERSION='3.2.8';
 /* ===== STATE ===== */
 let state = {
   me:{name:'我',avatar:'',status:'在线'}, other:{name:'TA',avatar:'',status:'在线'},
@@ -1151,21 +1151,37 @@ function checkVersion(){
         const key='xjLastVer',postKey='xjPostpone';
         const last=localStorage.getItem(key);
         const postpone=Number(localStorage.getItem(postKey)||0);
-        // 首次访问：只记录版本，不打扰
         if(!last){localStorage.setItem(key,v.version);return;}
-        // 已点过「3 分钟后刷新」且未到期：不弹
         if(postpone>Date.now())return;
         if(last!==v.version){
           localStorage.setItem(key,v.version);
-          showModal('发现新版本',`<div style="text-align:center;padding:8px 0 16px;font-size:15px;color:var(--text)">星迹已更新到 <b>v${esc(v.version)}</b><br><span style="font-size:12px;color:var(--hint)">刷新后体验新功能</span></div>
-            <div class="modal-btn-row"><button class="modal-btn" onclick="postponeRefresh()">3 分钟后刷新</button><button class="modal-btn primary" onclick="location.reload()">立即刷新</button></div>`);
+          showVersionUpdateModal(v.version);
         }
       })
       .catch(()=>{});
   }catch(e){}
 }
+function showVersionUpdateModal(version){
+  const modal=document.getElementById('modal');
+  if(!modal)return;
+  // 强制更新层：禁止关闭、点击遮罩、ESC/背景区域等任何非按钮操作。
+  modal.dataset.forceUpdate='1';
+  document.getElementById('modal-title').textContent='发现新版本';
+  document.getElementById('modal-body').innerHTML=`<div style="text-align:center;padding:8px 0 16px;font-size:15px;color:var(--text)">星迹已更新到 <b>v${esc(version)}</b><br><span style="font-size:12px;color:var(--hint)">请选择一种方式继续</span></div>
+    <div class="modal-btn-row"><button class="modal-btn" onclick="postponeRefresh()">3 分钟后刷新</button><button class="modal-btn primary" onclick="forceVersionReload()">立即刷新</button></div>`;
+  const ma=document.getElementById('modal-actions');if(ma){ma.innerHTML='';ma.style.display='none';}
+  const mc=document.getElementById('modal-close');if(mc)mc.style.display='none';
+  modal.classList.remove('bottom');
+  modal.classList.add('show');
+}
+function forceVersionReload(){
+  localStorage.removeItem('xjPostpone');
+  location.reload();
+}
 function postponeRefresh(){
   localStorage.setItem('xjPostpone',String(Date.now()+180000));
+  const modal=document.getElementById('modal');
+  if(modal)modal.dataset.forceUpdate='';
   closeModal();showToast('将在 3 分钟后自动刷新');
   setTimeout(()=>location.reload(),180000);
 }
@@ -4594,7 +4610,9 @@ function showModal(title,body,actions,position){
   m.classList.add('show');
 }
 function closeModal(){
-  document.getElementById('modal').classList.remove('show');
+  const modal=document.getElementById('modal');
+  if(modal&&modal.dataset.forceUpdate==='1')return;
+  modal.classList.remove('show');
   const mc=document.getElementById('modal-close');if(mc)mc.style.display='';
   appInputCb=null;appConfirmCb=null;
   if(typeof roomPickerOpen!=='undefined'){roomPickerOpen=false;pendingRoomCell=-1;}
