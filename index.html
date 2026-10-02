@@ -383,12 +383,12 @@ mark{background:#ffe58f;color:inherit;border-radius:2px;padding:0 1px}
 .modal.bottom{align-items:flex-end}
 .modal.bottom .modal-sheet{margin-bottom:0;border-radius:16px 16px 0 0;transform:translateY(100%);transition:transform .22s ease}
 .modal.bottom.show .modal-sheet{transform:translateY(0)}
-.modal-sheet{background:var(--card);width:88%;max-width:360px;border-radius:20px;padding:20px 18px calc(var(--sab) + 18px);transform:scale(.94) translateY(10px);opacity:0;transition:.22s cubic-bezier(.32,.72,0,1);max-height:84vh;overflow-y:auto;box-shadow:0 14px 44px rgba(0,0,0,.22)}
+.modal-sheet{background:var(--card);width:92%;max-width:380px;border-radius:20px;padding:24px 18px calc(var(--sab) + 18px);transform:scale(.96) translateY(10px);opacity:0;transition:.22s cubic-bezier(.32,.72,0,1);max-height:86vh;overflow-y:auto;box-shadow:0 14px 44px rgba(0,0,0,.22);position:relative}
 .modal.show .modal-sheet{transform:scale(1) translateY(0);opacity:1}
-.modal-title{font-size:16px;font-weight:600;margin-bottom:14px;text-align:center}
+.modal-title{font-size:16px;font-weight:600;margin:0 34px 16px;text-align:center}
 .modal-item{padding:12px 0;border-bottom:1px solid var(--input);font-size:15px;cursor:pointer;display:flex;align-items:center;gap:10px}
 .modal-item:last-child{border-bottom:none}
-.modal-close{margin-top:16px;text-align:center;font-size:13px;color:var(--hint);cursor:pointer}
+.modal-close{position:absolute;top:10px;right:10px;width:30px;height:30px;border:0;border-radius:50%;background:transparent;color:var(--hint);font-size:24px;line-height:30px;text-align:center;cursor:pointer}.modal-close:hover{background:var(--input);color:var(--text)}
 .modal-confirm{width:100%;margin-top:14px;padding:13px;border:none;border-radius:14px;background:#1a1a1a;color:#fff;font-size:15px;font-weight:600;cursor:pointer}
 .modal-confirm:active{transform:scale(.97)}
 .modal-btn-row{display:flex;gap:10px;margin-top:14px}
@@ -829,12 +829,6 @@ body{-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;letter
   <div class="app-body" id="profile-body"></div>
 </div>
 
-<!-- VIDEO LOG（视频记录） -->
-<div id="app-videolog" class="app-page">
-  <div class="app-header"><div class="back" onclick="goBack()">&#8249;</div><h1>视频记录</h1><div class="act" style="opacity:.25">&#8942;</div></div>
-  <div class="app-body" id="videolog-body"></div>
-</div>
-
 <!-- SPELLING（拼写：TA 在意识空间的拼音练习本） -->
 <div id="app-writing" class="app-page">
   <div class="app-header"><div class="back" onclick="goBack()">&#8249;</div><h1>拼写</h1><div class="act" style="opacity:.25">&#8942;</div></div>
@@ -910,7 +904,7 @@ body{-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;letter
     <div class="modal-title" id="modal-title"></div>
     <div id="modal-body"></div>
     <div id="modal-actions" style="display:none"></div>
-    <div class="modal-close" onclick="closeModal()">取消</div>
+    <button class="modal-close" id="modal-close" type="button" aria-label="关闭" onclick="closeModal()">×</button>
   </div>
 </div>
 
@@ -951,7 +945,7 @@ body{-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;letter
 <script src="js/chat-engine.js"></script>
 <script>
 /* 版本号 */
-const APP_VERSION='3.0.0';
+const APP_VERSION='3.2.0';
 /* ===== STATE ===== */
 let state = {
   me:{name:'我',avatar:'',status:'在线'}, other:{name:'TA',avatar:'',status:'在线'},
@@ -1009,7 +1003,7 @@ function dbDelete(store,id){return new Promise((res,rej)=>{const tx=DB.transacti
 function dbGetByKey(store,key){return dbGetAll(store).then(all=>all.find(x=>x.key===key)||null);}
 
 async function loadSettings(){
-  const keys=['me','other','skin','pin','prob','meetTime','quote','splashText','stats','chat','callLogs','muteEndTime','muteRequest','surveySettings','notify','notes','taMuteMeEndTime','diaryReqAt','writings','taMuteLastEnd','taMuteReqAt'];
+  const keys=['me','other','skin','pin','prob','meetTime','quote','splashText','stats','chat','muteEndTime','muteRequest','surveySettings','notify','notes','taMuteMeEndTime','diaryReqAt','writings','taMuteLastEnd','taMuteReqAt'];
   for(const k of keys){const v=await dbGetByKey('settings',k);if(v&&v.value!==undefined)state[k]=typeof v.value==='object'&&v.value!==null?{...state[k],...v.value}:v.value;}
 }
 async function saveKey(key){const v=await dbGetByKey('settings',key);if(v){v.value=state[key];await dbPut('settings',v);}else{await dbPut('settings',{key,value:state[key]});}}
@@ -1291,7 +1285,7 @@ let navStack=[];        // 当前打开的页面 id 栈（栈底始终是根页�
 let navRoot='chat';     // 栈底页面（对应底部标签栏）
 let navLock=false;      // 防止 history.back() 触发的 popstate 递归
 let lastBackAt=0;
-const PAGE_TITLES={chat:'聊天',chatinfo:'聊天信息',chatsearch:'聊天记录',mailbox:'信箱',diary:'日记',moments:'朋友圈',profile:'我的',sense:'感应房间',probability:'回复设置',cards:'字卡',emoji:'表情',memory:'回忆录',data:'数据',videolog:'视频记录'};
+const PAGE_TITLES={chat:'聊天',chatinfo:'聊天信息',chatsearch:'聊天记录',mailbox:'信箱',diary:'日记',moments:'朋友圈',profile:'我的',sense:'感应房间',probability:'回复设置',cards:'字卡',emoji:'表情',memory:'回忆录',data:'数据'};
 
 function switchTab(tab){
   const pageId=TAB_PAGE[tab]||tab;
@@ -1367,7 +1361,7 @@ function enterPage(id){
     probability:renderProbability,
     cards:renderCards, emoji:renderEmojis, memory:renderMemory,
     sense:initRoom, writing:renderWriting,
-    profile:renderProfile, data:renderDataPage, videolog:renderCallLog
+    profile:renderProfile, data:renderDataPage
   };
   if(render[id])try{render[id]();}catch(e){console.error(e);}
 }
@@ -2465,7 +2459,6 @@ function renderChatInfo(){
     </div>
     <div class="cs-group">
       <div class="cs-item" onclick="openApp('chatsearch')"><span class="cs-ico">&#128269;</span><span class="cs-label">聊天记录</span><span class="cs-arrow">&#8250;</span></div>
-      <div class="cs-item" onclick="openApp('videolog')"><span class="cs-ico">&#128250;</span><span class="cs-label">视频记录</span><span class="cs-val">${(state.callLogs||[]).length} 条</span><span class="cs-arrow">&#8250;</span></div>
     </div>
     <div class="cs-group">
       <div class="cs-item" onclick="toggleChatQuote()"><span class="cs-ico">&#128172;</span><span class="cs-label">允许引用</span><span class="cs-switch${state.chat.showQuote!==0?' on':''}" onclick="event.stopPropagation();toggleChatQuote()"></span></div>
@@ -2927,7 +2920,7 @@ async function likeMoment(id,el){
 }
 async function commentMoment(id){
   // 评论 bottom sheet（微信式底部输入，非居中大弹窗）
-  showModal('评论','<input id="comment-input" class="app-input" placeholder="评论" value="" style="width:100%"><div class="modal-btn-row"><button class="modal-btn" onclick="closeModal()">取消</button><button class="modal-btn primary" onclick="sendMomentComment(\''+id+'\')">发送</button></div>','bottom');
+  showModal('评论','<input id="comment-input" class="app-input" placeholder="评论" value="" style="width:100%"><div class="modal-btn-row"><button class="modal-btn" onclick="closeModal()">取消</button><button class="modal-btn primary" onclick="sendMomentComment(\''+id+'\')">发送</button></div>',null,'bottom');
   setTimeout(()=>{const i=document.getElementById('comment-input');if(i){i.focus();}},80);
 }
 async function sendMomentComment(id){
@@ -3927,7 +3920,6 @@ function renderProfile(){
     <div class="cs-group">
       <div class="cs-item" onclick="openApp('mailbox')"><span class="cs-ico">${ICO.mail}</span><span class="cs-label">信箱</span><span class="cs-arrow">&#8250;</span></div>
       <div class="cs-item" onclick="openApp('sense')"><span class="cs-ico">${ICO.room}</span><span class="cs-label">感应房间</span><span class="cs-arrow">&#8250;</span></div>
-      <div class="cs-item" onclick="openApp('videolog')"><span class="cs-ico">${ICO.video}</span><span class="cs-label">视频记录</span><span class="cs-arrow">&#8250;</span></div>
     </div>
     <div class="cs-group-title">内容</div>
     <div class="cs-group">
@@ -4446,12 +4438,11 @@ function endCall(reason){
   document.getElementById('call-float').classList.remove('show');
   document.getElementById('edge-back').classList.toggle('on',navStack.length>1);
   const dstr=String(Math.floor(dur/60)).padStart(2,'0')+':'+String(dur%60).padStart(2,'0');
-  const rec={time:Date.now(),duration:dur,direction:kind==='in'?'in':'out',status:'completed'};
-  if(connected){logCall(rec);pushSys(`${kind==='video'?'视频':'语音'}通话 ${dstr}`);}
-  else if(reason==='miss-out'){rec.status='missed';logCall(rec);pushSys(`呼叫${state.other.name}未接通`);}
-  else if(reason==='miss-in'){rec.status='missed';logCall(rec);pushSys(`${state.other.name}的来电已超时`);}
-  else if(reason==='declined'){rec.status='declined';logCall(rec);pushSys(`你拒接了${state.other.name}的来电`);}
-  else if(reason==='cancel'){rec.status='cancelled';logCall(rec);pushSys(`已取消呼叫${state.other.name}`);}
+  if(connected)pushSys(`${kind==='video'?'视频':'语音'}通话 ${dstr}`);
+  else if(reason==='miss-out')pushSys(`呼叫${state.other.name}未接通`);
+  else if(reason==='miss-in')pushSys(`${state.other.name}的来电已超时`);
+  else if(reason==='declined')pushSys(`你拒接了${state.other.name}的来电`);
+  else if(reason==='cancel')pushSys(`已取消呼叫${state.other.name}`);
 }
 function logCall(rec){
   state.callLogs=state.callLogs||[];
@@ -4496,7 +4487,7 @@ function showModal(title,body,actions,position){
     else{ma.innerHTML='';ma.style.display='none';}
   }
   const mc=document.getElementById('modal-close');
-  if(mc)mc.style.display=(actions&&actions.includes('closeModal()'))?'none':'';
+  if(mc)mc.style.display=(actions&&/取消/.test(actions))?'none':'block';
   const m=document.getElementById('modal');
   m.classList.toggle('bottom',position==='bottom');
   m.classList.add('show');
