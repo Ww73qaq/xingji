@@ -82,7 +82,9 @@ function bubbleInnerHtml(m){
       const isSel=(qi,oi)=>{if(!sel)return false;const s=sel[qi];return Array.isArray(s)?s.indexOf(oi)>=0:s===oi;};
       const foot=m.answer
         ?('<div class="poll-ans">'+esc(state.other.name)+' 已作答 · 用时 '+(m.answer.usedSec||0)+' 秒</div>')
-        :('<div class="poll-wait" onclick="pollRetry(\''+m.id+'\')">等待作答… 点击可再问一遍</div>');
+        :(isPollStale(m)
+            ?('<div class="poll-wait stale" onclick="pollRetry(\''+m.id+'\')">'+(m.retried?'已重新问过 · 再问一次':'TA 好像没接住这道题 · 点击再问一遍')+'</div>')
+            :('<div class="poll-wait" onclick="pollRetry(\''+m.id+'\')">等待作答… 点击可再问一遍</div>'));
       if(isSurvey){
         const items=pp.questions.map((q,i)=>{
           const optsHtml=(q.options||[]).map((o,oi)=>{
@@ -112,10 +114,43 @@ function paintAvatar(el,p){
 }
 let chatFirstPaint=true, chatUnreadShown=false;
 /* 构建单条消息行（完整渲染与增量追加共用） */
+/* 题目「等太久」的判定：超过预期作答时长的 2 倍（下限 60 秒）仍无答案 → 提示再问一遍
+   问卷用自己的期限，单选/多选用回复时间。返回 0 表示不适用。 */
+function pollStaleMs(m){
+  if(!m||m.answer||m.recalled)return 0;
+  if(m.type!=='poll'&&m.type!=='survey')return 0;
+  const p=m.poll||m.survey||{};
+  const waitSec=m.type==='survey'
+    ?(Number(p.deadlineSec)||Number((state.surveySettings||{}).deadlineSec)||60)
+    :(Number(state.prob&&state.prob.replyDelaySec)||20);
+  return Math.max(60,waitSec*2)*1000;
+}
+function isPollStale(m){
+  const t=pollStaleMs(m);
+  return t>0&&(Date.now()-m.time)>t;
+}
+/* 心跳里调：把「等太久」的题目气泡原地刷新（只刷状态翻转的那几条，不重绘全屏） */
+async function refreshStalePolls(){
+  if(state.currentApp!=='chat')return;
+  const el=document.getElementById('chat-content');if(!el||!el.childElementCount)return;
+  let all=[];try{all=await dbGetAll('messages');}catch(e){return;}
+  for(const m of all){
+    if(m.type!=='poll'&&m.type!=='survey')continue;
+    const row=el.querySelector(`.msg-row[data-mid="${m.id}"]`);
+    if(!row)continue;
+    const now=isPollStale(m)?'1':'0';
+    if(row.dataset.stale===now)continue;
+    row.dataset.stale=now;
+    const fresh=buildMsgRow(m);
+    if(row.parentNode)row.parentNode.replaceChild(fresh,row);
+  }
+}
 function buildMsgRow(m){
   const isMe=m.sender==='me';
   const row=document.createElement('div');
   row.className='msg-row '+(isMe?'me':'other');row.dataset.mid=m.id;
+  // 题目气泡：缓存「是否等太久」，心跳只刷新状态翻转的那几条
+  if(m.type==='poll'||m.type==='survey')row.dataset.stale=isPollStale(m)?'1':'0';
   const acol=document.createElement('div');acol.className='msg-avatar-col';
   const av=document.createElement('div');av.className='msg-avatar';av.innerHTML=avatarHtml(m.sender);
   if(!isMe){av.style.cursor='pointer';av.title='双击拍一拍';av.ondblclick=e=>{e.stopPropagation();pokeChat();};}
@@ -235,9 +270,9 @@ function bindMsgGestures(row,m){
    - 点空白处 / 滚动 / 缩放 / 返回 → 自动关闭
    - 动作顺序：复制 → 引用 → 收藏 → 修改并重发 → 撤回 → 删除
    ========================================================= */
+/* 消息长按 / 右键 → 操作菜单（实现在 ui/action-bar.js，这里只负责组装动作） */
 let ctxMsgId=null;
-let ctxItems=[];        // 当前菜单项（供 ctxDo 使用）
-let ctxCleanup=null;    // 一次性解绑函数
+let ctxItems=[];        // 兼容旧调用；动作本体交给 showActionBar
 async function openCtxMenu(id,ev){
   const msgs=await dbGetAll('messages');
   const m=msgs.find(x=>Number(x.id)===Number(id));
@@ -248,94 +283,23 @@ async function openCtxMenu(id,ev){
   // 撤回：固定 120 秒（开关控制是否可用）
   const canRecall=isMe&&!m.recalled&&state.chat.allowRecall!==false&&(Date.now()-m.time)<120000;
 
-  ctxItems=[];
-  if(m.type==='text'||m.type==='poll'||m.type==='survey')ctxItems.push({key:'copy',label:'复制',fn:()=>copyMsg(m)});
-  ctxItems.push({key:'quote',label:'引用',fn:()=>startQuote(m)});
-  ctxItems.push({key:'fav',label:m.fav?'取消收藏':'收藏',fn:()=>toggleFav(m)});
-  if((m.type==='poll'||m.type==='survey')&&isMe)ctxItems.push({key:'edit',label:'修改并重发',fn:()=>editPollAndResend(m)});
-  if(canRecall)ctxItems.push({key:'recall',label:'撤回',fn:()=>recallMsg(m)});
-  ctxItems.push({key:'delete',label:'删除',fn:()=>deleteMsg(m),danger:true});
-
-  const menu=document.getElementById('ctx-menu');
-  if(!menu)return;
-  _ctxClearListeners();          // 连续长按两条消息时不残留旧监听
-  menu.innerHTML='';
-  const bar=document.createElement('div');
-  bar.className='ctx-bar'+(ctxItems.length>5?' wrap':'');
-  ctxItems.forEach((it,i)=>{
-    if(it.danger&&i>0){const sep=document.createElement('span');sep.className='ctx-sep';bar.appendChild(sep);}
-    const el=document.createElement('div');
-    el.className='ctx-item'+(it.danger?' danger':'');
-    el.textContent=it.label;
-    el.onclick=e=>{e.stopPropagation();ctxDo(i);};
-    bar.appendChild(el);
-  });
-  menu.appendChild(bar);
-  menu.classList.add('show');
+  const items=[];
+  if(m.type==='text'||m.type==='poll'||m.type==='survey')items.push({key:'copy',label:'复制',fn:()=>copyMsg(m)});
+  items.push({key:'quote',label:'引用',fn:()=>startQuote(m)});
+  items.push({key:'fav',label:m.fav?'取消收藏':'收藏',fn:()=>toggleFav(m)});
+  if((m.type==='poll'||m.type==='survey')&&isMe)items.push({key:'edit',label:'修改并重发',fn:()=>editPollAndResend(m)});
+  if(canRecall)items.push({key:'recall',label:'撤回',fn:()=>recallMsg(m)});
+  items.push({key:'delete',label:'删除',fn:()=>deleteMsg(m),danger:true,sepBefore:true});
 
   const row=document.querySelector(`.msg-row[data-mid="${id}"]`);
-  positionCtxBar(bar,row,ev);
-
-  // 点空白处关闭
-  menu.onclick=e=>{if(e.target===menu)closeCtxMenu();};
-  // 滚动 / 缩放时关闭，避免菜单悬浮在错误位置
-  const chatContent=document.getElementById('chat-content');
-  const onScroll=()=>closeCtxMenu();
-  if(chatContent)chatContent.addEventListener('scroll',onScroll,{passive:true});
-  window.addEventListener('resize',closeCtxMenu);
-  ctxCleanup=()=>{if(chatContent)chatContent.removeEventListener('scroll',onScroll);window.removeEventListener('resize',closeCtxMenu);};
+  // 定位锚点：优先用长按/右键坐标，没有则退回消息行
+  const point=(ev&&ev.clientX)?{x:ev.clientX,y:ev.clientY}:null;
+  showActionBar(items,{anchor:point?null:row,point,scroller:document.getElementById('chat-content')});
 }
-/* 计算横条位置：默认放消息上方 12px，上方空间不足改放下方；水平居中于锚点并夹在手机内 */
-function positionCtxBar(bar,row,ev){
-  const phone=document.getElementById('phone');
-  if(!phone)return;
-  const phoneRect=phone.getBoundingClientRect();
-  bar.style.visibility='hidden';bar.style.left='0px';bar.style.top='0px';
-  const barW=bar.offsetWidth||120,barH=bar.offsetHeight||36;
-  bar.style.visibility='';
-
-  let anchorX,anchorTop,anchorBottom;
-  if(ev&&ev.clientX&&ev.clientY){
-    anchorX=ev.clientX-phoneRect.left;
-    anchorTop=anchorBottom=ev.clientY-phoneRect.top;
-  }else if(row){
-    const r=row.getBoundingClientRect();
-    anchorX=r.left-phoneRect.left+r.width/2;
-    anchorTop=r.top-phoneRect.top;
-    anchorBottom=r.bottom-phoneRect.top;
-  }else{
-    anchorX=phoneRect.width/2;anchorTop=anchorBottom=phoneRect.height/2;
-  }
-  const gap=12;
-  let left=_clamp(anchorX-barW/2,8,Math.max(8,phoneRect.width-barW-8));
-  let top,direction;
-  if(anchorTop-barH-gap>=8){top=anchorTop-barH-gap;direction='above';}
-  else{top=anchorBottom+gap;direction='below';}
-  top=_clamp(top,8,Math.max(8,phoneRect.height-barH-8));
-  bar.classList.remove('above','below');
-  bar.classList.add(direction);
-  bar.style.left=left+'px';
-  bar.style.top=top+'px';
-  bar.style.setProperty('--ctx-tri-left',_clamp(anchorX-left,14,Math.max(14,barW-14))+'px');
-}
-function _ctxClearListeners(){
-  if(ctxCleanup){const f=ctxCleanup;ctxCleanup=null;try{f();}catch(e){}}
-}
-/* 点击动作：先关菜单再执行，避免菜单残留 */
-function ctxDo(i){
-  const it=ctxItems[i];
-  closeCtxMenu();
-  if(it)setTimeout(()=>{try{it.fn();}catch(e){console.warn(e);}},40);
-}
+/* 兼容旧调用：关闭动作条 */
 function closeCtxMenu(){
-  _ctxClearListeners();
-  const menu=document.getElementById('ctx-menu');
-  if(!menu)return;
-  menu.classList.remove('show');
-  menu.innerHTML='';
-  menu.onclick=null;
-  ctxMsgId=null;
-  ctxItems=[];
+  closeActionBar();
+  ctxMsgId=null;ctxItems=[];
 }
 /* ---- 长按动作实现 ---- */
 /* 把 poll / survey 消息转成「可粘回问卷文本框」的原文（复制 → 修改 → 重发 的关键链路） */

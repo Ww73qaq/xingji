@@ -36,6 +36,7 @@ function saveScrollTop(){
 let skipPops=0;
 function goHome(){
   closeCtxMenu();
+  markNotesSeen();            // 回到桌面 = 已看见便签（清掉 TA 便签未读点）
   if(emojiOpen)toggleEmojiPanel();
   if(document.getElementById('img-viewer'))closeImageViewer();
   if(document.getElementById('modal').classList.contains('show'))closeModal();
@@ -125,6 +126,7 @@ function closeAppUI(){
   document.getElementById('tabbar').classList.remove('hidden');
   document.getElementById('edge-back').classList.remove('on');
   document.querySelectorAll('.tab-item').forEach(t=>t.classList.remove('on'));
+  markNotesSeen();
   updateHome();
 }
 function closeApp(){

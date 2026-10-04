@@ -8,6 +8,12 @@
   --c-ink:#c0392b; /* 朱砂点缀：仅用于未读徽标 */
   --bg:#f7f6f3; --card:#fff; --input:#ecebe7; --text:#1a1a1a; --sub:#7d7d7d; --hint:#b8b8b8; --primary:#1a1a1a;
   --r:14px; --r-sm:10px; --r-pill:999px;
+  /* 浮层 / 反色令牌：由 js/features/theme-editor.js 的 SKIN_TOKENS 按 state.skin 覆盖。
+     这里给出与现状一致的默认值，将来加深色皮肤只需换这一组值。 */
+  --ov-bar:#2b2b2b; --ov-fg:#fff; --ov-sep:rgba(255,255,255,.18);
+  --ov-hover:rgba(255,255,255,.10); --ov-press:rgba(255,255,255,.20);
+  --ov-scrim:rgba(0,0,0,.40); --ov-shadow:rgba(0,0,0,.26); --ov-danger:#ff8080;
+  --inv-bg:#1a1a1a; --inv-fg:#f5f5f5;
   /* 刘海屏 / 全面屏安全区（GitHub Pages 手机浏览器同样生效） */
   --sat:env(safe-area-inset-top,0px);
   --sab:env(safe-area-inset-bottom,0px);
@@ -77,7 +83,12 @@ body{position:fixed;inset:0;width:100%}
 /* 桌面便签 */
 .note-card{flex:1;background:var(--card);border-radius:12px;padding:8px 11px;cursor:pointer;box-shadow:0 1px 4px rgba(0,0,0,.06);border:1px solid var(--input);min-height:54px}
 .note-card:active{transform:scale(.98)}
-.note-head{font-size:10px;color:var(--hint)}
+/* TA 写的便签：左侧一道朱砂细线，一眼能看出不是自己写的 */
+.note-card.from-ta{border-left:2px solid var(--c-ink)}
+.note-head{font-size:10px;color:var(--hint);display:inline-block}
+.note-head-meta{float:right;font-size:10px;color:var(--hint);opacity:.75}
+.note-head-meta.unread{color:var(--c-ink);opacity:1;font-weight:600}
+.note-head-meta.unread::before{content:'';display:inline-block;width:5px;height:5px;border-radius:50%;background:var(--c-ink);margin-right:4px;vertical-align:1px}
 .note-body{font-size:12px;color:var(--text);margin-top:3px;white-space:pre-wrap;word-break:break-word;max-height:44px;overflow:hidden;line-height:1.5}
 /* 拼写练习本（4 横线 3 格） */
 .spell-book{position:relative;height:clamp(150px,31vh,260px);background:#fffdf8;border:1px solid var(--input);border-radius:12px;margin:2px 0 0;overflow:hidden}
@@ -154,7 +165,7 @@ body{position:fixed;inset:0;width:100%}
 .msg-row.me .msg-body{align-items:flex-end}
 .msg-bubble{padding:9px 12px;border-radius:6px;font-size:15px;line-height:1.55;word-break:break-word;position:relative;-webkit-user-select:none;user-select:none;cursor:pointer}
 .msg-row.other .msg-bubble{background:#fff;color:#1a1a1a;border-top-left-radius:2px;box-shadow:0 1px 2px rgba(0,0,0,.04)}
-.msg-row.me .msg-bubble{background:#1a1a1a;color:#f5f5f5;border-top-right-radius:2px}
+.msg-row.me .msg-bubble{background:var(--inv-bg);color:var(--inv-fg);border-top-right-radius:2px}
 .msg-bubble.plain{background:transparent!important;box-shadow:none!important;padding:0;color:var(--text)!important}
 /* 引用 */
 .msg-quoted{margin:-2px 0 6px;padding:6px 10px;border-radius:6px;background:rgba(0,0,0,.08);font-size:12px;color:#5a5a5a;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;border-left:3px solid rgba(0,0,0,.25);cursor:pointer}
@@ -218,23 +229,23 @@ body{position:fixed;inset:0;width:100%}
 .voice-unread{position:absolute;right:-14px;top:0;width:7px;height:7px;border-radius:50%;background:var(--c-ink)}
 .msg-row.me .voice-unread{right:auto;left:-14px}
 /* 拍一拍浮层 */
-.poke-toast{position:absolute;top:calc(var(--sat) + 96px);left:50%;transform:translateX(-50%);background:rgba(0,0,0,.62);color:#fff;font-size:13px;padding:7px 18px;border-radius:8px;z-index:360;opacity:0;transition:.25s;pointer-events:none;white-space:nowrap}
+.poke-toast{position:absolute;top:calc(var(--sat) + 96px);left:50%;transform:translateX(-50%);background:var(--ov-bar);color:var(--ov-fg);font-size:13px;padding:7px 18px;border-radius:8px;z-index:360;opacity:0;transition:.25s;pointer-events:none;white-space:nowrap}
 .poke-toast.show{opacity:1}
 
 /* 消息操作菜单：锚定消息的小横条（v3.4.0 由「全屏黑遮罩 + 竖排 sheet」改为微信/iMessage 式横条） */
 .ctx-menu{position:absolute;inset:0;z-index:340;display:none;background:transparent}
 .ctx-menu.show{display:block}
-.ctx-bar{position:absolute;display:flex;align-items:center;background:#2b2b2b;border-radius:12px;padding:2px 4px;box-shadow:0 6px 22px rgba(0,0,0,.26);font-size:13px;white-space:nowrap;opacity:0;transform:scale(.92);transform-origin:center;transition:opacity .13s ease,transform .13s ease}
+.ctx-bar{position:absolute;display:flex;align-items:center;background:var(--ov-bar);color:var(--ov-fg);border-radius:12px;padding:2px 4px;box-shadow:0 6px 22px var(--ov-shadow);font-size:13px;white-space:nowrap;opacity:0;transform:scale(.92);transform-origin:center;transition:opacity .13s ease,transform .13s ease}
 .ctx-menu.show .ctx-bar{opacity:1;transform:scale(1)}
 .ctx-bar.wrap{flex-wrap:wrap;max-width:88vw;justify-content:center}
-.ctx-item{padding:9px 12px;border-radius:9px;cursor:pointer;color:#fff;font-size:13px;line-height:1.1;transition:background .12s}
-.ctx-item:hover{background:rgba(255,255,255,.10)}
-.ctx-item:active{background:rgba(255,255,255,.20)}
-.ctx-item.danger{color:#ff8080}
+.ctx-item{padding:9px 12px;border-radius:9px;cursor:pointer;color:var(--ov-fg);font-size:13px;line-height:1.1;transition:background .12s}
+.ctx-item:hover{background:var(--ov-hover)}
+.ctx-item:active{background:var(--ov-press)}
+.ctx-item.danger{color:var(--ov-danger)}
 .ctx-item.danger:hover{background:rgba(255,80,80,.14)}
-.ctx-sep{width:1px;height:14px;background:rgba(255,255,255,.18);margin:0 2px;flex-shrink:0}
-/* 小三角：指向被操作的消息（水平位置由 JS 用 --ctx-tri-left 跟随锚点） */
-.ctx-bar::after{content:'';position:absolute;left:var(--ctx-tri-left,50%);width:9px;height:9px;background:#2b2b2b;transform:translateX(-50%) rotate(45deg);border-radius:1px}
+.ctx-sep{width:1px;height:14px;background:var(--ov-sep);margin:0 2px;flex-shrink:0}
+/* 小三角：指向被操作的对象（水平位置由 JS 用 --ctx-tri-left 跟随锚点） */
+.ctx-bar::after{content:'';position:absolute;left:var(--ctx-tri-left,50%);width:9px;height:9px;background:var(--ov-bar);transform:translateX(-50%) rotate(45deg);border-radius:1px}
 .ctx-bar.above::after{top:-5px}
 .ctx-bar.below::after{bottom:-5px}
 
@@ -361,7 +372,7 @@ mark{background:#ffe58f;color:inherit;border-radius:2px;padding:0 1px}
 .phone-overlay{position:absolute;inset:0;z-index:300;pointer-events:none;overflow:hidden}
 .phone-overlay>*{pointer-events:auto}
 /* ===== MODAL ===== */
-.modal{position:absolute;inset:0;background:rgba(0,0,0,.4);display:none;align-items:center;justify-content:center;z-index:200}
+.modal{position:absolute;inset:0;background:var(--ov-scrim);display:none;align-items:center;justify-content:center;z-index:200}
 .modal.show{display:flex}
 .modal.bottom{align-items:flex-end}
 .modal.bottom .modal-sheet{margin-bottom:0;border-radius:16px 16px 0 0;transform:translateY(100%);transition:transform .22s ease}
@@ -566,10 +577,12 @@ body{-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;letter
 .poll-q{font-size:14px;font-weight:600;margin-bottom:8px;color:var(--text);line-height:1.5}
 .poll-q span{color:var(--hint)}
 .poll-opt{font-size:13px;line-height:1.5;padding:8px 10px;border:1px solid rgba(0,0,0,.14);border-radius:8px;margin:6px 0;color:var(--text);background:rgba(0,0,0,.02)}
-.poll-opt.sel{background:var(--text);color:#fff;border-color:var(--text);font-weight:500}
-.poll-opt.sel b{color:#fff}
+.poll-opt.sel{background:var(--inv-bg);color:var(--inv-fg);border-color:var(--text);font-weight:500}
+.poll-opt.sel b{color:var(--inv-fg)}
 .poll-ans{font-size:11px;color:#0a8f52;padding:8px 12px;background:rgba(10,143,82,.08);border-top:1px solid rgba(0,0,0,.05)}
 .poll-wait{font-size:11px;color:var(--sub);padding:8px 12px;background:rgba(0,0,0,.04);border-top:1px solid rgba(0,0,0,.05);cursor:pointer}
+/* 等太久：文案换成「TA 没接住」并加朱砂左边框，视觉上区别于「还在想」 */
+.poll-wait.stale{color:#a5342a;background:rgba(192,57,43,.07);box-shadow:inset 3px 0 0 var(--c-ink);font-weight:600}
 #modal-actions{display:flex;gap:10px;margin-top:14px}
 #modal-actions .modal-item{flex:1;margin:0;padding:12px 4px;border-radius:12px;border:1px solid var(--input);background:var(--bg);text-align:center;font-size:15px;cursor:pointer}
 #modal-actions .modal-item:active{background:var(--input)}

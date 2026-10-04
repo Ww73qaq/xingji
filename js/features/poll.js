@@ -176,7 +176,8 @@ window.submitSurvey=submitSurvey;
 window.sendPoll=(multi)=>submitPoll(multi,false);
 window.sendSurvey=()=>submitSurvey(false);
 
-/* 题目未作答时「点击可再问一遍」：把同一份题目重新发一次，走正常回复调度 */
+/* 题目未作答（或等太久）时「再问一遍」：把同一份题目作为新消息重发，走正常回复调度。
+   原消息标记 retried，气泡文案随之变成「已重新问过」（内容保留，不覆盖）。 */
 async function pollRetry(id){
   const all=await dbGetAll('messages');
   const m=all.find(x=>String(x.id)===String(id));
@@ -184,7 +185,11 @@ async function pollRetry(id){
   const pp=m.poll||m.survey;
   if(!pp){showToast('题目内容已丢失');return;}
   const isSurvey=m.type==='survey'||!!m.survey;
+  // 防连点：15 秒内重复点同一道题不再重发（比对的是「上次重问时间」，不是发题时间）
+  if(m.retriedAt&&Date.now()-m.retriedAt<15000){showToast('刚刚才问过，等 TA 一下');return;}
+  m.retried=1;m.retriedAt=Date.now();await dbPut('messages',m);
   await sendMsgObj({type:isSurvey?'survey':'poll',content:m.content||pp.question||'问卷',
     ...(isSurvey?{survey:pp}:{poll:pp})},false);
+  if(state.currentApp==='chat')refreshMsgRow(m.id);
   showToast('已再问一遍');
 }

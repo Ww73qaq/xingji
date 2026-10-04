@@ -41,6 +41,10 @@ function startHeartbeat(){
       maybeTaMuteMe();
       const badge=document.getElementById('mom-notif-badge');
       if(badge)badge.style.display=notifUnreadCount()>0?'block':'none';
+      refreshStalePolls();          // 题目「等太久」的文案翻转（只刷那几条气泡）
+    }
+    if(_tick%300===0){
+      maybeTaWriteNote();            // TA 低频写便签（约 90~160 分钟一次机会，内部概率 30%）
     }
     if(_tick%15===0){
       processPendingReplies().then(n=>{if(n&&navStack[navStack.length-1]==='mailbox')renderMailbox();refreshAllBadges();});
@@ -68,6 +72,7 @@ openDB().then(async()=>{
   migrateProb();                 // 旧概率结构 → 新独立概率结构（迁移一次）
   if(Date.now()<state.muteEndTime)showMuteBanner(Math.ceil((state.muteEndTime-Date.now())/1000));
   if(Date.now()<state.taMuteMeEndTime)showTaMuteBanner();
+  applySkinVars();                 // 主题变量（浮层/反色令牌）由 state.skin 驱动
   applyChatBg();
   history.replaceState({d:1},'');
   updateHome();

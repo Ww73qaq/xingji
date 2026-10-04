@@ -26,8 +26,10 @@ let state = {
   surveySettings:{deadlineSec:60,earlySubmitProb:30,multiMin:1,multiMax:6},
   // 系统通知：真正的浏览器/手机级通知（页面在前台或后台时都可用）
   notify:{enabled:false, chat:true, moments:true, letters:true},
-  // 桌面便签两张（A/B），TA 的便签可作为内部内容来源
-  notes:[{id:'a',owner:'me',text:''},{id:'b',owner:'me',text:''}],
+  // 桌面便签两张（A=我的 / B=TA 的）
+  // owner:'me' = 用户写的（TA 绝不覆盖）；owner:'other' = TA 写的（可被用户编辑覆盖）
+  // at = 最后一次写入时间；TA 便签开关与节奏见 state.stats.taNoteEnabled / taNoteLastAt / taNoteUnread
+  notes:[{id:'a',owner:'me',text:'',at:0},{id:'b',owner:'me',text:'',at:0}],
   // TA 禁言我（毫秒时间戳）；禁言期间输入栏禁用，可申请解除
   taMuteMeEndTime:0,
   // 日记申请查看时间（持久化：刷新不丢 REQUESTING 状态）
@@ -36,7 +38,9 @@ let state = {
   letters:[], diaries:[], moments:[], currentApp:null, callActive:false,
   chat:{lastReadAt:0, chatBg:'', recallSec:120, showQuote:true},
   stats:{diaryOpen:false,companionTime:0,companionStreak:0,diaryCount:0,momentCount:0,chatCount:0,
-    myPoke:'',notifCenter:[],momentReplyQueue:[],hiddenMoments:[],momentsAllowPost:1,momentsAllowComment:1,momentsAllowEmoji:1,momentsAllowEmojiPack:1,momentsAllowMultiBubble:1,momentsAllowCardReply:1,momentsAllowLike:1},
+    myPoke:'',notifCenter:[],momentReplyQueue:[],hiddenMoments:[],momentsAllowPost:1,momentsAllowComment:1,momentsAllowEmoji:1,momentsAllowEmojiPack:1,momentsAllowMultiBubble:1,momentsAllowCardReply:1,momentsAllowLike:1,
+    // TA 写便签：开关（默认开）/ 上次写入时间 / 便签是否有未读新内容 / 已用过的句子
+    taNoteEnabled:1,taNoteLastAt:0,taNoteUnread:0,taNoteUsed:{}},
   taMuteLastEnd:0,taMuteReqAt:0
 };
 

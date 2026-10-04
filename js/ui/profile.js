@@ -36,6 +36,7 @@ function renderProfile(){
       <div class="cs-item" onclick="openApp('probability')"><span class="cs-ico">${ICO.chart}</span><span class="cs-label">回复设置</span><span class="cs-arrow">&#8250;</span></div>
       <div class="cs-item" onclick="editMyPoke()"><span class="cs-ico">${ICO.poke}</span><span class="cs-label">我的拍一拍</span><span class="cs-val">${esc(state.stats.myPoke||'拍了拍TA的肩膀')}</span><span class="cs-arrow">&#8250;</span></div>
       <div class="cs-item" onclick="managePokes()"><span class="cs-ico">${ICO.poke}</span><span class="cs-label">TA 拍我</span><span class="cs-val">${(allPokeTexts()||[]).length} 条动作</span><span class="cs-arrow">&#8250;</span></div>
+      <div class="cs-item" onclick="openTaNoteSettings()"><span class="cs-ico">${ICO.star}</span><span class="cs-label">TA 写便签</span><span class="cs-val">${taNoteEnabled()?'已开启':'已关闭'}</span><span class="cs-switch${taNoteEnabled()?' on':''}" onclick="event.stopPropagation();toggleTaNote()"></span></div>
     </div>
     <div class="cs-group-title">记录</div>
     <div class="cs-group">
@@ -58,6 +59,24 @@ function renderProfile(){
       <div class="cs-item" onclick="clearAllXingjiData()"><span class="cs-ico">&#9888;</span><span class="cs-label" style="color:#c0392b">清除全部数据</span><span class="cs-val">不可恢复</span><span class="cs-arrow">&#8250;</span></div>
     </div>
     <div style="text-align:center;color:var(--hint);font-size:11px;padding:10px 0 4px">星迹 · STAR TRACE<br>数据全部保存在本机浏览器</div>`;
+}
+/* ===== TA 写便签开关（我的 → 内容） ===== */
+function openTaNoteSettings(){
+  const on=taNoteEnabled();
+  const rows='<div class="modal-item" onclick="closeModal();toggleTaNote()"><span style="flex:1">允许 TA 写便签</span><span class="cs-switch'+(on?' on':'')+'"></span></div>';
+  const tip='<div style="padding:2px 2px 10px;font-size:12px;color:var(--hint);line-height:1.75">'
+    +'开启后，'+esc(state.other.name)+' 会在桌面右侧那张便签上<b>低频</b>留下一句话（大约几小时一次，看 TA 想不想说）。<br>'
+    +'· 你自己写过的便签，'+esc(state.other.name)+'<b>不会覆盖</b>；想换一句可长按便签选「让 TA 重新写」。<br>'
+    +'· '+esc(state.other.name)+'正在整理意识（禁言）时不写。<br>'
+    +'· 便签会留一条系统消息与手机通知，方便你回到桌面看见。</div>';
+  showModal('TA 写便签',tip+rows,'<div class="modal-btn-row single"><button class="modal-btn" onclick="closeModal()">知道了</button></div>');
+}
+function toggleTaNote(){
+  const next=taNoteEnabled()?0:1;
+  state.stats.taNoteEnabled=next;saveKey('stats');
+  showToast(next?(state.other.name+' 可以在便签上留言了'):'已关闭，'+state.other.name+' 不再写便签');
+  renderProfile();
+  if(typeof openTaNoteSettings==='function'&&document.getElementById('modal').classList.contains('show'))openTaNoteSettings();
 }
 function notifySystem(title,body,onClick){
   try{

@@ -80,10 +80,10 @@
     <div class="widget-name"><span id="home-name-me">我</span> &amp; <span id="home-name-other">TA</span></div>
     <div class="widget-sign" id="home-sign">你在左边 我紧靠右</div>
   </div>
-  <!-- 便签两张（A/B，可编辑，桌面固定显示） -->
-  <div style="display:flex;gap:10px;padding:0 calc(var(--sal) + 10px);margin-top:14px;flex-shrink:0">
-    <div class="note-card" onclick="editNote('a')"><div class="note-head" id="note-head-a">我的便签</div><div class="note-body" id="note-a">${''}</div></div>
-    <div class="note-card" onclick="editNote('b')"><div class="note-head" id="note-head-b">他的便签</div><div class="note-body" id="note-b">${''}</div></div>
+  <!-- 便签两张（A=我的 / B=TA 的；点击编辑，长按出菜单；TA 可低频留言，开关在「我的」） -->
+  <div style="display:flex;gap:10px;padding:0 calc(var(--sal) + 10px);margin-top:14px;flex-shrink:0" id="note-cards">
+    <div class="note-card" data-note="a" onclick="editNote('a')"><div class="note-head" id="note-head-a">我的便签</div><div class="note-body" id="note-a">${''}</div></div>
+    <div class="note-card" data-note="b" onclick="editNote('b')"><div class="note-head" id="note-head-b">他的便签</div><div class="note-body" id="note-b">${''}</div></div>
   </div>
   <!-- 应用网格：桌面只放「信箱/日记/数据与回忆/表情/感应房间/拼写」，四个 Tab 不重复 -->
   <div class="app-grid" id="app-grid">
@@ -329,9 +329,11 @@
 <script src="js/state.js"></script>
 <script src="js/modal.js"></script>
 <script src="js/nav.js"></script>
+<script src="js/features/theme-editor.js"></script>
 <script src="js/home.js"></script>
 <script src="js/ui/lock.js"></script>
 <script src="js/ui/version.js"></script>
+<script src="js/ui/action-bar.js"></script>
 <script src="js/ui/chat.js"></script>
 <script src="js/features/poll.js"></script>
 <script src="js/features/call.js"></script>
@@ -347,7 +349,6 @@
 <script src="js/ui/companion.js"></script>
 <script src="js/ui/probability.js"></script>
 <script src="js/features/reply-library.js"></script>
-<script src="js/features/theme-editor.js"></script>
 <script src="js/features/group-chat.js"></script>
 <script src="js/ui/room.js"></script>
 <script src="js/data/backup.js"></script>
