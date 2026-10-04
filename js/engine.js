@@ -1,5 +1,5 @@
 /* =========================================================
-   星迹 · 回复生成引擎（chat-engine.js）
+   星迹 · 回复生成引擎（engine.js）
    - 普通字卡 = 基础回复；表情/拍一拍/引用/礼物/QA = 独立概率事件
    - 每项独立掷骰，允许多个同时发生（每轮最多 2 个额外互动）
    - 多气泡回复（多条消息）与字卡拼接（一个气泡多张卡）彻底分开
@@ -7,9 +7,6 @@
    - 字卡统计 useCount/lastUsedAt/replyCount/proactiveCount 落库
    ========================================================= */
 
-function _roll(pct){return Math.random()*100 < (Number.isFinite(pct)?pct:0);}
-function _clamp(v,min,max){return Math.max(min,Math.min(max,v));}
-function _randomInt(min,max){min=Math.ceil(min);max=Math.floor(max);return Math.floor(Math.random()*(max-min+1))+min;}
 
 /* ---- 字卡池：带 id 的对象（排除停用分组），禁止提前丢 id ---- */
 async function _getCardPool(){
@@ -281,8 +278,9 @@ function _buildPollAnswerText(m){
   return '我选：'+pick(opts);
 }
 
-/* ---- 执行一轮回复：逐条落库 + 增量渲染 + 统计（含已读不回开关） ---- */
-async function buildAndSendReply(job){
+/* ---- 执行一轮回复：逐条落库 + 增量渲染 + 统计（含已读不回开关） ----
+   纯生成在 buildReply()，这里只负责「执行」：落库、增量渲染、角标、系统通知。 ---- */
+async function executeReply(job){
   // 禁言检查
   if(Date.now()<state.muteEndTime){
     _scheduler.activeJob=null;
@@ -358,3 +356,8 @@ async function buildAndSendReply(job){
     });
   }
 }
+
+/* ---- 显式导出：调度器通过 window 调用，避免隐式全局依赖 ---- */
+window.buildReply=buildReply;
+window.executeReply=executeReply;
+window.buildAndSendReply=executeReply;   // 兼容旧调用名

@@ -1,5 +1,5 @@
 /* =========================================================
-   星迹 · 统一任务调度器（chat-scheduler.js）
+   星迹 · 统一任务调度器（scheduler.js）
    - enqueueTaJob：所有 TA 行为唯一入口（回复/继续/主动/题目/问卷）
    - 单联系人最多 1 个 active reply job
    - 连续消息 8 秒合并窗口（每新增延后 1~2 秒，最多额外 8 秒）
@@ -24,8 +24,6 @@ const _scheduler={
   proactiveNextAt:0     // 下一次主动消息时间戳
 };
 
-function _roll(pct){return Math.random()*100 < (Number.isFinite(pct)?pct:0);}
-function _clamp(v,min,max){return Math.max(min,Math.min(max,v));}
 
 /* 回复总时长（ms）：从用户发送到 TA 第一条回复出现（固定 replyDelaySec，含「正在输入…」窗口） */
 function _replyTotalMs(){
@@ -44,26 +42,19 @@ function _typingWindow(totalMs){
 function _persistJob(){
   const j=_scheduler.activeJob;
   if(!j||(j.status!=='waiting'&&j.status!=='typing'))return _clearPersistJob();
-  return dbGetAll('settings').then(list=>{
-    const row=list.find(r=>r.key===JOB_KEY);
-    const value={id:j.id,type:j.type,source:j.source,status:j.status,createdAt:j.createdAt,dueAt:j.dueAt,typingAt:j.typingAt,roundId:j.roundId,contactId:j.contactId,messageIds:j.messageIds,generation:j.generation};
-    if(row){row.value=value;return dbPut('settings',row);}
-    return dbPut('settings',{key:JOB_KEY,value});
-  });
+  const value={id:j.id,type:j.type,source:j.source,status:j.status,createdAt:j.createdAt,dueAt:j.dueAt,typingAt:j.typingAt,roundId:j.roundId,contactId:j.contactId,messageIds:j.messageIds,generation:j.generation};
+  return dbGet('settings',JOB_KEY)
+    .then(row=>{if(row){row.value=value;return dbPut('settings',row);}return dbPut('settings',{key:JOB_KEY,value});})
+    .catch(e=>console.warn('[scheduler] persist job failed',e));
 }
 function _clearPersistJob(){
-  return dbGetAll('settings').then(list=>{
-    const row=list.find(r=>r.key===JOB_KEY);
-    return row?dbDelete('settings',row.id):null;
-  });
+  return dbDelete('settings',JOB_KEY).catch(e=>console.warn('[scheduler] clear job failed',e));
 }
 function _persistProactiveNext(){
-  return dbGetAll('settings').then(list=>{
-    const row=list.find(r=>r.key===PROACTIVE_KEY);
-    const value={at:_scheduler.proactiveNextAt};
-    if(row){row.value=value;return dbPut('settings',row);}
-    return dbPut('settings',{key:PROACTIVE_KEY,value});
-  });
+  const value={at:_scheduler.proactiveNextAt};
+  return dbGet('settings',PROACTIVE_KEY)
+    .then(row=>{if(row){row.value=value;return dbPut('settings',row);}return dbPut('settings',{key:PROACTIVE_KEY,value});})
+    .catch(e=>console.warn('[scheduler] persist proactiveNext failed',e));
 }
 
 /* ---- 顶部状态副标题（唯一来源：activeJob.phase） ---- */
@@ -173,8 +164,9 @@ function _executeJob(){
   if(!j||(j.status!=='waiting'&&j.status!=='typing'))return;
   j.status='sending';
   _persistJob();
-  if(typeof window.buildAndSendReply==='function'){
-    window.buildAndSendReply(j).then(()=>_finishJob()).catch(()=>_finishJob());
+  // 执行层在 js/engine.js（executeReply：落库 + 增量渲染 + 系统通知）
+  if(typeof window.executeReply==='function'){
+    window.executeReply(j).then(()=>_finishJob()).catch(e=>{console.warn('[scheduler] execute job failed',e);_finishJob();});
   }else{
     _finishJob();
   }
@@ -183,6 +175,7 @@ function _executeJob(){
 function _finishJob(){
   _scheduler.activeJob=null;
   _scheduler.extraDelayed=0;
+  _stopTick();                       // 无任务时停掉每秒倒计时，避免定时器常驻
   _clearPersistJob();
   if(_scheduler.pendingQueue>0){
     _scheduler.pendingQueue--;
@@ -249,8 +242,7 @@ function stopProactive(){
 /* ---- 恢复检查点：DOMContentLoaded / pageshow / focus / visibilitychange / 路由切换 / 切回聊天 ---- */
 function resumeScheduledJobs(){
   if(!window.DB)return Promise.resolve();   // DB 尚未就绪（首次加载 DOMContentLoaded 先于 openDB 完成时），由 init 流程补触发
-  return dbGetAll('settings').then(list=>{
-    const jrow=list.find(r=>r.key===JOB_KEY);
+  return Promise.all([dbGet('settings',JOB_KEY),dbGet('settings',PROACTIVE_KEY)]).then(([jrow,prow])=>{
     if(jrow&&jrow.value){
       const v=jrow.value;
       const now=Date.now();
@@ -267,7 +259,6 @@ function resumeScheduledJobs(){
       _startTick();
       _syncSubtitle();
     }
-    const prow=list.find(r=>r.key===PROACTIVE_KEY);
     if(prow&&prow.value&&prow.value.at){
       _scheduler.proactiveNextAt=prow.value.at;
       const wait=prow.value.at-Date.now();
