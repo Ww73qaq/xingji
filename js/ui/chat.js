@@ -42,6 +42,19 @@ function avatarHtml(who){
   const p=who==='me'?state.me:state.other;
   return p.avatar?`<img src="${p.avatar}" alt="">`:esc((p.name||'TA').charAt(0));
 }
+/* 礼物明信片：按礼物名散列到 6 套莫兰迪配色（同一种礼物每次颜色一致） */
+function giftHue(text,shift){
+  let h=0;const s=String(text||'');
+  for(let i=0;i<s.length;i++)h=(h*31+s.charCodeAt(i))>>>0;
+  return (h+(shift||0))%6;
+}
+/* 邮票图案：GIFTS 用的是数字实体（如&#9749;），默认按文字字形渲染成黑白，
+   补一个 U+FE0F 变体选择符才会显示为彩色 emoji。 */
+function pcStampEmoji(ch,fallback){
+  const s=String(ch||'').trim();
+  if(!s)return fallback||'&#127873;';
+  return /\uFE0F/.test(s)?s:s+'\uFE0F';
+}
 function bubbleInnerHtml(m){
   if(m.recalled)return`<div class="msg-bubble msg-recalled">${who(m.sender)==='me'?'你撤回了一条消息':esc(state.other.name)+'撤回了一条消息'}</div>`;
   const q=m.quote?`<div class="msg-quoted" onclick="jumpToMsg(${m.quote.id},event)"><b>${esc(who(m.quote.sender))}：</b>${esc(m.quote.text)}</div>`:'';
@@ -63,10 +76,30 @@ function bubbleInnerHtml(m){
       return q+`<div class="msg-bubble msg-card" style="background:linear-gradient(135deg,#2b2b2b,#0f0f0f)!important"><div class="msg-card-top"><div class="msg-card-title" style="color:#fff">${esc(m.content||'')}</div><div class="msg-card-sub" style="color:rgba(255,255,255,.55)">${esc(m.sub||'字卡')}</div></div><div class="msg-card-foot" style="background:rgba(255,255,255,.08);color:rgba(255,255,255,.5)">${esc(m.fav?'':'')}星迹字卡</div></div>`;
     case 'redpacket':
       return q+`<div class="msg-bubble msg-card rp-card" style="min-width:0"><div style="padding:12px 14px"><div class="rp-amt">&#129505; ${esc(m.content)} 元</div><div class="rp-msg">${esc(m.sub||'恭喜发财，大吉大利')}</div></div></div>`;
-    case 'gift':
-      return q+`<div class="msg-bubble msg-card gift-card" style="min-width:0"><div style="display:flex;align-items:center;gap:10px;padding:12px 14px"><div style="font-size:30px">${m.sub||'🎁'}</div><div><div style="font-size:14px;font-weight:600">${esc(m.content||'礼物')}</div><div style="font-size:11px;opacity:.6;margin-top:1px">星迹心意</div></div></div></div>`;
-    case 'heart':
-      return q+`<div class="msg-bubble msg-card gift-card" style="min-width:0"><div style="display:flex;align-items:center;gap:10px;padding:12px 14px"><div style="font-size:30px">${m.sub||'💌'}</div><div><div style="font-size:14px;font-weight:600">${esc(m.content||'心意卡')}</div><div style="font-size:11px;opacity:.6;margin-top:1px">星迹心意</div></div></div></div>`;
+case 'gift':{
+      const hue=giftHue(m.content||'礼物');
+      return q+`<div class="msg-bubble msg-card postcard pc-${hue}">
+        <div class="pc-head"><div class="pc-stamp"><span>${pcStampEmoji(m.sub,'&#127873;')}</span></div><div class="pc-mark"></div></div>
+
+        <div class="pc-body">
+          <div class="pc-title">${esc(m.content||'礼物')}</div>
+          <div class="pc-sub">星迹心意</div>
+        </div>
+        <div class="pc-foot"><span class="pc-dash"></span>星迹 · 寄自 ${esc(state.other.name)}</div>
+      </div>`;
+    }
+    case 'heart':{
+      const hue=giftHue(m.content||'心意卡',2);
+      return q+`<div class="msg-bubble msg-card postcard pc-${hue}">
+        <div class="pc-head"><div class="pc-stamp"><span>${pcStampEmoji(m.sub,'&#10084;')}</span></div><div class="pc-mark"></div></div>
+
+        <div class="pc-body">
+          <div class="pc-title">${esc(m.content||'心意卡')}</div>
+          <div class="pc-sub">星迹心意</div>
+        </div>
+        <div class="pc-foot"><span class="pc-dash"></span>星迹 · 心意已送达</div>
+      </div>`;
+    }
     case 'transfer':
       return q+`<div class="msg-bubble msg-card" style="min-width:0;border:1px solid var(--input)"><div style="padding:12px 14px"><div style="font-size:11px;color:var(--hint)">${esc(state.other.name)} 收款</div><div class="rp-amt" style="font-size:22px">${esc(m.content)} 元</div><div class="rp-msg" style="color:var(--hint)">${esc(m.sub||'转账')}</div></div></div>`;
     case 'location':
@@ -77,18 +110,29 @@ function bubbleInnerHtml(m){
     case 'poll':{
       const pp=m.poll||m.survey||{};
       const isSurvey=!!(pp.questions&&pp.questions.length);
-      // 已选判定：问卷 sel 为逐题数组，单选/多选 sel 为一维下标数组
+      /* 已选判定（两种 sel 结构）：
+         问卷  sel = [[i],[i,j]…] 逐题数组 → 取 sel[qi] 再判断
+         单选/多选 sel = [i,j,…] 一维下标 → 直接在 sel 里找
+         v3.4.0 之前这里统一按 sel[qi] 取，导致多选只勾中「第一个被选中的下标」，
+         出现「回答文本列了 6 项、气泡只勾 1 项」的对不上问题。 */
       const sel=m.answer&&m.answer.sel;
-      const isSel=(qi,oi)=>{if(!sel)return false;const s=sel[qi];return Array.isArray(s)?s.indexOf(oi)>=0:s===oi;};
+      const isSelQ=(qi,oi)=>{if(!sel)return false;const s=sel[qi];return Array.isArray(s)?s.indexOf(oi)>=0:s===oi;};
+      const isSelFlat=(oi)=>!!sel&&sel.indexOf(oi)>=0;
+      /* 底部状态条：superseded（已被「修改并重发」替代）是独立提示行；
+   已作答照旧显示用时，两者可以同时出现；未作答且已替代则不再给「再问一遍」，
+   避免用户在废弃题上反复操作。 */
+      const note=m.superseded?'<div class="poll-note">已重新发送 · 看下面那条</div>':'';
       const foot=m.answer
-        ?('<div class="poll-ans">'+esc(state.other.name)+' 已作答 · 用时 '+(m.answer.usedSec||0)+' 秒</div>')
-        :(isPollStale(m)
+        ?(note+'<div class="poll-ans">'+esc(state.other.name)+' 已作答 · 用时 '+(m.answer.usedSec||0)+' 秒</div>')
+        :(m.superseded
+            ?note
+            :(isPollStale(m)
             ?('<div class="poll-wait stale" onclick="pollRetry(\''+m.id+'\')">'+(m.retried?'已重新问过 · 再问一次':'TA 好像没接住这道题 · 点击再问一遍')+'</div>')
-            :('<div class="poll-wait" onclick="pollRetry(\''+m.id+'\')">等待作答… 点击可再问一遍</div>'));
+            :('<div class="poll-wait" onclick="pollRetry(\''+m.id+'\')">等待作答… 点击可再问一遍</div>')));
       if(isSurvey){
         const items=pp.questions.map((q,i)=>{
           const optsHtml=(q.options||[]).map((o,oi)=>{
-            const on=isSel(i,oi);
+            const on=isSelQ(i,oi);
             return '<div class="poll-opt'+(on?' sel':'')+'">'+String.fromCharCode(65+oi)+'. '+esc(o)+(on?' <b>&#10003;</b>':'')+'</div>';
           }).join('');
           return '<div class="poll-q" style="margin-top:'+(i?'7':'0')+'px">'+(i+1)+'. '+esc(q.q||'')+(q.multi?'<span style="font-size:11px;color:var(--hint)">（多选）</span>':'')+'</div>'+optsHtml;
@@ -96,7 +140,7 @@ function bubbleInnerHtml(m){
         const dl=pp.deadlineSec?(' · '+pp.deadlineSec+' 秒内作答'):'';
         return q+'<div class="msg-bubble msg-card" style="min-width:0"><div style="padding:11px 13px 9px"><div class="poll-q">'+esc(m.content||'问卷')+' <span style="font-size:11px;color:var(--hint)">问卷 · '+pp.questions.length+' 题'+dl+'</span></div>'+items+'</div>'+foot+'</div>';
       }
-      const opts=(pp.options||[]).map((o,i)=>{const on=isSel(0,i);return '<div class="poll-opt'+(on?' sel':'')+'">'+String.fromCharCode(65+i)+'. '+esc(o)+(on?' <b>&#10003;</b>':'')+'</div>';}).join('');
+      const opts=(pp.options||[]).map((o,i)=>{const on=isSelFlat(i);return '<div class="poll-opt'+(on?' sel':'')+'">'+String.fromCharCode(65+i)+'. '+esc(o)+(on?' <b>&#10003;</b>':'')+'</div>';}).join('');
       const tag=(pp.multi?('多选'+(pp.multiMin?' · 选 '+pp.multiMin+'-'+pp.multiMax+' 项':'')):'单选');
       return q+'<div class="msg-bubble msg-card" style="min-width:0"><div style="padding:11px 13px 9px"><div class="poll-q">'+esc(pp.question||'题目')+' <span style="font-size:11px;color:var(--hint)">'+tag+'</span></div>'+opts+'</div>'+foot+'</div>';
     }

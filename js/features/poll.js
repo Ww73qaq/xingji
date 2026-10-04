@@ -11,16 +11,17 @@ function _surveyDefault(key,fb){
   return Number.isFinite(v)?v:fb;
 }
 let pollEditing=false, surveyEditing=false;
+let editingFromId=null;   // 「修改并重发」的原消息 id：提交后给它打 superseded 标记
 
 /* ---------- 表单构造 ---------- */
 function buildPollFormHtml(question,optionsText,multi,minV,maxV){
   const optCount=String(optionsText||'').split(/\n+/).map(x=>x.trim()).filter(Boolean).length;
   return '<input class="app-input" id="poll-q" placeholder="题目" value="'+esc(question)+'" style="width:100%;margin-bottom:10px">'
-    +'<textarea class="textarea-full" id="poll-opts" placeholder="选项，一行一个（最多 6 个）" style="min-height:110px" oninput="syncPollLimits()">'+esc(optionsText)+'</textarea>'
+    +'<textarea class="textarea-full" id="poll-opts" placeholder="选项，一行一个（最多 10 个）" style="min-height:110px" oninput="syncPollLimits()">'+esc(optionsText)+'</textarea>'
     +(multi
       ?'<div style="display:flex;gap:8px;align-items:center;margin-top:10px;font-size:12px;color:var(--sub);flex-wrap:wrap">'
-        +'<span>TA 最少选</span><input class="app-input" id="poll-min" type="number" min="1" max="8" value="'+minV+'" style="width:64px;text-align:center" oninput="syncPollLimits()">'
-        +'<span>最多选</span><input class="app-input" id="poll-max" type="number" min="1" max="8" value="'+maxV+'" style="width:64px;text-align:center" oninput="syncPollLimits()">'
+        +'<span>TA 最少选</span><input class="app-input" id="poll-min" type="number" min="1" max="10" value="'+minV+'" style="width:64px;text-align:center" oninput="syncPollLimits()">'
+        +'<span>最多选</span><input class="app-input" id="poll-max" type="number" min="1" max="10" value="'+maxV+'" style="width:64px;text-align:center" oninput="syncPollLimits()">'
         +'<span>项</span><span id="poll-limit-hint" style="color:var(--hint)">（当前 '+optCount+' 个选项）</span></div>'
         +'<div style="font-size:11px;color:var(--hint);margin-top:6px">TA 作答时选中的数量会落在这个区间内；选项少于上限时自动收敛。</div>'
       :'<div style="font-size:11px;color:var(--hint);margin-top:8px">单选：TA 会直接选中其中一个选项并作答。</div>');
@@ -63,7 +64,7 @@ function toggleSurveyHint(){
 
 /* ===== 入口：+ 面板里的「单选 / 多选 / 问卷」 ===== */
 function openPollModal(type){
-  pollEditing=false;surveyEditing=false;
+  pollEditing=false;surveyEditing=false;editingFromId=null;
   if(type==='survey'){
     showModal('发送问卷',buildSurveyFormHtml('',_surveyDefault('deadlineSec',60),_surveyDefault('earlySubmitProb',30)),
       '<div class="modal-btn-row"><button class="modal-btn" onclick="closeModal()">取消</button>'
@@ -79,6 +80,7 @@ function openPollModal(type){
 
 /* 「修改并重发」：以原消息内容回填弹窗，提交后作为新消息发送（原消息不变） */
 async function editPollAndResend(m){
+  editingFromId=m.id;
   if(m.type==='survey'||(m.survey&&m.survey.questions)){
     const p=m.survey||{};
     const raw=p.rawText||(p.questions||[]).map(q=>'[题目] '+(q.q||'')+'\n'+(q.options||[]).join('\n')).join('\n\n');
@@ -115,7 +117,7 @@ function parseSurveyText(){
       cur={q:(mk[1]||'').trim(),options:[]};
     }else if(cur){
       if(!cur.q)cur.q=ln;
-      else if(cur.options.length<8)cur.options.push(ln);
+      else if(cur.options.length<10)cur.options.push(ln);
     }
   }
   if(cur&&cur.q&&cur.options.length>=2)questions.push(cur);
@@ -131,7 +133,7 @@ async function submitPoll(multi,isEdit){
   const qEl=document.getElementById('poll-q');
   const oEl=document.getElementById('poll-opts');
   const question=(qEl?qEl.value:'').trim();
-  const opts=(oEl?oEl.value:'').split(/\n+/).map(x=>x.trim()).filter(Boolean).slice(0,6);
+  const opts=(oEl?oEl.value:'').split(/\n+/).map(x=>x.trim()).filter(Boolean).slice(0,10);
   if(!question){showToast('请输入题目');return;}
   if(opts.length<2){showToast('至少 2 个选项');return;}
   const poll={question,options:opts,multi:!!multi};
@@ -143,9 +145,11 @@ async function submitPoll(multi,isEdit){
     poll.multiMin=a;poll.multiMax=b;
   }
   closeModal();
-  await sendMessageObject({type:'poll',content:question,poll});
+  const fromId=editingFromId;
+  const newId=await sendMessageObject({type:'poll',content:question,poll});
+  if(isEdit&&fromId)await markSuperseded(fromId,newId);
   showToast(isEdit?'修改后的题目已重新发送（原消息保留）':'题目已发送，等待 TA 作答');
-  pollEditing=false;
+  pollEditing=false;editingFromId=null;
 }
 async function submitSurvey(isEdit){
   const el=document.getElementById('survey-raw');
@@ -162,13 +166,23 @@ async function submitSurvey(isEdit){
   if(questions.length>20){showToast('最多 20 题');return;}
   closeModal();
   surveyParsed=null;
-  await sendMessageObject({
+  const fromId=editingFromId;
+  const newId=await sendMessageObject({
     type:'survey',
     content:questions[0].q+' 等 '+questions.length+' 题',
     survey:{questions,rawText:raw,deadlineSec:deadline,earlySubmitProb:earlyPct}
   });
+  if(isEdit&&fromId)await markSuperseded(fromId,newId);
   showToast(isEdit?'修改后的问卷已重新发送（原消息保留）':'问卷已发送，TA 会在 '+deadline+' 秒内作答');
-  surveyEditing=false;
+  surveyEditing=false;editingFromId=null;
+}
+/* 「修改并重发」后给原消息打「已被新版本替代」标记（内容保留，不删除） */
+async function markSuperseded(fromId,newId){
+  const src=await dbGet('messages',fromId);
+  if(!src)return;
+  src.superseded=1;src.supersededBy=newId||0;
+  await dbPut('messages',src);
+  if(state.currentApp==='chat')refreshMsgRow(fromId);
 }
 /* 旧调用名保留（历史代码/收藏脚本可能用到） */
 window.submitPoll=submitPoll;

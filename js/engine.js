@@ -268,10 +268,10 @@ async function buildReply(context){
 function _buildPollAnswer(m){
   const poll=(m&&(m.poll||m.survey))||{};
   const ss=state.surveySettings||{};
-  const defMin=_clamp(Number(ss.multiMin)||1,1,8);
-  const defMax=_clamp(Number(ss.multiMax)||6,Math.max(2,defMin),8);
-  const multiMin=_clamp(Number(poll.multiMin)||defMin,1,8);
-  const multiMax=_clamp(Number(poll.multiMax)||defMax,Math.max(2,multiMin),8);
+  const defMin=_clamp(Number(ss.multiMin)||1,1,10);
+  const defMax=_clamp(Number(ss.multiMax)||6,Math.max(2,defMin),10);
+  const multiMin=_clamp(Number(poll.multiMin)||defMin,1,10);
+  const multiMax=_clamp(Number(poll.multiMax)||defMax,Math.max(2,multiMin),10);
   const pick=arr=>arr[Math.floor(Math.random()*arr.length)];
   const pickMulti=opts=>{
     if(!opts.length)return [];

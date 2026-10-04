@@ -583,6 +583,8 @@ body{-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;letter
 .poll-wait{font-size:11px;color:var(--sub);padding:8px 12px;background:rgba(0,0,0,.04);border-top:1px solid rgba(0,0,0,.05);cursor:pointer}
 /* 等太久：文案换成「TA 没接住」并加朱砂左边框，视觉上区别于「还在想」 */
 .poll-wait.stale{color:#a5342a;background:rgba(192,57,43,.07);box-shadow:inset 3px 0 0 var(--c-ink);font-weight:600}
+/* 已被「修改并重发」替代：不再是可点按钮，只做弱提示 */
+.poll-note{font-size:11px;color:var(--hint);padding:8px 12px;background:rgba(0,0,0,.03);border-top:1px solid rgba(0,0,0,.04)}
 #modal-actions{display:flex;gap:10px;margin-top:14px}
 #modal-actions .modal-item{flex:1;margin:0;padding:12px 4px;border-radius:12px;border:1px solid var(--input);background:var(--bg);text-align:center;font-size:15px;cursor:pointer}
 #modal-actions .modal-item:active{background:var(--input)}
@@ -634,8 +636,61 @@ body{-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;letter
 .rp-card{background:linear-gradient(135deg,#c0392b,#922b21)!important;color:#fff}
 .rp-amt{font-size:24px;font-weight:700;letter-spacing:1px}
 .rp-msg{font-size:12px;color:rgba(255,255,255,.8);margin-top:4px}
-.gift-card{background:linear-gradient(135deg,#2b2b2b,#0f0f0f)!important;color:#fff}
+/* 礼物 / 心意卡已改为明信片样式（.postcard，见文件末尾「礼物明信片」段） */
 .pill-oval{display:block;width:200px;margin:12px auto 0;padding:11px 0;border-radius:999px;border:1px solid var(--input);background:var(--bg);font-size:14px;cursor:pointer;text-align:center}
 .pill-oval:active{background:var(--input)}
 .cancel-text{text-align:center;font-size:13px;color:var(--hint);margin-top:14px;cursor:pointer}
 .letter-paper{background:#fdfcf9;border:1px solid #e8e6e0;border-radius:14px;padding:16px 14px 14px;box-shadow:inset 0 0 30px rgba(0,0,0,.03)}
+
+/* =========================================================
+   星迹 · 礼物 / 心意卡：明信片视觉（明信片样式 + 莫兰迪柔和色调）
+   用法：<div class="msg-bubble msg-card postcard pc-{0..5}"> … </div>
+   结构：.pc-stamp 邮票 · .pc-mark 邮戳 · .pc-body 正面文字 · .pc-foot 底部航空线
+   ========================================================= */
+.postcard{
+  position:relative;min-width:214px;max-width:264px;padding:0;
+  border-radius:12px;overflow:hidden;color:var(--text);
+  box-shadow:0 1px 5px rgba(0,0,0,.07)!important;
+  border:1px solid rgba(0,0,0,.06);
+  background:linear-gradient(150deg,var(--pc-1) 0%,var(--pc-2) 100%)!important;
+}
+/* 纸纹：极淡的斜向条纹，避免大色块显得平 */
+.postcard::before{
+  content:'';position:absolute;inset:0;pointer-events:none;opacity:.5;
+  background:repeating-linear-gradient(115deg,rgba(255,255,255,.30) 0 2px,transparent 2px 7px);
+}
+/* 上半部：邮票区（独占一行，正文因此可占满宽度，不会被邮戳压住） */
+.pc-head{position:relative;z-index:2;height:56px;display:flex;align-items:flex-start;justify-content:flex-end;
+  padding:9px 10px 0;border-bottom:1px solid rgba(0,0,0,.05)}
+.pc-stamp{
+  width:38px;height:44px;background:rgba(255,255,255,.75);border:1px dashed var(--pc-ink);
+  display:flex;align-items:center;justify-content:center;box-shadow:0 1px 2px rgba(0,0,0,.05);
+}
+.pc-stamp span{font-size:20px;line-height:1}
+/* 邮戳：同心圆 + 两道短横线，倾斜压在邮票左下角 */
+.pc-mark{
+  position:absolute;top:26px;right:42px;width:28px;height:28px;
+  border:1px solid var(--pc-ink);border-radius:50%;opacity:.38;transform:rotate(-14deg);
+}
+.pc-mark::before{content:'';position:absolute;left:5px;right:5px;top:10px;height:1px;background:var(--pc-ink)}
+.pc-mark::after{content:'';position:absolute;left:8px;right:8px;top:16px;height:1px;background:var(--pc-ink);opacity:.7}
+/* 正面文字：占满宽度 */
+.pc-body{position:relative;z-index:1;padding:11px 14px 10px}
+.pc-title{font-size:15px;font-weight:600;letter-spacing:.3px;line-height:1.4;word-break:break-word}
+.pc-sub{font-size:11px;color:var(--pc-ink);opacity:.85;margin-top:3px;letter-spacing:.4px}
+/* 底部：航空双色虚线 + 落款 */
+.pc-foot{
+  position:relative;z-index:1;display:flex;align-items:center;gap:7px;
+  padding:7px 12px;font-size:10px;color:var(--pc-ink);opacity:.75;
+  border-top:1px solid rgba(0,0,0,.05);background:rgba(255,255,255,.28);
+}
+.pc-dash{flex:1;height:0;border-top:2px dashed var(--pc-ink);opacity:.45}
+/* 六套莫兰迪配色：米杏 / 鼠尾草 / 藕粉 / 雾蓝 / 燕麦 / 薰衣草灰 */
+.pc-0{--pc-1:#F4EDE3;--pc-2:#E6D9C8;--pc-ink:#8A7355}
+.pc-1{--pc-1:#EAEFE7;--pc-2:#D7E0D3;--pc-ink:#6E8069}
+.pc-2{--pc-1:#F3E9E7;--pc-2:#E6D6D3;--pc-ink:#96706A}
+.pc-3{--pc-1:#EAEBF1;--pc-2:#D9DAE4;--pc-ink:#6E7288}
+.pc-4{--pc-1:#F5EFE3;--pc-2:#E8DCC6;--pc-ink:#8C7B58}
+.pc-5{--pc-1:#EDEAF1;--pc-2:#DCD7E7;--pc-ink:#7A7392}
+/* 我方气泡内的明信片：略微提亮，保证在深色气泡上有层次 */
+.msg-row.me .postcard{box-shadow:0 2px 8px rgba(0,0,0,.18)!important}

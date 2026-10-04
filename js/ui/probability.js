@@ -78,8 +78,8 @@ function setSurveySetting(key,v){
   state.surveySettings=state.surveySettings||{deadlineSec:60,earlySubmitProb:30,multiMin:1,multiMax:6};
   if(key==='deadlineSec')state.surveySettings.deadlineSec=Math.max(10,Math.min(600,parseInt(v)||60));
   else if(key==='earlySubmitProb')state.surveySettings.earlySubmitProb=Math.max(0,Math.min(100,parseInt(v)||30));
-  else if(key==='multiMin'){let n=Math.max(1,Math.min(8,parseInt(v)||1));if(n>state.surveySettings.multiMax)state.surveySettings.multiMax=n;state.surveySettings.multiMin=n;}
-  else if(key==='multiMax'){let n=Math.max(1,Math.min(8,parseInt(v)||6));if(n<state.surveySettings.multiMin)state.surveySettings.multiMin=n;state.surveySettings.multiMax=n;}
+  else if(key==='multiMin'){let n=Math.max(1,Math.min(10,parseInt(v)||1));if(n>state.surveySettings.multiMax)state.surveySettings.multiMax=n;state.surveySettings.multiMin=n;}
+  else if(key==='multiMax'){let n=Math.max(1,Math.min(10,parseInt(v)||6));if(n<state.surveySettings.multiMin)state.surveySettings.multiMin=n;state.surveySettings.multiMax=n;}
   saveKey('surveySettings');renderProbability();
 }
 function setProb(key,val){

@@ -3,7 +3,21 @@
    ========================================================= */
 
 /* ===== CARDS（字卡：分组 / 增删改查 / 批量导入 / 自动查重） ===== */
-let cardGroupFilter='全部',selectedCardIds=new Set(),cardSortMode='time';
+/* 列表排序规则（v3.5.0，取代原来的「最新添加 / 最常使用 / 最近使用 / 从未使用」四个按钮）：
+   1) 有使用次数的字卡，整段排在没有使用次数的前面；
+   2) 同为「用过」的，使用次数多的在前；
+   3) 其余一律按 26 个字母排序（中文走拼音：Intl.Collator zh-Hans-CN）。
+   即：默认是字母序，「使用次数」这一维度优先于字母序。 */
+let cardGroupFilter='全部',selectedCardIds=new Set();
+const _cardCollator=(typeof Intl!=='undefined'&&Intl.Collator)?new Intl.Collator('zh-Hans-CN',{numeric:true,sensitivity:'base'}):null;
+function cardCompare(a,b){
+  const ua=Number(a.useCount)||0,ub=Number(b.useCount)||0;
+  const uaUsed=ua>0,ubUsed=ub>0;
+  if(uaUsed!==ubUsed)return uaUsed?-1:1;      // 用过的整段排在前面
+  if(uaUsed&&ub!==ua)return ub-ua;            // 段内按使用次数降序
+  const at=a.text||'',bt=b.text||'';          // 默认：字母序（中文按拼音）
+  return _cardCollator?_cardCollator.compare(at,bt):(at<bt?-1:at>bt?1:0);
+}
 async function ensureDefaultCardGroups(){
   const groups=await dbGetAll('cardGroups');
   const names=new Set(groups.map(g=>g.name));
@@ -29,7 +43,7 @@ async function renderCards(){
     <button class="tab" style="flex:0 0 auto;padding:8px 14px" onclick="exportCards()">导出</button>
     <button class="tab" style="flex:0 0 auto;padding:8px 14px" onclick="importCards()">导入</button>
     <button class="tab" style="flex:0 0 auto;padding:8px 14px" onclick="manageCardGroups()">分组</button></div>
-    <div class="card-toolbar">${[['time','最新添加'],['use','最常使用'],['lastUsed','最近使用'],['unused','从未使用']].map(([k,l])=>`<button class="btn-pill ${cardSortMode===k?'primary':'ghost'}" style="flex:1" onclick="cardSortMode='${k}';renderCardList()">${l}</button>`).join('')}</div>
+    <div class="card-toolbar" style="color:var(--hint);font-size:11px">默认按字母排序 · 用过的字卡排在前面</div>
     <div class="search-bar">&#128269;<input type="text" id="card-search" placeholder="搜索字卡" oninput="filterCards(this.value)"></div>
     <div id="card-list"></div>`;
   renderCardList();
@@ -37,7 +51,7 @@ async function renderCards(){
 }
 let cardGroupNames=[];
 function pickCardGroup(i){cardGroupFilter=cardGroupNames[i]||'全部';renderCards();}
-function renderCardList(){dbGetAll('cards').then(all=>{let list=all.filter(c=>cardGroupFilter==='全部'||(c.group||'默认')===cardGroupFilter);if(cardSortMode==='use')list.sort((a,b)=>(b.useCount||0)-(a.useCount||0)||(b.time-a.time));else if(cardSortMode==='lastUsed')list.sort((a,b)=>(b.lastUsedAt||0)-(a.lastUsedAt||0)||(b.time-a.time));else if(cardSortMode==='unused')list=list.filter(c=>!c.useCount).sort((a,b)=>b.time-a.time);else list.sort((a,b)=>b.time-a.time);const box=document.getElementById('card-list');if(!list.length){box.innerHTML='<div class="empty">这个分组还没有字卡<br>点击右上角 + 添加</div>';return;}box.innerHTML=list.map(c=>{const lastUsed=c.lastUsedAt?(' · 最近 '+fmtChatDate(c.lastUsedAt)+' '+fmtChatTime(c.lastUsedAt)):(c.useCount?'':' · 从未使用');return `<div class="list-card" style="display:flex;align-items:center;gap:10px" data-t="${esc(c.text||'')}"><input class="card-select" type="checkbox" ${selectedCardIds.has(c.id)?'checked':''} onchange="toggleCardSelect(${c.id},this.checked)"><div style="flex:1;min-width:0;cursor:pointer" onclick="sendCardPoke('${esc(c.text)}')"><div class="list-card-title">${esc(c.text)}</div><div class="list-card-sub">${esc(c.group||'默认')} · ${c.useCount||0} 次使用${lastUsed}</div></div><button class="btn-pill ghost" style="padding:6px 10px" onclick="editCard(${c.id})">改</button><button class="btn-pill ghost" style="padding:6px 10px;color:${c.enabled===false?'#c0392b':'var(--sub)'}" onclick="toggleCardEnabled(${c.id})">${c.enabled===false?'启用':'停用'}</button><button class="btn-pill ghost" style="padding:6px 10px" onclick="delCard(${c.id})">删</button></div>`;}).join('');});}
+function renderCardList(){dbGetAll('cards').then(all=>{let list=all.filter(c=>cardGroupFilter==='全部'||(c.group||'默认')===cardGroupFilter);list.sort(cardCompare);const box=document.getElementById('card-list');if(!list.length){box.innerHTML='<div class="empty">这个分组还没有字卡<br>点击右上角 + 添加</div>';return;}box.innerHTML=list.map(c=>{const n=Number(c.useCount)||0;const meta=n?(' · '+n+' 次使用'+(c.lastUsedAt?(' · 最近 '+fmtChatDate(c.lastUsedAt)):'')):'';return `<div class="list-card" style="display:flex;align-items:center;gap:10px" data-t="${esc(c.text||'')}"><input class="card-select" type="checkbox" ${selectedCardIds.has(c.id)?'checked':''} onchange="toggleCardSelect(${c.id},this.checked)"><div style="flex:1;min-width:0;cursor:pointer" onclick="sendCardPoke('${esc(c.text)}')"><div class="list-card-title">${esc(c.text)}</div><div class="list-card-sub">${esc(c.group||'默认')}${meta}</div></div><button class="btn-pill ghost" style="padding:6px 10px" onclick="editCard(${c.id})">改</button><button class="btn-pill ghost" style="padding:6px 10px;color:${c.enabled===false?'#c0392b':'var(--sub)'}" onclick="toggleCardEnabled(${c.id})">${c.enabled===false?'启用':'停用'}</button><button class="btn-pill ghost" style="padding:6px 10px" onclick="delCard(${c.id})">删</button></div>`;}).join('');});}
 function toggleCardSelect(id,on){if(on)selectedCardIds.add(id);else selectedCardIds.delete(id);}
 async function toggleCardEnabled(id){
   const all=await dbGetAll('cards');const c=all.find(x=>x.id===id);if(!c)return;
