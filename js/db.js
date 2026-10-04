@@ -3,6 +3,13 @@
    ========================================================= */
 let DB=null;
 
+/* DB 就绪门闩：openDB 成功前，任何依赖 DB 的入口（如调度器恢复）先挂在这里排队，
+   就绪后自动继续，不再出现「静默 return、任务丢失」。
+   用法：return dbReady.then(()=>{ ...依赖 DB 的逻辑... }); */
+let _dbReadyResolve=null;
+const dbReady=new Promise(r=>{_dbReadyResolve=r;});
+function _markDbReady(){if(_dbReadyResolve){const r=_dbReadyResolve;_dbReadyResolve=null;r();}}
+
 /* 主键：settings 用 keyPath:'key'，其余 store 用 autoIncrement 的 id */
 function dbPrimaryKey(store,rec){return store==='settings'?(rec&&rec.key):(rec&&rec.id);}
 
@@ -14,8 +21,8 @@ function dbPrimaryKey(store,rec){return store==='settings'?(rec&&rec.key):(rec&&
 function openDB(){
   return new Promise((res,rej)=>{
     const req=indexedDB.open('xingji',2);
-    req.onerror=()=>rej(req.error);
-    req.onsuccess=()=>{DB=req.result;window.DB=DB;res();};
+    req.onerror=()=>{_markDbReady();rej(req.error);};   // 失败也开门闩，避免等待者永久挂起（后续调用会自行 reject）
+    req.onsuccess=()=>{DB=req.result;window.DB=DB;_markDbReady();res();};
     req.onupgradeneeded=e=>{
       const db=e.target.result;
       const tx=e.target.transaction;

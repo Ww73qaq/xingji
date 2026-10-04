@@ -44,6 +44,8 @@ function updateTabBadge(tab,count){
   const b=document.getElementById('tab-badge-'+tab);if(!b)return;
   b.style.display=count>0?'block':'none';b.textContent='';
 }
+/* 底部标签栏红点（方案 C）：红点 = 真实未读内容，不叠加「提醒中心」条数
+   （提醒中心有自己的入口红点 mom-notif-badge，避免同一件事被计两次） */
 async function refreshAllBadges(){
   if(!DB)return;
   const msgs=await dbGetAll('messages');
@@ -51,7 +53,10 @@ async function refreshAllBadges(){
   updateTabBadge('chat',chatUnread);
   const moments=await dbGetAll('moments');
   const diary=await dbGetAll('diaries');
-  const momUnread=moments.filter(m=>m.owner==='other'&&!m.read).length + diary.filter(d=>d.owner==='other'&&!d.read).length + notifUnreadCount();
+  const momUnread=
+      moments.filter(m=>m.owner==='other'&&!m.read).length
+    + diary.filter(d=>d.owner==='other'&&!d.read).length
+    + moments.reduce((s,m)=>s+(m.comments||[]).filter(c=>c.fromTa&&!c.read).length,0);
   updateTabBadge('moments',momUnread);
   updateTabBadge('cards',0);
 }

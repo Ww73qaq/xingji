@@ -73,23 +73,30 @@ function bubbleInnerHtml(m){
       return q+`<div class="msg-bubble msg-card" style="min-width:0"><div class="msg-loc"><div class="msg-loc-img"></div><div style="padding:7px 10px 9px"><div class="msg-loc-name">${esc(m.name||'位置')}</div><div class="msg-loc-addr">${esc(m.addr||'')}</div></div></div></div>`;
     case 'file':
       return q+`<div class="msg-bubble msg-card"><div style="display:flex;align-items:center;gap:10px;padding:11px 12px"><div class="msg-card-ico">&#128196;</div><div class="msg-music-meta"><div class="msg-music-name">${esc(m.content||'文件')}</div><div class="msg-music-artist">${esc(m.sub||'')}</div></div></div></div>`;
+    case 'survey':      // 问卷与单选/多选共用同一套卡片渲染（v3.4.0 修复：survey 之前落到 default，气泡只显示一行文字）
     case 'poll':{
       const pp=m.poll||m.survey||{};
-      if(pp.questions&&pp.questions.length){
-        // 问卷：多题列表（兼容旧 poll.questions / 新 survey.questions）
+      const isSurvey=!!(pp.questions&&pp.questions.length);
+      // 已选判定：问卷 sel 为逐题数组，单选/多选 sel 为一维下标数组
+      const sel=m.answer&&m.answer.sel;
+      const isSel=(qi,oi)=>{if(!sel)return false;const s=sel[qi];return Array.isArray(s)?s.indexOf(oi)>=0:s===oi;};
+      const foot=m.answer
+        ?('<div class="poll-ans">'+esc(state.other.name)+' 已作答 · 用时 '+(m.answer.usedSec||0)+' 秒</div>')
+        :('<div class="poll-wait" onclick="pollRetry(\''+m.id+'\')">等待作答… 点击可再问一遍</div>');
+      if(isSurvey){
         const items=pp.questions.map((q,i)=>{
           const optsHtml=(q.options||[]).map((o,oi)=>{
-            const on=m.answer&&m.answer.sel&&m.answer.sel[i]===oi;
+            const on=isSel(i,oi);
             return '<div class="poll-opt'+(on?' sel':'')+'">'+String.fromCharCode(65+oi)+'. '+esc(o)+(on?' <b>&#10003;</b>':'')+'</div>';
           }).join('');
-          return '<div class="poll-q" style="margin-top:'+(i?'7':'0')+'px">'+(i+1)+'. '+esc(q.q||'')+'</div>'+optsHtml;
+          return '<div class="poll-q" style="margin-top:'+(i?'7':'0')+'px">'+(i+1)+'. '+esc(q.q||'')+(q.multi?'<span style="font-size:11px;color:var(--hint)">（多选）</span>':'')+'</div>'+optsHtml;
         }).join('');
-        const foot=m.answer?('<div class="poll-ans">'+esc(state.other.name)+' 已作答 · 用时 '+(m.answer.usedSec||0)+' 秒</div>'):('<div class="poll-wait" onclick="pollRetry(\''+m.id+'\')">等待作答… 点击可再问一遍</div>');
-        return q+'<div class="msg-bubble msg-card" style="min-width:0"><div style="padding:11px 13px 9px"><div class="poll-q">'+esc(m.content||'问卷')+' <span style="font-size:11px;color:var(--hint)">问卷 · '+pp.questions.length+' 题</span></div>'+items+'</div>'+foot+'</div>';
+        const dl=pp.deadlineSec?(' · '+pp.deadlineSec+' 秒内作答'):'';
+        return q+'<div class="msg-bubble msg-card" style="min-width:0"><div style="padding:11px 13px 9px"><div class="poll-q">'+esc(m.content||'问卷')+' <span style="font-size:11px;color:var(--hint)">问卷 · '+pp.questions.length+' 题'+dl+'</span></div>'+items+'</div>'+foot+'</div>';
       }
-      const opts=(pp.options||[]).map((o,i)=>{const on=m.answer&&m.answer.sel&&m.answer.sel.indexOf(i)>=0;return '<div class="poll-opt'+(on?' sel':'')+'">'+String.fromCharCode(65+i)+'. '+esc(o)+(on?' <b>&#10003;</b>':'')+'</div>';}).join('');
-      const foot=m.answer?('<div class="poll-ans">'+esc(state.other.name)+' 已作答 · 用时 '+(m.answer.usedSec||0)+' 秒</div>'):('<div class="poll-wait" onclick="pollRetry(\''+m.id+'\')">等待作答… 点击可再问一遍</div>');
-      return q+'<div class="msg-bubble msg-card" style="min-width:0"><div style="padding:11px 13px 9px"><div class="poll-q">'+esc(pp.question||'问卷')+' <span style="font-size:11px;color:var(--hint)">'+(pp.multi?'多选':'单选')+'</span></div>'+opts+'</div>'+foot+'</div>';
+      const opts=(pp.options||[]).map((o,i)=>{const on=isSel(0,i);return '<div class="poll-opt'+(on?' sel':'')+'">'+String.fromCharCode(65+i)+'. '+esc(o)+(on?' <b>&#10003;</b>':'')+'</div>';}).join('');
+      const tag=(pp.multi?('多选'+(pp.multiMin?' · 选 '+pp.multiMin+'-'+pp.multiMax+' 项':'')):'单选');
+      return q+'<div class="msg-bubble msg-card" style="min-width:0"><div style="padding:11px 13px 9px"><div class="poll-q">'+esc(pp.question||'题目')+' <span style="font-size:11px;color:var(--hint)">'+tag+'</span></div>'+opts+'</div>'+foot+'</div>';
     }
     default:{
       const mark=(m.proactive&&m.sender==='other')?'<span class="proactive-mark">✦ </span>':'';
@@ -222,31 +229,126 @@ function bindMsgGestures(row,m){
   row.addEventListener('pointerleave',end);
   row.addEventListener('contextmenu',e=>{e.preventDefault();if(m.sender!=='sys')openCtxMenu(m.id,e);});
 }
+/* =========================================================
+   消息操作菜单（锚定消息的小横条 · 微信/iMessage 风格）
+   - 长按 / 右键 → 在消息上方或下方弹出小横条（无全屏遮罩）
+   - 点空白处 / 滚动 / 缩放 / 返回 → 自动关闭
+   - 动作顺序：复制 → 引用 → 收藏 → 修改并重发 → 撤回 → 删除
+   ========================================================= */
 let ctxMsgId=null;
-async function openCtxMenu(id){
-  const msgs=await dbGetAll('messages');const m=msgs.find(x=>x.id===id);if(!m)return;
+let ctxItems=[];        // 当前菜单项（供 ctxDo 使用）
+let ctxCleanup=null;    // 一次性解绑函数
+async function openCtxMenu(id,ev){
+  const msgs=await dbGetAll('messages');
+  const m=msgs.find(x=>Number(x.id)===Number(id));
+  if(!m||m.sender==='sys')return;
+
   ctxMsgId=id;
   const isMe=m.sender==='me';
   // 撤回：固定 120 秒（开关控制是否可用）
   const canRecall=isMe&&!m.recalled&&state.chat.allowRecall!==false&&(Date.now()-m.time)<120000;
-  const items=[];
-  if(m.type==='text')items.push({label:'复制',fn:()=>copyMsg(m)});
-  items.push({label:'引用',fn:()=>startQuote(m)});
-  items.push({label:m.fav?'取消收藏':'收藏',fn:()=>toggleFav(m)});
-  items.push({label:'删除',fn:()=>deleteMsg(m),danger:true});
-  if(canRecall)items.push({label:'撤回',fn:()=>recallMsg(m)});
-  const sheet=document.getElementById('ctx-sheet');
-  sheet.innerHTML=`<div class="ctx-title">${esc(who(m.sender))} · ${fmtFull(m.time)}<br>${esc(msgPreviewText(m)||TYPE_LABEL[m.type]||'')}</div>`
-    +'<div class="ctx-grid">'+items.map((it,i)=>`<div class="ctx-item${it.danger?' danger':''}" onclick="ctxDo(${i})">${it.label}</div>`).join('')+'</div>'
-    +'<div class="ctx-cancel" onclick="closeCtxMenu()">取消</div>';
-  sheet._items=items;
-  document.getElementById('ctx-menu').classList.add('show');
+
+  ctxItems=[];
+  if(m.type==='text'||m.type==='poll'||m.type==='survey')ctxItems.push({key:'copy',label:'复制',fn:()=>copyMsg(m)});
+  ctxItems.push({key:'quote',label:'引用',fn:()=>startQuote(m)});
+  ctxItems.push({key:'fav',label:m.fav?'取消收藏':'收藏',fn:()=>toggleFav(m)});
+  if((m.type==='poll'||m.type==='survey')&&isMe)ctxItems.push({key:'edit',label:'修改并重发',fn:()=>editPollAndResend(m)});
+  if(canRecall)ctxItems.push({key:'recall',label:'撤回',fn:()=>recallMsg(m)});
+  ctxItems.push({key:'delete',label:'删除',fn:()=>deleteMsg(m),danger:true});
+
+  const menu=document.getElementById('ctx-menu');
+  if(!menu)return;
+  _ctxClearListeners();          // 连续长按两条消息时不残留旧监听
+  menu.innerHTML='';
+  const bar=document.createElement('div');
+  bar.className='ctx-bar'+(ctxItems.length>5?' wrap':'');
+  ctxItems.forEach((it,i)=>{
+    if(it.danger&&i>0){const sep=document.createElement('span');sep.className='ctx-sep';bar.appendChild(sep);}
+    const el=document.createElement('div');
+    el.className='ctx-item'+(it.danger?' danger':'');
+    el.textContent=it.label;
+    el.onclick=e=>{e.stopPropagation();ctxDo(i);};
+    bar.appendChild(el);
+  });
+  menu.appendChild(bar);
+  menu.classList.add('show');
+
+  const row=document.querySelector(`.msg-row[data-mid="${id}"]`);
+  positionCtxBar(bar,row,ev);
+
+  // 点空白处关闭
+  menu.onclick=e=>{if(e.target===menu)closeCtxMenu();};
+  // 滚动 / 缩放时关闭，避免菜单悬浮在错误位置
+  const chatContent=document.getElementById('chat-content');
+  const onScroll=()=>closeCtxMenu();
+  if(chatContent)chatContent.addEventListener('scroll',onScroll,{passive:true});
+  window.addEventListener('resize',closeCtxMenu);
+  ctxCleanup=()=>{if(chatContent)chatContent.removeEventListener('scroll',onScroll);window.removeEventListener('resize',closeCtxMenu);};
 }
-function ctxDo(i){const it=document.getElementById('ctx-sheet')._items[i];closeCtxMenu();if(it)setTimeout(it.fn,60);}
-function closeCtxMenu(){document.getElementById('ctx-menu').classList.remove('show');ctxMsgId=null;}
+/* 计算横条位置：默认放消息上方 12px，上方空间不足改放下方；水平居中于锚点并夹在手机内 */
+function positionCtxBar(bar,row,ev){
+  const phone=document.getElementById('phone');
+  if(!phone)return;
+  const phoneRect=phone.getBoundingClientRect();
+  bar.style.visibility='hidden';bar.style.left='0px';bar.style.top='0px';
+  const barW=bar.offsetWidth||120,barH=bar.offsetHeight||36;
+  bar.style.visibility='';
+
+  let anchorX,anchorTop,anchorBottom;
+  if(ev&&ev.clientX&&ev.clientY){
+    anchorX=ev.clientX-phoneRect.left;
+    anchorTop=anchorBottom=ev.clientY-phoneRect.top;
+  }else if(row){
+    const r=row.getBoundingClientRect();
+    anchorX=r.left-phoneRect.left+r.width/2;
+    anchorTop=r.top-phoneRect.top;
+    anchorBottom=r.bottom-phoneRect.top;
+  }else{
+    anchorX=phoneRect.width/2;anchorTop=anchorBottom=phoneRect.height/2;
+  }
+  const gap=12;
+  let left=_clamp(anchorX-barW/2,8,Math.max(8,phoneRect.width-barW-8));
+  let top,direction;
+  if(anchorTop-barH-gap>=8){top=anchorTop-barH-gap;direction='above';}
+  else{top=anchorBottom+gap;direction='below';}
+  top=_clamp(top,8,Math.max(8,phoneRect.height-barH-8));
+  bar.classList.remove('above','below');
+  bar.classList.add(direction);
+  bar.style.left=left+'px';
+  bar.style.top=top+'px';
+  bar.style.setProperty('--ctx-tri-left',_clamp(anchorX-left,14,Math.max(14,barW-14))+'px');
+}
+function _ctxClearListeners(){
+  if(ctxCleanup){const f=ctxCleanup;ctxCleanup=null;try{f();}catch(e){}}
+}
+/* 点击动作：先关菜单再执行，避免菜单残留 */
+function ctxDo(i){
+  const it=ctxItems[i];
+  closeCtxMenu();
+  if(it)setTimeout(()=>{try{it.fn();}catch(e){console.warn(e);}},40);
+}
+function closeCtxMenu(){
+  _ctxClearListeners();
+  const menu=document.getElementById('ctx-menu');
+  if(!menu)return;
+  menu.classList.remove('show');
+  menu.innerHTML='';
+  menu.onclick=null;
+  ctxMsgId=null;
+  ctxItems=[];
+}
 /* ---- 长按动作实现 ---- */
+/* 把 poll / survey 消息转成「可粘回问卷文本框」的原文（复制 → 修改 → 重发 的关键链路） */
+function _pollToText(m){
+  const p=m.poll||m.survey||{};
+  if(p.questions&&p.questions.length){
+    return p.questions.map(q=>'[题目] '+(q.q||'')+'\n'+(q.options||[]).join('\n')).join('\n\n');
+  }
+  return '[题目] '+(p.question||'')+'\n'+(p.options||[]).join('\n');
+}
 async function copyMsg(m){
-  const t=msgPreviewText(m);
+  const t=(m.type==='poll'||m.type==='survey')?_pollToText(m):msgPreviewText(m);
+  if(!t){showToast('这条消息没有可复制的内容');return;}
   try{await navigator.clipboard.writeText(t);showToast('已复制到剪贴板');}
   catch(e){
     const ta=document.createElement('textarea');ta.value=t;document.body.appendChild(ta);ta.select();
@@ -315,14 +417,19 @@ async function sendMessageObject(message){
   if(quoteTarget&&!message.quote){message.quote=quoteTarget;quoteTarget=null;document.getElementById('quote-input').classList.remove('show');}
   const rec=await dbPut('messages',message);
   closeEmojiPanel();
-  if(state.currentApp==='chat')await renderChat(true);
+  // 增量追加，不重建整个聊天（renderChat 只在进页面/翻历史/撤回删除收藏时调用）
+  if(state.currentApp==='chat')appendMsgRow({...message,id:rec},true);
   // 系统消息不触发回复；其余全部统一进入回复调度
   const sysTypes=['sys'];
   if(!sysTypes.includes(message.sender)&&message.sender==='me'&&!message.noReply){
-    // 问卷有独立回答期限（surveySettings.deadlineSec）：TA 最迟在期限内作答（与回复时间取更早者）
-    let deadlineSec=null;
-    if(message.type==='survey'&&state.surveySettings&&state.surveySettings.deadlineSec)deadlineSec=Number(state.surveySettings.deadlineSec)||null;
-    enqueueTaJob({type:'reply',source:'passive',messageId:rec,deadlineSec});
+    // 问卷期限写在「消息自身的 survey.deadlineSec」上（弹窗里设置），缺省回退全局默认
+    let deadlineSec=null,earlySubmitProb=null;
+    if(message.type==='survey'){
+      const sv=message.survey||{};
+      deadlineSec=Number(sv.deadlineSec)||Number(state.surveySettings&&state.surveySettings.deadlineSec)||60;
+      if(Number.isFinite(Number(sv.earlySubmitProb)))earlySubmitProb=Number(sv.earlySubmitProb);
+    }
+    enqueueTaJob({type:'reply',source:'passive',messageId:rec,deadlineSec,earlySubmitProb});
   }
   return rec||message;
 }
@@ -344,8 +451,23 @@ function markMeReadSoon(){
     const changed=all.filter(m=>m.sender==='me'&&!m.read&&!m.recalled);
     if(!changed.length)return;
     for(const m of changed){m.read=true;await dbPut('messages',m);}
-    if(state.currentApp==='chat')renderChat(false);
+    // 只刷新 ✓/✓✓ 状态，不重建 DOM（避免整屏重绘导致滚动位置丢失）
+    if(state.currentApp==='chat')refreshReadTicks();
   },2000+Math.random()*2000);
+}
+/* 增量刷新我方消息的已读标记 */
+async function refreshReadTicks(){
+  const el=document.getElementById('chat-content');if(!el)return;
+  let all=[];try{all=await dbGetAll('messages');}catch(e){return;}
+  const map=new Map(all.map(m=>[String(m.id),m]));
+  el.querySelectorAll('.msg-row.me').forEach(row=>{
+    const m=map.get(row.dataset.mid);if(!m)return;
+    const st=row.querySelector('.msg-status');if(!st)return;
+    const want=m.read?'read':'sent';
+    if(st.classList.contains(want))return;
+    st.className='msg-status '+want;
+    st.textContent=m.read?'\u2714\u2714':'\u2714';
+  });
 }
 
 function updateChatSubtitle(){
@@ -703,7 +825,7 @@ function showMuteBanner(sec){
   };
   refresh();muteBannerInterval=setInterval(refresh,1000);
 }
-async function pushSys(text){await dbPut('messages',{sender:'sys',type:'text',content:text,time:Date.now()});if(isAppVisible())renderChat(true);}            // TA 禁言时长（10 分钟）   // 两次 TA 禁言的最小冷却（40 分钟）
+async function pushSys(text){const m={sender:'sys',type:'text',content:text,time:Date.now()};m.id=await dbPut('messages',m);if(isAppVisible())appendMsgRow(m,true);}            // TA 禁言时长（10 分钟）   // 两次 TA 禁言的最小冷却（40 分钟）
 function maybeTaMuteMe(){
   if(state.taMuteMeEndTime>Date.now())return;          // 正在被禁言中
   if(Date.now()-state.taMuteLastEnd<TA_MUTE_COOLDOWN_MS)return;
@@ -760,10 +882,22 @@ function syncInputDisabled(){
   if(sendBtn)sendBtn.style.display=(muted||!inp||!inp.value.trim())?'none':'block';
 }
 async function pushReply(text){
-  await dbPut('messages',{sender:'other',type:'text',content:text,time:Date.now(),read:false});
-  if(isAppVisible())renderChat(true);
+  const msg={sender:'other',type:'text',content:text,time:Date.now(),read:false};
+  msg.id=await dbPut('messages',msg);
+  // 增量追加：不在聊天页时才弹 Toast + 角标 + 系统通知
+  if(isAppVisible())appendMsgRow(msg,true);
   else{showToast(`${state.other.name}：${text}`);updateTabBadge('chat',1);notifySystem(`${state.other.name} 发来消息`,text,()=>openApp('chat'));}
 }
+/* 单条消息原地重绘（题目被作答后刷新气泡，不整屏重绘） */
+async function refreshMsgRow(id){
+  const row=document.querySelector(`.msg-row[data-mid="${id}"]`);
+  if(!row)return;
+  const m=await dbGet('messages',id);
+  if(!m)return;
+  const fresh=buildMsgRow(m);
+  if(row.parentNode)row.parentNode.replaceChild(fresh,row);
+}
+window.refreshMsgRow=refreshMsgRow;   // engine.js 回填「题目已作答」时原地重绘该气泡
 async function markRead(){
   const msgs=await dbGetAll('messages');
   const changed=msgs.filter(m=>m.sender==='other'&&!m.read);

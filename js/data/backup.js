@@ -2,15 +2,29 @@
    星迹 · 数据备份：完整备份 / 选择性导出 / 导入 / 恢复出厂
    ========================================================= */
 
-/* pokeGroups 不在 IndexedDB：存于 state.stats.pokeGroups（localStorage），导出/导入特殊读写 */
+/* pokeGroups 不在 IndexedDB：存于 state.stats.pokeGroups（localStorage），导出/导入特殊读写
+   v3.4.0：以 {分组名:[字卡…]} 结构读写，分组名不再被拍平成 gxxxxx */
 async function _readStoreData(name){
-  if(name==='pokeGroups')return Object.values((state.stats&&state.stats.pokeGroups)||{});
+  if(name==='pokeGroups'){
+    const g=(state.stats&&state.stats.pokeGroups)||{};
+    const out={};
+    for(const k of Object.keys(g))out[k]=Array.isArray(g[k])?g[k].slice():[];
+    return out;
+  }
   return await dbGetAll(name);
 }
 async function _writeStoreData(name,items,mode){
   if(name==='pokeGroups'){
+    // items 可能是新版的 {分组名:[…]}，也可能是旧版拍平后的 [[…],[…]]
     const obj={};
-    (items||[]).forEach(arr=>{const k='g'+Math.random().toString(36).slice(2,7);obj[k]=arr;});
+    if(Array.isArray(items)){
+      items.forEach(arr=>{
+        const k='g'+Math.random().toString(36).slice(2,7);
+        obj[k]=Array.isArray(arr)?arr:[];
+      });
+    }else if(items&&typeof items==='object'){
+      for(const k of Object.keys(items))obj[k]=Array.isArray(items[k])?items[k].slice():[];
+    }
     state.stats.pokeGroups=obj;saveKey('stats');return;
   }
   if(mode!=='merge'){const cur=await dbGetAll(name);for(const it of cur)await dbDelete(name,dbPrimaryKey(name,it));}
@@ -22,6 +36,12 @@ async function _writeStoreData(name,items,mode){
     if(pk!==undefined&&pk!==null&&!existKeys.has(pk)){await dbPut(name,rec);existKeys.add(pk);}
     else{delete rec.id;await dbPut(name,rec);}
   }
+}
+/* 备份里某个类别是否真的有数据（pokeGroups 是对象，其余是数组） */
+function _storeHasPayload(v){
+  if(Array.isArray(v))return v.length>0;
+  if(v&&typeof v==='object')return Object.keys(v).length>0;
+  return false;
 }
 /* 完整备份：schemaVersion / appVersion / exportedAt / stores，保留所有 ID */
 async function exportData(){
@@ -126,7 +146,7 @@ async function importBackupText(){
     const data=JSON.parse(txt),stores=(data&&data.stores)||(data&&data.messages?data:{messages:data});
     if(!stores||typeof stores!=='object'||Object.keys(stores).length===0)throw new Error('empty');
     const sel=importMode==='overwrite'?[...importSel]:(importMode==='full'?STORES:Object.keys(stores));
-    const dirty=sel.filter(s=>Array.isArray(stores[s])&&stores[s].length);
+    const dirty=sel.filter(s=>_storeHasPayload(stores[s]));
     if(!dirty.length){showToast('备份里没有可恢复的数据');return;}
     showToast('正在恢复 '+dirty.length+' 类数据…');
     for(const s of dirty)await _writeStoreData(s,stores[s],importMode);
@@ -153,7 +173,7 @@ function pickImportFile(mode){
       const stores=(data&&data.stores)||(data.messages?data:{messages:data});
       if(!stores||typeof stores!=='object'||Object.keys(stores).length===0){showToast('不是有效的星迹备份文件');return;}
       const sel=importMode==='overwrite'?[...importSel]:(importMode==='full'?STORES:Object.keys(stores));
-      const dirty=sel.filter(s=>Array.isArray(stores[s])&&stores[s].length);
+      const dirty=sel.filter(s=>_storeHasPayload(stores[s]));
       if(!dirty.length){showToast('文件中没有所选类别的数据');return;}
       showToast(`正在导入 ${dirty.length} 类…`);
       for(const s of dirty){

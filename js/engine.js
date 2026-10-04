@@ -64,12 +64,25 @@ function isQuestionText(t){
   return /为什么|怎么|如何|是不是|能不能|可不可以|可以吗|好吗|对吗|行不行|怎么样|有没有|\?|？/.test(t);
 }
 
-/* ---- 最近一条我方文本消息（引用来源） ---- */
-async function _latestUserText(){
+/* ---- 最近一条我方消息（文本 / 单选 / 多选 / 问卷；不含撤回）
+   v3.4.0：原来只取 type==='text'，导致 poll/survey 永远进不了「必答」分支。 ---- */
+async function _latestUserMsg(){
   const all=await dbGetAll('messages');
   for(let i=all.length-1;i>=0;i--){
     const m=all[i];
-    if(m.sender==='me'&&m.type==='text'&&m.content&&!m.recalled)return m;
+    if(m.sender==='me'&&!m.recalled&&(m.type==='text'||m.type==='poll'||m.type==='survey'))return m;
+  }
+  return null;
+}
+/* ---- 本轮「必须作答」的题目：优先取任务携带的 messageId
+   合并窗口内用户可能连发「题目 + 文字」，此时仍要回答那道题，而不是最后一条文字。 ---- */
+async function _jobPollTarget(job){
+  const ids=(job&&job.messageIds)||[];
+  if(!ids.length)return null;
+  const all=await dbGetAll('messages');
+  for(let i=ids.length-1;i>=0;i--){
+    const m=all.find(x=>Number(x.id)===Number(ids[i]));
+    if(m&&!m.recalled&&!m.answer&&(m.type==='poll'||m.type==='survey')&&(m.poll||m.survey))return m;
   }
   return null;
 }
@@ -159,8 +172,9 @@ function SYSTEM_TEXT_POOL(){
 /* shouldRespond：进入本引擎即视为应回复（外部调度器已做禁言/已读不回/主动避让判断） */
 /* intent：根据最近一条我方消息判断本轮意图，驱动素材选择与组合 */
 function _detectIntent(context){
+  const m=context.latestUserMsg;
+  if(m&&(m.type==='poll'||m.type==='survey'))return 'poll-answer';
   const t=(context.latestUserText||'').trim();
-  if(context.latestUserMsg&&(context.latestUserMsg.type==='poll'||context.latestUserMsg.type==='survey'))return 'poll-answer';
   if(!t)return 'random';
   if(/难过|伤心|委屈|哭|累|烦|焦虑|不安|害怕|孤独|失眠/.test(t))return 'comfort';
   if(/早安|早上好|晚安|睡觉|休息|睡了/.test(t))return 'greeting';
@@ -203,25 +217,27 @@ async function buildReply(context){
 
   for(let i=0;i<bubbleCount;i++){
     const bubbleUsed=new Set();
-    let base=null;
-    // 基础回复：普通字卡（第一气泡可能被题目回答/引用改造）
-    base=await _buildBaseBubbleText(src,roundUsed,usage,bubbleUsed,markUsed,intent);
-    if(!base)base={text:SYSTEM_TEXT_POOL()[0],cards:[]};
     let msgType='text';
-    let content=base.text;
+    let content='';
     let quote=null;
+    let cardIds=[];
+    let answerOf=null;      // 本气泡作答的题目消息（落库后回填「已作答」状态）
 
-    if(i===0&&mustAnswer&&extraInteractions<MAX_EXTRA){
-      // 题目回答：单选/多选/问卷 生成答案（必答，不经过概率）
-      content=_buildPollAnswerText(latest);
-      msgType='text';
-      extraInteractions++;
+    if(i===0&&mustAnswer){
+      // 必答气泡直接用答案，不再抽字卡（避免「抽了却被丢弃」的字卡统计污染）
+      const ans=_buildPollAnswer(latest);
+      content=ans.text;
+      answerOf={id:latest.id,sel:ans.sel,text:ans.text};
+    }else{
+      const base=await _buildBaseBubbleText(src,roundUsed,usage,bubbleUsed,markUsed,intent);
+      content=base?base.text:SYSTEM_TEXT_POOL()[0];
+      cardIds=base?base.cards.map(c=>c.id):[];
     }
-    if(i===0&&shouldQuote&&latest&&extraInteractions<MAX_EXTRA){
+    if(i===0&&shouldQuote&&latest){
       quote={id:latest.id,text:latest.content};
       extraInteractions++;
     }
-    bubbles.push({type:msgType,content,quote,cardIds:base.cards.map(c=>c.id),proactive:context.source==='proactive',intent});
+    bubbles.push({type:msgType,content,quote,cardIds,proactive:context.source==='proactive',intent,answerOf});
   }
 
   // 独立互动：表情 / 拍一拍 / 礼物（作为额外气泡，受每轮最多 2 个限制）
@@ -243,39 +259,71 @@ async function buildReply(context){
   return {bubbles,usage,intent};
 }
 
-/* ---- 题目回答生成（单选 / 多选 / 问卷） ---- */
-function _buildPollAnswerText(m){
-  const poll=m.poll||m.survey||{};
+/* ---- 题目回答生成（单选 / 多选 / 问卷）
+   返回 {text, sel}：sel 是被选中的选项下标，供气泡渲染打勾
+     · 问卷   sel = [[i],[i,j],…]（逐题）
+     · 多选   sel = [i,j,…]
+     · 单选   sel = [i]
+   多选数量上下限优先取「消息自带」（发送弹窗里设置），回退全局默认。 ---- */
+function _buildPollAnswer(m){
+  const poll=(m&&(m.poll||m.survey))||{};
   const ss=state.surveySettings||{};
-  const multiMin=_clamp(Number(ss.multiMin)||1,1,4);
-  const multiMax=_clamp(Number(ss.multiMax)||6,Math.max(2,multiMin),8);
+  const defMin=_clamp(Number(ss.multiMin)||1,1,8);
+  const defMax=_clamp(Number(ss.multiMax)||6,Math.max(2,defMin),8);
+  const multiMin=_clamp(Number(poll.multiMin)||defMin,1,8);
+  const multiMax=_clamp(Number(poll.multiMax)||defMax,Math.max(2,multiMin),8);
   const pick=arr=>arr[Math.floor(Math.random()*arr.length)];
   const pickMulti=opts=>{
     if(!opts.length)return [];
     const max=Math.min(multiMax,opts.length);
-    const n=opts.length>multiMin?_randomInt(multiMin,max):multiMin;
-    const idxs=[];while(idxs.length<n){const i=Math.floor(Math.random()*opts.length);if(idxs.indexOf(i)<0)idxs.push(i);}
-    return idxs.map(i=>opts[i]);
+    const min=Math.min(multiMin,max);
+    const n=max>min?_randomInt(min,max):min;
+    const idxs=[];
+    while(idxs.length<n){
+      const i=Math.floor(Math.random()*opts.length);
+      if(idxs.indexOf(i)<0)idxs.push(i);
+    }
+    return idxs;
   };
+
   if(poll.questions&&poll.questions.length){
     // 问卷：每题按题型作答（单选=1 项，多选=最少~最多项），一次性提交
+    const sel=[];
     const lines=poll.questions.map((q,i)=>{
       const opts=q.options&&q.options.length?q.options:[];
       if(q.multi){
-        const sel=pickMulti(opts);
-        return sel.length?`${i+1}. ${sel.join('、')}`:`${i+1}. —`;
+        const ids=pickMulti(opts);
+        sel[i]=ids;
+        return ids.length?`${i+1}. ${ids.map(k=>opts[k]).join('、')}`:`${i+1}. —`;
       }
-      return `${i+1}. ${opts.length?pick(opts):'—'}`;
+      if(!opts.length){sel[i]=[];return `${i+1}. —`;}
+      const k=Math.floor(Math.random()*opts.length);
+      sel[i]=[k];
+      return `${i+1}. ${opts[k]}`;
     });
-    return (m.content||'问卷回答')+'：'+lines.join('；');
+    return {text:(m.content||'问卷回答')+'：'+lines.join('；'),sel};
   }
+
   const opts=poll.options||[];
-  if(!opts.length)return '嗯，我选好了。';
+  if(!opts.length)return {text:'嗯，我选好了。',sel:[]};
   if(poll.multi){
-    const sel=pickMulti(opts);
-    return sel.length?'我选：'+sel.join('、'):'嗯，我选好了。';
+    const ids=pickMulti(opts);
+    return {text:ids.length?'我选：'+ids.map(k=>opts[k]).join('、'):'嗯，我选好了。',sel:ids};
   }
-  return '我选：'+pick(opts);
+  const k=Math.floor(Math.random()*opts.length);
+  return {text:'我选：'+opts[k],sel:[k]};
+}
+/* 兼容旧调用：只要文本 */
+function _buildPollAnswerText(m){return _buildPollAnswer(m).text;}
+/* 把作答结果写回题目消息：气泡上的「✓ / 已作答 · 用时 N 秒」由此驱动 */
+async function _applyPollAnswer(answerOf){
+  const m=await dbGet('messages',answerOf.id);
+  if(!m)return;
+  const usedSec=Math.max(0,Math.round((Date.now()-(m.time||Date.now()))/1000));
+  m.answer={sel:answerOf.sel,usedSec,at:Date.now()};
+  m.answerText=answerOf.text;
+  await dbPut('messages',m);
+  if(state.currentApp==='chat'&&typeof window.refreshMsgRow==='function')window.refreshMsgRow(m.id);
 }
 
 /* ---- 执行一轮回复：逐条落库 + 增量渲染 + 统计（含已读不回开关） ----
@@ -286,32 +334,33 @@ async function executeReply(job){
     _scheduler.activeJob=null;
     return;
   }
-  // 已读不回开关：打开后允许某轮已读但不回复
-  if(state.prob&&state.prob.readIgnoreEnabled){
+  // 主动消息条数：proactiveCountMin~Max（1~2 条）
+  const p=state.prob||{};
+  // 本轮必须作答的题目（若有）
+  const pollTarget=job.source==='proactive'?null:await _jobPollTarget(job);
+  // 已读不回开关：打开后允许某轮已读但不回复。
+  // 但「必答」优先——用户明确提交了单选/多选/问卷时，不能已读不回。
+  if(state.prob&&state.prob.readIgnoreEnabled&&!pollTarget){
     const all=await dbGetAll('messages');
     const mine=all.filter(m=>m.sender==='me'&&!m.read&&!m.recalled);
     if(mine.length&&Math.random()<0.2){
       for(const m of mine){m.read=true;await dbPut('messages',m);}
-      if(state.currentApp==='chat')renderChat(false);
+      if(state.currentApp==='chat')refreshReadTicks();
       return;
     }
   }
-  // 主动消息条数：proactiveCountMin~Max（1~2 条）
-  const p=state.prob||{};
   const proactiveCount=job.source==='proactive'
     ?_randomInt(_clamp(Number(p.proactiveCountMin)||1,1,5),_clamp(Number(p.proactiveCountMax)||2,1,5))
     :1;
-  const latestUserMsg=job.source==='proactive'?null:await _latestUserText();
-  const latestUserText=latestUserMsg?latestUserMsg.content:null;
+  // 上下文：优先「本轮任务对应的题目」，否则取最近一条我方消息
+  const latestUserMsg=job.source==='proactive'?null:(pollTarget||(await _latestUserMsg()));
+  const latestUserText=(latestUserMsg&&latestUserMsg.type==='text')?latestUserMsg.content:null;
   const context={latestUserMsg,latestUserText,source:job.source};
 
   let totalBubbles=[];
   for(let c=0;c<proactiveCount;c++){
     const res=await buildReply(context);
     totalBubbles=totalBubbles.concat(res.bubbles);
-    for(const id in res.usage){
-      // 合并 usage 到全局一轮统计（以最后一批为准做累加）
-    }
     const cards=await dbGetAll('cards');
     for(const id in res.usage){
       const c=cards.find(x=>x.id===Number(id));
@@ -326,7 +375,6 @@ async function executeReply(job){
   }
 
   // 逐条发送（自然间隔 800~2400ms）
-  const start=Date.now();
   let lastSent=null;
   for(let i=0;i<totalBubbles.length;i++){
     const b=totalBubbles[i];
@@ -346,6 +394,8 @@ async function executeReply(job){
     if(state.currentApp==='chat')appendMsgRow(msg,true);
     updateTabBadge('chat',1);
     lastSent=msg;
+    // 题目/问卷：作答结果回写到那条消息上（气泡立刻变成「已作答」）
+    if(b.answerOf)await _applyPollAnswer(b.answerOf);
   }
   refreshAllBadges();
   // 系统通知：TA 发来新消息且页面不在前台时，发真正的手机关通知（浏览器 Notification API）

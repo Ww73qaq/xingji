@@ -13,6 +13,7 @@ const PROACTIVE_KEY='proactiveNextAt';
 const _scheduler={
   activeJob:null,       // 当前 reply job（含 proactive）
   pendingQueue:0,       // sending 期间到达的新消息 → 记一轮
+  pendingJobs:[],       // 排队中的下一轮参数（messageId / 问卷期限），避免题目被丢掉
   tickTimer:null,       // 每秒倒计时 UI
   dueTimer:null,        // 到 dueAt 精确触发
   proactiveTimer:null,  // 主动消息定时器
@@ -42,7 +43,7 @@ function _typingWindow(totalMs){
 function _persistJob(){
   const j=_scheduler.activeJob;
   if(!j||(j.status!=='waiting'&&j.status!=='typing'))return _clearPersistJob();
-  const value={id:j.id,type:j.type,source:j.source,status:j.status,createdAt:j.createdAt,dueAt:j.dueAt,typingAt:j.typingAt,roundId:j.roundId,contactId:j.contactId,messageIds:j.messageIds,generation:j.generation};
+  const value={id:j.id,type:j.type,source:j.source,status:j.status,createdAt:j.createdAt,dueAt:j.dueAt,typingAt:j.typingAt,roundId:j.roundId,contactId:j.contactId,messageIds:j.messageIds,generation:j.generation,deadlineSec:j.deadlineSec,earlySubmitProb:j.earlySubmitProb};
   return dbGet('settings',JOB_KEY)
     .then(row=>{if(row){row.value=value;return dbPut('settings',row);}return dbPut('settings',{key:JOB_KEY,value});})
     .catch(e=>console.warn('[scheduler] persist job failed',e));
@@ -97,6 +98,17 @@ function _stopTick(){
 }
 
 /* 创建/合并回复任务（所有用户消息与「继续」的唯一入口） */
+/* 排队一轮：记下本条消息（及问卷期限），等当前这轮跑完再补一轮。
+   v3.4.0：原先只累加一个计数器，排队期间发出的「单选/多选/问卷」会丢掉 messageId，
+   结果那一轮不知道该回答哪道题。现在把参数一起排队。 */
+function _queueNextRound(cfg){
+  _scheduler.pendingQueue++;
+  _scheduler.pendingJobs.push({
+    messageId:cfg.messageId||null,
+    deadlineSec:Number.isFinite(Number(cfg.deadlineSec))?Number(cfg.deadlineSec):null,
+    earlySubmitProb:Number.isFinite(Number(cfg.earlySubmitProb))?Number(cfg.earlySubmitProb):null
+  });
+}
 function enqueueTaJob(config){
   const cfg=config||{};
   const source=cfg.source||'passive';
@@ -115,19 +127,25 @@ function enqueueTaJob(config){
       return;
     }
     // 超出合并窗口仍在等待 → 排队下一轮
-    _scheduler.pendingQueue++;
+    _queueNextRound(cfg);
     return;
   }
-  if(j&&j.status==='sending'){_scheduler.pendingQueue++;return;}
-  // 新任务：问卷可传入独立期限（deadlineSec），effectiveDueAt = min(回复时间, 问卷期限)
-  // 提前交卷：部分问卷 TA 会在期限结束前 25%~75% 时刻交卷（earlySubmitProb 控制概率）
+  if(j&&j.status==='sending'){_queueNextRound(cfg);return;}
+  // 新任务：问卷可携带独立期限（deadlineSec，来自「消息自身的 survey.deadlineSec」）
+  // v3.4.0：期限以问卷自身设置为准（不再与回复时间取更早者），
+  //         否则「设 60 秒」会被 20 秒的回复时间截断，期限形同虚设。
+  // 提前交卷：部分问卷 TA 会在期限结束前 25%~75% 时刻交卷（earlySubmitProb 控制概率，优先取消息自带值）
   let totalMs=_replyTotalMs();
   const deadlineSec=Number(cfg.deadlineSec);
-  if(Number.isFinite(deadlineSec)&&deadlineSec>0){
+  const hasDeadline=Number.isFinite(deadlineSec)&&deadlineSec>0;
+  let earlySubmitProb=null;
+  if(hasDeadline){
     let eff=deadlineSec;
     const ss=state.surveySettings||{};
-    if(_roll(Number(ss.earlySubmitProb)||30)){eff=deadlineSec*(0.25+Math.random()*0.5);}
-    totalMs=Math.min(totalMs,eff*1000);
+    const ep=Number(cfg.earlySubmitProb);
+    earlySubmitProb=Number.isFinite(ep)?_clamp(ep,0,100):(Number.isFinite(Number(ss.earlySubmitProb))?Number(ss.earlySubmitProb):30);
+    if(_roll(earlySubmitProb))eff=deadlineSec*(0.25+Math.random()*0.5);
+    totalMs=Math.max(_typingWindow(totalMs),eff*1000);
   }
   const tw=_typingWindow(totalMs);
   const typingAt=now+totalMs-tw;
@@ -140,7 +158,8 @@ function enqueueTaJob(config){
     roundId:'r_'+Date.now().toString(36)+Math.random().toString(36).slice(2,5),
     contactId:'other',
     messageIds:cfg.messageId?[cfg.messageId]:[],
-    deadlineSec:Number.isFinite(deadlineSec)&&deadlineSec>0?deadlineSec:null,
+    deadlineSec:hasDeadline?deadlineSec:null,
+    earlySubmitProb,
     generation:(j?j.generation+1:1)
   };
   _scheduler.activeJob=job;
@@ -179,7 +198,10 @@ function _finishJob(){
   _clearPersistJob();
   if(_scheduler.pendingQueue>0){
     _scheduler.pendingQueue--;
-    setTimeout(()=>enqueueTaJob({type:'reply',source:'passive'}),650);
+    const next=_scheduler.pendingJobs.shift()||{};
+    setTimeout(()=>enqueueTaJob({type:'reply',source:'passive',messageId:next.messageId,deadlineSec:next.deadlineSec,earlySubmitProb:next.earlySubmitProb}),650);
+  }else{
+    _scheduler.pendingJobs=[];
   }
   _syncSubtitle();
   scheduleProactive();
@@ -239,10 +261,17 @@ function stopProactive(){
   if(_scheduler.proactiveTimer){clearTimeout(_scheduler.proactiveTimer);_scheduler.proactiveTimer=null;}
 }
 
-/* ---- 恢复检查点：DOMContentLoaded / pageshow / focus / visibilitychange / 路由切换 / 切回聊天 ---- */
+/* ---- 恢复检查点：DOMContentLoaded / pageshow / focus / visibilitychange / 路由切换 / 切回聊天 ----
+   v3.4.0：原先用 `if(!window.DB) return` 直接短路，DB 未就绪时静默丢掉恢复。
+   改为等 dbReady，ready 后自动补跑；已 ready 时行为与原来一致。 ---- */
 function resumeScheduledJobs(){
-  if(!window.DB)return Promise.resolve();   // DB 尚未就绪（首次加载 DOMContentLoaded 先于 openDB 完成时），由 init 流程补触发
-  return Promise.all([dbGet('settings',JOB_KEY),dbGet('settings',PROACTIVE_KEY)]).then(([jrow,prow])=>{
+  if(typeof dbReady==='undefined'||!dbReady)return Promise.resolve();
+  return dbReady.then(()=>{
+    const list=dbGetAll('settings');
+    return list;
+  }).then(list=>{
+    if(!list)return;
+    const jrow=list.find(r=>r.key===JOB_KEY);
     if(jrow&&jrow.value){
       const v=jrow.value;
       const now=Date.now();
@@ -259,11 +288,12 @@ function resumeScheduledJobs(){
       _startTick();
       _syncSubtitle();
     }
+    const prow=list.find(r=>r.key===PROACTIVE_KEY);
     if(prow&&prow.value&&prow.value.at){
       _scheduler.proactiveNextAt=prow.value.at;
       const wait=prow.value.at-Date.now();
       if(_scheduler.proactiveTimer)clearTimeout(_scheduler.proactiveTimer);
       _scheduler.proactiveTimer=setTimeout(runProactive,Math.max(0,wait)+100);
     }
-  });
+  }).catch(e=>console.warn('[scheduler] resume failed',e));
 }

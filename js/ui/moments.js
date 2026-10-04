@@ -36,8 +36,21 @@ async function renderMoments(){
     notifySystem(`${state.other.name} 发了新动态`,line.slice(0,50),()=>switchTab('moments'));
   }
   moments=await dbGetAll('moments');
-  // 标记 TA 动态已读（红点）
-  for(const m of moments)if(m.owner==='other'&&!m.read){m.read=true;await dbPut('moments',m);}
+  /* 进入朋友圈 → TA 动态 / TA 日记 / TA 评论一律标记已读（红点随之消失） */
+  let dirty=false;
+  for(const m of moments){
+    let changed=false;
+    if(m.owner==='other'&&!m.read){m.read=true;changed=true;}
+    if(m.comments){
+      for(const c of m.comments){if(c.fromTa&&!c.read){c.read=true;changed=true;}}
+    }
+    if(changed){await dbPut('moments',m);dirty=true;}
+  }
+  const diaries=await dbGetAll('diaries');
+  for(const d of diaries){
+    if(d.owner==='other'&&!d.read){d.read=true;await dbPut('diaries',d);dirty=true;}
+  }
+  if(dirty)refreshAllBadges();
   // 提醒未读红点
   const notifUnread=(state.stats.notifCenter||[]).filter(n=>!n.read).length;
   moments.sort((a,b)=>b.time-a.time);
@@ -191,7 +204,7 @@ function processMomentReplies(){
       const cards=await dbGetAll('cards');const enabled=cards.filter(c=>c.enabled!==false);if(enabled.length){const c=enabled[Math.floor(Math.random()*enabled.length)];cardText=c.text||null;}
     }
     const target=Number.isInteger(x.replyToIndex)?mm.comments[x.replyToIndex]:null;
-    mm.comments.push({name:state.other.name,text:text,time:Date.now(),replyTo:target?{name:target.name,index:x.replyToIndex}:null,card:cardText});
+    mm.comments.push({name:state.other.name,text:text,time:Date.now(),replyTo:target?{name:target.name,index:x.replyToIndex}:null,card:cardText,fromTa:true,read:false});
     await dbPut('moments',mm);
     pushNotif({type:'comment',from:state.other.name,text:'回复了你的评论：'+text.slice(0,16),momentId:mm.id});
     notifySystem(`${state.other.name} 回复了你`,text.slice(0,50),()=>switchTab('moments'));
@@ -282,7 +295,7 @@ async function scheduleTaMomentInteraction(momentId){
     if(momentOptOn('momentsAllowComment')&&Math.random()<0.65){
       m.comments=m.comments||[];
       const text=MOMENT_COMMENTS[Math.floor(Math.random()*MOMENT_COMMENTS.length)];
-      m.comments.push({name:state.other.name,text:text,time:Date.now(),replyTo:null,fromTa:true});
+      m.comments.push({name:state.other.name,text:text,time:Date.now(),replyTo:null,fromTa:true,read:false});
       changed=true;
       pushNotif({type:'comment',from:state.other.name,text:'评论了你的动态：'+text.slice(0,16),momentId:m.id});
       notifySystem(state.other.name+' 评论了你的动态',text.slice(0,50),()=>switchTab('moments'));

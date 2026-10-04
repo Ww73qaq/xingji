@@ -45,7 +45,7 @@ function renderProbability(){
         const v=Number.isFinite(Number(p[k]))?Number(p[k]):def;
         return `<div style="margin-top:10px;font-size:12px;color:var(--sub)">${label} <b id="lb-${k}">${v}</b>%</div><input type="range" min="0" max="100" value="${v}" oninput="setProb('${k}',this.value)" style="width:100%">`;
       }).join('')}
-      <div style="font-size:11px;color:var(--hint);margin-top:8px">普通字卡是基础回复，始终参与。单选/多选/问卷属于你明确提交的问题，TA 会<b>必答</b>（不走概率）。</div>
+      <div style="font-size:11px;color:var(--hint);margin-top:8px">普通字卡是基础回复，始终参与。单选 / 多选 / 问卷属于你明确提交的问题，TA 会<b>必答</b>（不走概率）；问卷期限与多选数量在<b>对应弹窗内</b>设置。</div>
     </div>
     <div class="list-card">
       <div class="list-card-title">回复行为</div>
@@ -56,21 +56,6 @@ function renderProbability(){
       <div style="margin-top:14px;font-size:12px;color:var(--sub)">自定义字卡占比 <b id="lb-customRatio">${iv('customRatio',90)}</b>%</div>
       <input type="range" min="0" max="100" value="${iv('customRatio',90)}" oninput="setProb('customRatio',this.value)" style="width:100%">
       <div style="font-size:11px;color:var(--hint);margin-top:6px">其余比例使用系统预设字卡。</div>
-    </div>
-    <div class="list-card">
-      <div class="list-card-title">问卷行为</div>
-      <div style="margin-top:10px;font-size:12px;color:var(--sub)">问卷最迟作答 <b id="lb-deadlineSec">${iv('deadlineSec',state.surveySettings&&state.surveySettings.deadlineSec?state.surveySettings.deadlineSec:60)}</b> 秒</div>
-      <input type="range" min="20" max="300" value="${state.surveySettings&&state.surveySettings.deadlineSec?state.surveySettings.deadlineSec:60}" oninput="setSurveySetting('deadlineSec',this.value)" style="width:100%">
-      <div style="margin-top:8px;font-size:12px;color:var(--sub)">提前交卷概率 <b id="lb-earlySubmitProb">${state.surveySettings&&state.surveySettings.earlySubmitProb!==undefined?state.surveySettings.earlySubmitProb:30}</b>%</div>
-      <input type="range" min="0" max="100" value="${state.surveySettings&&state.surveySettings.earlySubmitProb!==undefined?state.surveySettings.earlySubmitProb:30}" oninput="setSurveySetting('earlySubmitProb',this.value)" style="width:100%">
-      <div style="font-size:11px;color:var(--hint);margin-top:6px">开启后，部分问卷 TA 会在期限结束前提前交卷。</div>
-      <div style="margin-top:12px;font-size:12px;color:var(--sub)">多选题最少选 <b id="lb-multiMin">${state.surveySettings&&state.surveySettings.multiMin!==undefined?state.surveySettings.multiMin:1}</b> 项 / 最多选 <b id="lb-multiMax">${state.surveySettings&&state.surveySettings.multiMax!==undefined?state.surveySettings.multiMax:6}</b> 项</div>
-      <div style="display:flex;gap:10px;margin-top:6px">
-        <input type="range" min="1" max="4" value="${state.surveySettings&&state.surveySettings.multiMin!==undefined?state.surveySettings.multiMin:1}" oninput="setSurveySetting('multiMin',this.value)" style="width:100%">
-        <input type="range" min="2" max="8" value="${state.surveySettings&&state.surveySettings.multiMax!==undefined?state.surveySettings.multiMax:6}" oninput="setSurveySetting('multiMax',this.value)" style="width:100%">
-      </div>
-      <div style="font-size:11px;color:var(--hint);margin-top:6px">多选题作答时，所选数量必须介于最少与最多之间。</div>
-      <div style="font-size:11px;color:var(--hint);margin-top:6px">发送问卷后，TA 会在（问卷期限 与 回复时间）中更早的时刻作答。</div>
     </div>
     <div class="list-card">
       <div class="list-card-title">主动消息</div>
@@ -87,12 +72,14 @@ function renderProbability(){
     </div>
     <button class="btn-pill ghost" style="width:100%;margin-top:4px" onclick="resetProb()">恢复默认设置</button>`;
 }
+/* setSurveySetting：v3.4.0 起「回复设置」页不再展示问卷卡片，
+   这里保留为「弹窗默认值的读写入口」——发送问卷/多选时用它取上次的默认数字。 */
 function setSurveySetting(key,v){
   state.surveySettings=state.surveySettings||{deadlineSec:60,earlySubmitProb:30,multiMin:1,multiMax:6};
-  if(key==='deadlineSec')state.surveySettings.deadlineSec=Math.max(20,Math.min(600,parseInt(v)||60));
+  if(key==='deadlineSec')state.surveySettings.deadlineSec=Math.max(10,Math.min(600,parseInt(v)||60));
   else if(key==='earlySubmitProb')state.surveySettings.earlySubmitProb=Math.max(0,Math.min(100,parseInt(v)||30));
-  else if(key==='multiMin'){let n=Math.max(1,Math.min(4,parseInt(v)||1));if(n>state.surveySettings.multiMax)state.surveySettings.multiMax=n;state.surveySettings.multiMin=n;}
-  else if(key==='multiMax'){let n=Math.max(2,Math.min(8,parseInt(v)||6));if(n<state.surveySettings.multiMin)state.surveySettings.multiMin=n;state.surveySettings.multiMax=n;}
+  else if(key==='multiMin'){let n=Math.max(1,Math.min(8,parseInt(v)||1));if(n>state.surveySettings.multiMax)state.surveySettings.multiMax=n;state.surveySettings.multiMin=n;}
+  else if(key==='multiMax'){let n=Math.max(1,Math.min(8,parseInt(v)||6));if(n<state.surveySettings.multiMin)state.surveySettings.multiMin=n;state.surveySettings.multiMax=n;}
   saveKey('surveySettings');renderProbability();
 }
 function setProb(key,val){
@@ -121,6 +108,6 @@ function resetProb(){
     proactiveCountMin:1,proactiveCountMax:2,
     momentProb:25
   };
-  state.surveySettings={deadlineSec:60};
+  state.surveySettings={deadlineSec:60,earlySubmitProb:30,multiMin:1,multiMax:6};
   saveKey('prob');saveKey('surveySettings');renderProbability();scheduleProactive();showToast('已恢复默认设置');
 }
