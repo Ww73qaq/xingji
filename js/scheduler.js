@@ -97,7 +97,6 @@ function _stopTick(){
   if(_scheduler.tickTimer){clearInterval(_scheduler.tickTimer);_scheduler.tickTimer=null;}
 }
 
-/* 创建/合并回复任务（所有用户消息与「继续」的唯一入口） */
 /* 排队一轮：记下本条消息（及问卷期限），等当前这轮跑完再补一轮。
    v3.4.0：原先只累加一个计数器，排队期间发出的「单选/多选/问卷」会丢掉 messageId，
    结果那一轮不知道该回答哪道题。现在把参数一起排队。 */
@@ -109,6 +108,7 @@ function _queueNextRound(cfg){
     earlySubmitProb:Number.isFinite(Number(cfg.earlySubmitProb))?Number(cfg.earlySubmitProb):null
   });
 }
+/* 创建/合并回复任务（所有用户消息与「继续」的唯一入口） */
 function enqueueTaJob(config){
   const cfg=config||{};
   const source=cfg.source||'passive';
