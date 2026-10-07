@@ -30,7 +30,7 @@ function confirmEnter(){
   if(mc)mc.style.display='none';
   let left=10;
   showModal('进入确认',
-    '<div style="text-align:center;padding:2px 4px 14px;font-size:14px;line-height:1.95;color:var(--text)">谢绝一切内外意识体进入本网站。<br>本网站专属于·时停该独立意识体，目前暂不开放。<br><span id="enter-count" style="color:var(--sub);font-size:12px;line-height:1.6;display:inline-block;margin-top:10px">剩余 <b style="color:var(--c-ink)">10</b> 秒，未确认将自动取消</span></div>'+
+    '<div style="text-align:center;padding:2px 4px 14px;font-size:14px;line-height:1.95;color:var(--text)">谢绝一切内外意识体进入本网站。<br>本网站为个人字卡传讯作品，专属于「我」，归我所有、由我掌控。<br><span id="enter-count" style="color:var(--sub);font-size:12px;line-height:1.6;display:inline-block;margin-top:10px">剩余 <b style="color:var(--c-ink)">10</b> 秒，未确认将自动取消</span></div>'+
     '<div style="display:flex;gap:10px">'+
       '<button class="btn-pill ghost" style="flex:1;padding:13px 0;font-size:15px" onclick="confirmEnterOk()">确认</button>'+
       '<button class="btn-pill primary" style="flex:1;padding:13px 0;font-size:15px" onclick="cancelEnter()">取消</button>'+

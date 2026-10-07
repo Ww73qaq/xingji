@@ -36,7 +36,7 @@ let state = {
   taMuteReqCoolAt:0,
   // 日记申请查看时间（持久化：刷新不丢 REQUESTING 状态）
   diaryReqAt:0,
-  meetTime:null, quote:'遇你，与你，予你，余你', splashText:'谢绝一切内外意识体进入本网站，暂不开放！\n（本网站是专属于·时停该独立意识体的传讯网站，目前暂不开放，也包括不对时停开放）', muteEndTime:0, muteRequest:null,
+  meetTime:null, quote:'遇你，与你，予你，余你', splashText:'谢绝一切内外意识体进入本网站，暂不开放！\n（本网站为个人字卡传讯作品，专属于「我」，归我所有、由我掌控）', muteEndTime:0, muteRequest:null,
   letters:[], diaries:[], moments:[], currentApp:null, callActive:false,
   chat:{lastReadAt:0, chatBg:'', recallSec:120, showQuote:true},
   stats:{diaryOpen:false,companionTime:0,companionStreak:0,diaryCount:0,momentCount:0,chatCount:0,
