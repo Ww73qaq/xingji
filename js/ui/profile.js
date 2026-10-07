@@ -94,13 +94,31 @@ function notifySystem(title,body,onClick){
 }
 function openNotifySettings(){
   const n=state.notify||{enabled:false,chat:true,moments:true,letters:true};
-  const perm=notifySupported()?(Notification.permission==='granted'?'已允许':(Notification.permission==='denied'?'已拒绝':'未请求')):'不支持';
-  showModal('消息通知',`<div style="font-size:12px;color:var(--sub);line-height:1.9;margin-bottom:8px">浏览器权限：<b>${perm}</b>${!notifySupported()?'（当前浏览器不支持通知）':''}<br>开启后，TA 发消息/回信/朋友圈互动时，即使你切到别的 App 也能收到手机通知。</div>
+  const perm=notifySupported()?(Notification.permission==='granted'?'已允许':(Notification.permission==='denied'?'已拒绝（被浏览器挡掉）':'未请求')):'不支持';
+  const deniedHint=(notifySupported()&&Notification.permission==='denied')
+    ?'<div style="font-size:11px;color:#c55;line-height:1.8;margin:6px 0 4px;padding:8px 10px;background:rgba(200,80,80,.08);border-radius:8px">浏览器已「自动禁止」本站通知（Edge / Chrome 在多次拒绝授权框后会自动挡掉该站点）。<br>请到：<br>· Edge：地址栏左侧图标 → 网站权限 → 通知 → 允许；<br>· 或 浏览器 设置 → 网站设置 → 通知 →「添加网站例外」→ 输入本站网址。<br>允许后回来点下方「测试通知」验证。</div>'
+    :'';
+  showModal('消息通知',`<div style="font-size:12px;color:var(--sub);line-height:1.9;margin-bottom:8px">浏览器权限：<b>${perm}</b>${!notifySupported()?'（当前浏览器不支持通知）':''}<br>开启后，TA 发消息/回信/朋友圈互动时，即使你切到别的 App 也能收到手机通知。</div>${deniedHint}
     <div class="modal-item" onclick="setNotify('enabled')"><span style="flex:1">总开关</span><span class="cs-switch${n.enabled?' on':''}" onclick="event.stopPropagation();setNotify('enabled')"></span></div>
     <div class="modal-item" onclick="setNotify('chat')"><span style="flex:1">聊天消息</span><span class="cs-switch${n.chat!==false?' on':''}" onclick="event.stopPropagation();setNotify('chat')"></span></div>
     <div class="modal-item" onclick="setNotify('moments')"><span style="flex:1">朋友圈互动</span><span class="cs-switch${n.moments!==false?' on':''}" onclick="event.stopPropagation();setNotify('moments')"></span></div>
     <div class="modal-item" onclick="setNotify('letters')"><span style="flex:1">信件回信</span><span class="cs-switch${n.letters!==false?' on':''}" onclick="event.stopPropagation();setNotify('letters')"></span></div>
-    <div style="font-size:11px;color:var(--hint);line-height:1.8;margin-top:10px">说明：<br>· 通知需要浏览器授权，首次开启会弹出授权请求；<br>· iPhone Safari：先「添加到主屏幕」再从桌面图标打开，通知才能稳定生效；<br>· QQ / 微信内置浏览器：部分版本会拦截网页通知，建议用系统浏览器打开本站；<br>· 页面完全关闭后无法收到（静态站无推送服务器），保持后台打开即可。</div>`);
+    <button class="btn-pill" style="width:100%;margin-top:8px" onclick="testNotify()">测试通知（当场发一条验证链路）</button>
+    <div style="font-size:11px;color:var(--hint);line-height:1.8;margin-top:10px">说明：<br>· 通知需要浏览器授权，首次开启会弹出授权请求；<br>· 若授权框不弹、或已被浏览器自动禁止（Edge / Chrome 会挡反复请求的站点）→ 按上面红字去浏览器设置添加例外；<br>· iPhone Safari：先「添加到主屏幕」再从桌面图标打开，通知才能稳定生效；<br>· QQ / 微信内置浏览器：部分版本会拦截网页通知，建议用系统浏览器打开本站；<br>· 页面完全关闭后无法收到（静态站无推送服务器），保持后台打开即可。</div>`);
+}
+function testNotify(){
+  if(!notifySupported()){showToast('当前浏览器不支持通知');return;}
+  if(Notification.permission==='granted'){
+    try{
+      const nt=new Notification('星迹 · 测试通知',{body:'通知链路已打通，你已能收到本网站的系统通知',icon:location.origin+'/favicon.ico'});
+      setTimeout(()=>nt.close(),8000);
+      showToast('已发送测试通知，请看通知栏');
+    }catch(e){showToast('发送失败，请在浏览器设置允许通知权限');}
+  }else if(Notification.permission==='default'){
+    Notification.requestPermission().then(p=>{if(p==='granted')testNotify();else showToast('通知权限未允许');});
+  }else{
+    openNotifySettings();
+  }
 }
 function setNotify(k){
   state.notify=state.notify||{enabled:false,chat:true,moments:true,letters:true};

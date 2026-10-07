@@ -32,10 +32,9 @@ async function processPendingReplies(){
 
 async function exportLetters(){
   const letters=await dbGetAll('letters');
-  const json=JSON.stringify(letters,null,2);
-  const blob=new Blob([json],{type:'application/json'});
-  const a=document.createElement('a');a.href=URL.createObjectURL(blob);const name='星迹_信件数据_'+new Date().toISOString().slice(0,10)+'.json';
-  confirmDownload(name,async()=>{const blob=new Blob([JSON.stringify(letters,null,2)],{type:'application/json'});downloadBlob(blob,name);showToast('已导出 '+letters.length+' 封信件');});
+  const name='星迹_信件数据_'+new Date().toISOString().slice(0,10)+'.json';
+  const blob=new Blob([JSON.stringify(letters,null,2)],{type:'application/json'});
+  confirmDownload(name,async()=>{showToast('已导出 '+letters.length+' 封信件');return {blob,name};});
 }
 function importLetters(){
   const input=document.createElement('input');input.type='file';input.accept='application/json,.json';

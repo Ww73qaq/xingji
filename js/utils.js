@@ -65,25 +65,51 @@ function autosize(ta){if(!ta)return;ta.style.height='auto';ta.style.height=Math.
 function notifySupported(){return typeof Notification!=='undefined';}
 function notifyPermGranted(){return notifySupported()&&Notification.permission==='granted';}
 function confirmDownload(name,onConfirm){
-  showModal('确认下载',`<div style="padding:10px 6px 4px;text-align:center;line-height:1.8;font-size:13px;color:var(--sub)">将保存为<br><b style="display:inline-block;margin-top:4px;color:var(--text);font-size:13px;word-break:break-all">${esc(name)}</b></div>`,
-    '<div class="modal-btn-row single"><button class="modal-btn" onclick="closeModal()">取消</button><button class="modal-btn primary" onclick="confirmDownloadGo()">确认下载</button></div>');
+  showModal('确认下载',`<div style="padding:10px 6px 4px;text-align:center;line-height:1.8;font-size:13px;color:var(--sub)">将保存为<br><b style="display:inline-block;margin-top:4px;color:var(--text);font-size:13px;word-break:break-all">${esc(name)}</b></div><div style="font-size:11px;color:var(--hint);line-height:1.7;margin:6px 2px 2px;text-align:center">确认后文件开始下载<br>手机浏览器请到「浏览器下载列表 / 下载管理」查看</div>`,
+    '<div class="modal-btn-row"><button class="modal-btn" onclick="closeModal()">取消</button><button class="modal-btn" onclick="confirmDownloadShare()">分享/保存</button><button class="modal-btn primary" onclick="confirmDownloadGo()">确认下载</button></div>');
   window.__downloadConfirm=onConfirm;
 }
-async function confirmDownloadGo(){const cb=window.__downloadConfirm;window.__downloadConfirm=null;closeModal();if(cb)await cb();}
-async function downloadBlob(blob,name){
-  const isQQ=/QQ\\//i.test(navigator.userAgent)||/MQQBrowser/i.test(navigator.userAgent);
+/* 解析 onConfirm：统一返回 {blob,name}，下载与分享共用 */
+async function confirmDownloadResolve(){
+  const cb=window.__downloadConfirm;window.__downloadConfirm=null;
+  closeModal();
+  if(!cb)return null;
+  return await cb();
+}
+async function confirmDownloadGo(){
+  const res=await confirmDownloadResolve();
+  if(res&&res.blob){downloadBlob(res.blob,res.name);showToast('已发起下载，请到浏览器下载列表查看');}
+}
+async function confirmDownloadShare(){
+  const res=await confirmDownloadResolve();
+  if(!res||!res.blob)return;
+  await shareBlob(res.blob,res.name||'星迹_备份.json');
+}
+async function shareBlob(blob,name){
+  try{
+    const file=new File([blob],name,{type:blob.type||'application/json'});
+    if(navigator.share&&(!navigator.canShare||navigator.canShare({files:[file]}))){
+      await navigator.share({files:[file],title:'星迹数据备份'});
+      showToast('已交给系统保存/分享');return;
+    }
+  }catch(e){}
+  downloadBlob(blob,name);
+  showToast('当前浏览器不支持文件分享，已改为下载');
+}
+/* 直接下载：同步触发 a.click() 保留用户手势，兼容老版 Edge msSaveBlob */
+function downloadBlob(blob,name){
+  const isQQ=/QQ\//i.test(navigator.userAgent)||/MQQBrowser/i.test(navigator.userAgent);
   if(isQQ){
-    try{const text=await blob.text();showQqBackup(text,name);}
-    catch(e){showToast('QQ 内置浏览器暂时无法读取备份，请改用系统浏览器');}
+    blob.text().then(t=>showQqBackup(t,name)).catch(()=>showToast('QQ 内置浏览器暂时无法读取备份，请改用系统浏览器'));
     return;
   }
+  if(typeof navigator!=='undefined'&&navigator.msSaveBlob){navigator.msSaveBlob(blob,name);return;}
   const url=URL.createObjectURL(blob);
   const a=document.createElement('a');
   a.href=url;a.download=name;a.rel='noopener';
   document.body.appendChild(a);
-  try{a.click();}catch(e){}
+  a.click();
   a.remove();
-  showToast('已发起下载，请到“下载”文件夹查看');
   setTimeout(()=>URL.revokeObjectURL(url),60000);
 }
 

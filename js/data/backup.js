@@ -47,17 +47,14 @@ function _storeHasPayload(v){
 async function exportData(){
   const name='星迹_完整备份_'+new Date().toISOString().slice(0,10)+'.json';
   confirmDownload(name,async()=>{
-  showToast('正在打包数据…');
-  const data={
-    app:'xingji', schemaVersion:SCHEMA_VERSION, appVersion:APP_VERSION,
-    exportedAt:new Date().toISOString(), stores:{}
-  };
-  for(const s of STORES)data.stores[s]=await _readStoreData(s);
-  const json=JSON.stringify(data);
-  const blob=new Blob([json],{type:'application/json'});
-  const downloadName='星迹_完整备份_'+new Date().toISOString().slice(0,10)+'.json';
-  downloadBlob(blob,downloadName);
-  showToast(`已导出 ${(blob.size/1024/1024).toFixed(2)}MB 数据`);
+    showToast('正在打包数据…');
+    const data={
+      app:'xingji', schemaVersion:SCHEMA_VERSION, appVersion:APP_VERSION,
+      exportedAt:new Date().toISOString(), stores:{}
+    };
+    for(const s of STORES)data.stores[s]=await _readStoreData(s);
+    const blob=new Blob([JSON.stringify(data)],{type:'application/json'});
+    return {blob,name};
   });
 }
 function showQqBackup(text,name){
@@ -120,8 +117,8 @@ async function doExportSelect(){
   for(const s of sel)data.stores[s]=await _readStoreData(s);
   const blob=new Blob([JSON.stringify(data)],{type:'application/json'});
   const name=`星迹_自定义数据_${new Date().toISOString().slice(0,10)}.json`;
-  // v3.5.1：去掉紧跟的 closeModal()——之前它秒关「确认下载」框，用户点不到确认、回调不执行导致根本不下载
-  confirmDownload(name,async()=>{downloadBlob(blob,name);showToast(`已导出 ${sel.length} 类数据`);});
+  // v3.5.1 去掉秒关closeModal；v3.5.3 返回 {blob,name} 由 confirmDownload 统一下载/分享
+  confirmDownload(name,async()=>{showToast(`已导出 ${sel.length} 类数据`);return {blob,name};});
 }
 function showImportMenu(){
   showModal('选择性导入',

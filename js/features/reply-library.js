@@ -163,7 +163,8 @@ async function exportCards(){
   const groups=await dbGetAll('cardGroups'),cards=await dbGetAll('cards');
   const data={app:'xingji-cards',schemaVersion:1,exportedAt:new Date().toISOString(),cardGroups:groups,cards:cards};
   const name='星迹_字卡备份_'+new Date().toISOString().slice(0,10)+'.json';
-  confirmDownload(name,async()=>{downloadBlob(new Blob([JSON.stringify(data)],{type:'application/json'}),name);showToast('已导出 '+cards.length+' 张字卡及 '+groups.length+' 个分组');});
+  const blob=new Blob([JSON.stringify(data)],{type:'application/json'});
+  confirmDownload(name,async()=>{showToast('已导出 '+cards.length+' 张字卡及 '+groups.length+' 个分组');return {blob,name};});
 }
 function importCards(){
   const input=document.createElement('input');input.type='file';input.accept='.json,application/json';
