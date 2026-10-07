@@ -66,6 +66,8 @@ async function clearAllXingjiData(){
         for(const it of all) if(it&&it.id!==undefined) await dbDelete(store,it.id);
       }
       localStorage.clear();
+      // v3.5.1：打标记阻止 app 启动时 ensureTaDiary 自动重生 TA 加密日记（本次会话 TA 不再凭空写日记）
+      try{sessionStorage.setItem('xingji-cleared','1');}catch(e){}
       location.reload();
     }catch(e){console.error(e);showToast('清除失败，请重试');}
   });

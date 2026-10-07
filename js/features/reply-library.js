@@ -24,6 +24,17 @@ async function ensureDefaultCardGroups(){
   for(const n of DEFAULT_CARD_GROUPS){
     if(!names.has(n)){await dbPut('cardGroups',{name:n,enabled:1});names.add(n);}
   }
+  // v3.5.1：只留 4 个内置分组——删除旧内置分组（回应/情绪/提问/安慰/主动）中没有任何字卡的空分组
+  // （组内已有字卡的保留，用户数据优先，不误删）
+  const OLD_BUILTIN_EXTRA=['回应','情绪','提问','安慰','主动'];
+  const cards=await dbGetAll('cards');
+  const usedGroups=new Set(cards.map(c=>c.group));
+  const keepNames=new Set(DEFAULT_CARD_GROUPS);
+  for(const g of groups){
+    if(OLD_BUILTIN_EXTRA.includes(g.name)&&!usedGroups.has(g.name)&&!keepNames.has(g.name)){
+      await dbDelete('cardGroups',g.id);
+    }
+  }
 }
 async function renderCards(){
   const body=document.getElementById('cards-body');

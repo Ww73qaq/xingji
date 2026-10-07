@@ -120,8 +120,8 @@ async function doExportSelect(){
   for(const s of sel)data.stores[s]=await _readStoreData(s);
   const blob=new Blob([JSON.stringify(data)],{type:'application/json'});
   const name=`星迹_自定义数据_${new Date().toISOString().slice(0,10)}.json`;
+  // v3.5.1：去掉紧跟的 closeModal()——之前它秒关「确认下载」框，用户点不到确认、回调不执行导致根本不下载
   confirmDownload(name,async()=>{downloadBlob(blob,name);showToast(`已导出 ${sel.length} 类数据`);});
-  closeModal();
 }
 function showImportMenu(){
   showModal('选择性导入',

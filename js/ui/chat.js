@@ -862,11 +862,12 @@ function showTaMuteBanner(){
     }
     const txt=document.getElementById('ta-mute-text');
     const act=document.getElementById('ta-mute-actions');
-    if(state.taMuteReqAt){
-      txt.textContent=`已申请解除，对方还在考虑…（${remain} 秒后自动解除）`;
-      act.innerHTML='';
+    // v3.5.1：验证码式 60 秒冷却——申请后按钮进入动态倒计时，归零才能再次申请
+    const cool=Math.ceil(60-(Date.now()-(state.taMuteReqCoolAt||0))/1000);
+    txt.innerHTML=`对方暂时不想理你，剩余 <b>${remain}</b> 秒`;
+    if(cool>0){
+      act.innerHTML=`<span class="mute-mini" style="opacity:.45;pointer-events:none">${cool} 秒后可再次申请</span>`;
     }else{
-      txt.innerHTML=`对方暂时不想理你，剩余 <b>${remain}</b> 秒`;
       act.innerHTML='<span class="mute-mini" onclick="requestTaUnmute()">申请解除</span>';
     }
   };
@@ -877,8 +878,12 @@ function showTaMuteBanner(){
 }
 function requestTaUnmute(){
   if(state.taMuteMeEndTime<=Date.now())return;
+  // v3.5.1：60 秒验证码式冷却，冷却中不可再申请
+  const cool=Math.ceil(60-(Date.now()-(state.taMuteReqCoolAt||0))/1000);
+  if(cool>0){showToast(`请等 ${cool} 秒后再申请`);return;}
+  state.taMuteReqCoolAt=Date.now();
   state.taMuteReqAt=Date.now();
-  saveKey('taMuteMeEndTime');
+  saveKey('taMuteMeEndTime');saveKey('taMuteReqCoolAt');
   showToast('已申请解除，等 TA 缓一缓');
   showTaMuteBanner();
 }

@@ -97,7 +97,7 @@ const GIFT_NAMES=['咖啡','奶茶','鲜花','玫瑰','蛋糕','甜点','巧克�
 
 /* ===== TA 禁言我（双向禁言）：TA 偶尔会暂时不想理你（内部行为，不暴露概率），
    期间输入栏禁用 + 顶部横幅「对方暂时不想理你」+ 可申请解除（30 秒后自动解除） ===== */
-const TA_MUTE_MS=10*60000;
+const TA_MUTE_MS=5*60000;               // TA 禁言我：5 分钟（v3.5.1 由 10 分钟缩短，体验更轻）
 const TA_MUTE_COOLDOWN_MS=40*60000;
 
 /* ===== MAILBOX ===== */
@@ -234,7 +234,7 @@ const COMPANION_SCENES=[
   {id:'fish',name:'一起摸鱼',icon:'&#128031;',desc:'忙里偷闲，一起发呆的时光也很甜。'}
 ];
 /* 默认分组：全部(虚拟) / 默认 / 日常 / 回应 / 情绪 / 提问 / 安慰 / 主动 / 拍一拍 / 颜文字 */
-const DEFAULT_CARD_GROUPS=['默认','日常','回应','情绪','提问','安慰','主动','拍一拍','颜文字'];
+const DEFAULT_CARD_GROUPS=['默认','日常','拍一拍','颜文字'];   // v3.5.1：只保留 4 个内置分组（旧内置分组若有字卡则保留，空则清）
 
 /* ===== DATA（数据管理：完整备份 / 选择性导出 / 选择性导入 / 保留 ID） ===== */
 const STORES=['messages','letters','diaries','moments','cardGroups','cards','emojis','pokeGroups','settings'];

@@ -84,6 +84,8 @@ async function delDiary(id){
   appConfirm('删除日记','确定删除这篇日记吗？此操作不可恢复。',async()=>{await dbDelete('diaries',id);renderDiary();showToast('已删除');});
 }
 async function ensureTaDiary(){
+  // v3.5.1：用户刚「清除全部数据」，本次会话 TA 不再自动写加密日记（否则清除后日记"又回来"）
+  try{if(sessionStorage.getItem('xingji-cleared'))return;}catch(e){}
   const diaries=await dbGetAll('diaries');
   const hasOther=diaries.some(d=>d.owner==='other');
   if(hasOther)return;

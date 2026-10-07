@@ -32,6 +32,8 @@ let state = {
   notes:[{id:'a',owner:'me',text:'',at:0},{id:'b',owner:'me',text:'',at:0}],
   // TA 禁言我（毫秒时间戳）；禁言期间输入栏禁用，可申请解除
   taMuteMeEndTime:0,
+  // v3.5.1：申请解除 TA 禁言的 60 秒冷却（上次申请时间，验证码式：0 后才能再次申请）
+  taMuteReqCoolAt:0,
   // 日记申请查看时间（持久化：刷新不丢 REQUESTING 状态）
   diaryReqAt:0,
   meetTime:null, quote:'遇你，与你，予你，余你', splashText:'谢绝一切内外意识体进入本网站，暂不开放！\n（本网站是专属于·时停该独立意识体的传讯网站，目前暂不开放，也包括不对时停开放）', muteEndTime:0, muteRequest:null,
@@ -45,7 +47,7 @@ let state = {
 };
 
 async function loadSettings(){
-  const keys=['me','other','skin','pin','prob','meetTime','quote','splashText','stats','chat','muteEndTime','muteRequest','surveySettings','notify','notes','taMuteMeEndTime','diaryReqAt','writings','taMuteLastEnd','taMuteReqAt'];
+  const keys=['me','other','skin','pin','prob','meetTime','quote','splashText','stats','chat','muteEndTime','muteRequest','surveySettings','notify','notes','taMuteMeEndTime','taMuteReqCoolAt','diaryReqAt','writings','taMuteLastEnd','taMuteReqAt'];
   for(const k of keys){const v=await dbGet('settings',k);if(v&&v.value!==undefined)state[k]=typeof v.value==='object'&&v.value!==null?{...state[k],...v.value}:v.value;}
 }
 async function saveKey(key){const v=await dbGet('settings',key);if(v){v.value=state[key];await dbPut('settings',v);}else{await dbPut('settings',{key,value:state[key]});}}
