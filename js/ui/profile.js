@@ -81,11 +81,13 @@ function toggleTaNote(){
 function notifySystem(title,body,onClick){
   const n=state.notify||{};
   if(n.enabled===false||!notifyPermGranted())return;
-  // 聊天消息：仅当页面不可见时才弹（避免前台刷屏）；其他类按开关直接弹
+  // 聊天消息：仅当用户当前正停在聊天界面（且页面可见）时不打扰；
+  // 其余情况一律通知——网站其它页面（朋友圈/我的/桌面等）、切到别的App、锁屏等后台场景
   const tag=(title||'').indexOf(state.other.name)>=0?'chat':'other';
   if(tag==='chat'&&n.chat===false)return;
   if(tag==='other'&&n.moments===false)return;
-  if(!document.hidden)return;
+  const inChatView=Array.isArray(navStack)&&navStack[navStack.length-1]==='chat';
+  if(!document.hidden&&inChatView)return;
   sendWebNotify(title||'星迹',body,tag+'|'+Date.now(),onClick);
 }
 /* 系统通知统一发送：优先 Service Worker（Android 必须注册 SW 才能显示通知，
