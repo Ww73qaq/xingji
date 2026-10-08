@@ -28,11 +28,12 @@ function updateStatusClock(){
 }
 
 /* 唯一主心跳：原先散落的 4 个 setInterval（1s 时钟/信号、5s 朋友圈、60s 陪伴、15s 信件）
-   合并为一个 1 秒定时器；页面切到后台时暂停，回到前台由 visibilitychange 补跑。 */
+   合并为一个 1 秒定时器；页面切到后台时暂停（除非「通知开启」→ 保活音频让后台继续跑，
+   保证 TA 消息调度与系统通知在后台也能按时触发），回到前台由 visibilitychange 补跑。 */
 let _tick=0;
 function startHeartbeat(){
   setInterval(()=>{
-    if(document.hidden)return;
+    if(document.hidden&&!keepAliveActive())return;
     _tick++;
     updateStatusClock();
     renderSignal();

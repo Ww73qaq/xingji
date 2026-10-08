@@ -94,6 +94,7 @@ function notifySystem(title,body,onClick){
 }
 function openNotifySettings(){
   const n=state.notify||{enabled:false,chat:true,moments:true,letters:true};
+  if(n.enabled)startKeepAlive();
   const perm=notifySupported()?(Notification.permission==='granted'?'已允许':(Notification.permission==='denied'?'已拒绝（被浏览器挡掉）':'未请求')):'不支持';
   const deniedHint=(notifySupported()&&Notification.permission==='denied')
     ?'<div style="font-size:11px;color:#c55;line-height:1.8;margin:6px 0 4px;padding:8px 10px;background:rgba(200,80,80,.08);border-radius:8px">浏览器已「自动禁止」本站通知（Edge / Chrome 在多次拒绝授权框后会自动挡掉该站点）。<br>请到：<br>· Edge：地址栏左侧图标 → 网站权限 → 通知 → 允许；<br>· 或 浏览器 设置 → 网站设置 → 通知 →「添加网站例外」→ 输入本站网址。<br>允许后回来点下方「测试通知」验证。</div>'
@@ -135,12 +136,41 @@ function setNotify(k){
   state.notify=state.notify||{enabled:false,chat:true,moments:true,letters:true};
   if(k==='enabled'){
     state.notify.enabled=!state.notify.enabled;
-    if(state.notify.enabled&&notifySupported()&&Notification.permission==='default')Notification.requestPermission().then(p=>showToast(p==='granted'?'通知权限已允许':(p==='denied'?'权限被拒绝，请在浏览器设置中开启':'未授权')));
-    else if(state.notify.enabled&&!notifyPermGranted())showToast('请先在浏览器设置里允许通知权限');
+    if(state.notify.enabled){
+      if(notifySupported()&&Notification.permission==='default')Notification.requestPermission().then(p=>showToast(p==='granted'?'通知权限已允许':(p==='denied'?'权限被拒绝，请在浏览器设置中开启':'未授权')));
+      else if(!notifyPermGranted())showToast('请先在浏览器设置里允许通知权限');
+      startKeepAlive();
+    }else{
+      stopKeepAlive();
+    }
   }else{
     state.notify[k]=(state.notify[k]===false)?true:false;
   }
   saveKey('notify');renderProfile();openNotifySettings();
+}
+/* ===== 后台保活音频（借鉴 mochi bg-keep 模块）：通知开启时播放静音循环，
+   Android 浏览器对「正在播放媒体」的页面不会冻结后台 JS → 定时器/心跳继续运行，
+   切到别的 App 后 TA 消息调度与通知能按时触发。 ===== */
+let _keepCtx=null,_keepSrc=null;
+function keepAliveActive(){return !!(state.notify&&state.notify.enabled&&_keepCtx);}
+function startKeepAlive(){
+  if(_keepCtx)return;
+  try{
+    const AC=window.AudioContext||window.webkitAudioContext;
+    if(!AC)return;
+    const ctx=new AC();
+    const buf=ctx.createBuffer(1,1,22050); /* 1 样本静音缓冲 */
+    const src=ctx.createBufferSource();
+    src.buffer=buf;src.loop=true;
+    const g=ctx.createGain();g.gain.value=0; /* 静音输出 */
+    src.connect(g);g.connect(ctx.destination);
+    src.start();
+    _keepCtx=ctx;_keepSrc=src;
+  }catch(e){_keepCtx=null;_keepSrc=null;}
+}
+function stopKeepAlive(){
+  if(_keepCtx){try{_keepSrc.stop();_keepCtx.close();}catch(e){}}
+  _keepCtx=null;_keepSrc=null;
 }
 /* 兼容旧调用：旧「消息通知」一键开关 → 打开新通知设置 */
 function toggleNotify(){openNotifySettings();}
