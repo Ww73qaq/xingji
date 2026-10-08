@@ -65,13 +65,15 @@
   <button class="splash-btn" onclick="confirmEnter()">进入空间</button>
 </div>
 
+<!-- ===== 全局固定顶栏（v3.6.1：物理时间 + TA 世界时间 + 信号格，所有页面统一显示） ===== -->
+<div id="global-statusbar">
+  <span class="time" id="status-time">--:--</span>
+  <span class="notch-spacer"></span>
+  <span class="sb-right"><span id="sb-ta-time" class="sb-ta-time" title="TA 的世界时间，与现实有偏差"></span><span id="sb-signal" class="sb-signal"></span></span>
+</div>
+
 <!-- ===== HOME SCREEN ===== -->
 <div id="screen-home" class="screen home-screen">
-  <div class="status-bar">
-    <span class="time" id="status-time">--:--</span>
-    <span class="notch-spacer"></span>
-    <span class="sb-right"><span id="sb-ta-time" class="sb-ta-time" title="TA 的世界时间，与现实有偏差"></span><span id="sb-signal" class="sb-signal"></span></span>
-  </div>
   <div class="widget-area">
     <div class="widget-avatars" id="widget-avatars">
       <div class="ava me" id="home-avatar-me"></div>
@@ -108,7 +110,6 @@
 
 <!-- CHAT（微信风格 · 手机仿真结构：status bar → chat header → 消息区 → composer → 面板） -->
 <div id="app-chat" class="app-page chat-page">
-  <div class="chat-statusbar"><span id="chat-status-time">09:41</span><span class="sb-right"><span class="chat-sig"><i></i><i></i><i></i><i></i></span></span></div>
   <div class="app-header chat-header">
     <div class="back" onclick="goBack()">&#8249;</div>
     <div class="chat-head-mid">

@@ -708,3 +708,10 @@ body{-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;letter
 /* ===== v3.5.10：TA 世界时间（信号格左侧紧贴） ===== */
 .sb-ta-time{font-size:10px;color:var(--sub);margin-right:5px;white-space:nowrap;letter-spacing:.3px}
 .sb-right{display:flex;align-items:center}
+
+/* ===== v3.6.1：全局固定顶栏（物理时间 + TA 世界时间 + 信号格，所有页面统一显示） ===== */
+#global-statusbar{position:absolute;top:0;left:0;right:0;height:calc(var(--sat) + 32px);z-index:200;display:flex;justify-content:space-between;align-items:flex-end;padding:calc(var(--sat) + 2px) calc(var(--sar) + 16px) 6px calc(var(--sal) + 16px);font-size:13px;font-weight:600;color:var(--text);background:var(--bg);box-shadow:0 1px 0 rgba(0,0,0,.05)}
+#screen-home{padding-top:calc(var(--sat) + 34px)}
+#app-pages{padding-top:calc(var(--sat) + 34px)}
+/* v3.6.1 修正：app-pages 是 absolute 容器，padding 不会推下其 absolute 子页面 → 用 top 偏移 */
+#app-pages{top:calc(var(--sat) + 34px)}

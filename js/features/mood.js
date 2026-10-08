@@ -60,8 +60,8 @@ function delPoolStatus(s){
   manageStatusPool();
 }
 /* TA 状态自动切换（仿禁言检测）：心跳每 5 秒调用
-   默认在线；非在线状态保持 30s~10min 到期回在线；回在线 60s 冷却后，
-   每 5 秒 3% 概率（与 TA 禁言我同款）随机切到某个非在线状态 */
+   默认在线；非在线状态保持 30s~10min 到期回在线；回在线 45s 冷却后，
+   每 5 秒 5% 概率（v3.6.1 由 3% 提高——TA 日常也会主动流连在职业/生活状态里）随机切到某个非在线状态 */
 function maybeTaStatusChange(){
   if(state.taStatusUntil>Date.now())return;            // 当前状态保持中
   if(state.taStatus&&state.taStatus!=='在线'){           // 到期回在线
@@ -69,8 +69,8 @@ function maybeTaStatusChange(){
     saveKey('other');saveKey('taStatusUntil');saveKey('taStatusCoolAt');
     updateTaStatusBadge();return;
   }
-  if(Date.now()-(state.taStatusCoolAt||0)<60000)return;
-  if(Math.random()<0.03){                                // 仿 TA 禁言概率 3%
+  if(Date.now()-(state.taStatusCoolAt||0)<45000)return;
+  if(Math.random()<0.05){                                // v3.6.1：5% 概率主动换状态（原 3%）
     const pool=statusPool().filter(x=>x.s!=='在线');
     if(!pool.length)return;
     const st=pool[Math.floor(Math.random()*pool.length)];
@@ -78,7 +78,7 @@ function maybeTaStatusChange(){
     state.taStatusUntil=Date.now()+30000+Math.random()*570000;  // 保持 30s~10min
     saveKey('other');saveKey('taStatusUntil');
     updateTaStatusBadge();
-    if(Math.random()<0.4)pushSys(state.other.name+' 现在的状态：'+st.s);   // 低频系统消息
+    if(Math.random()<0.6)pushSys(state.other.name+' 现在的状态：'+st.s);   // v3.6.1：60% 提示你（原 40%）
   }
 }
 /* 聊天界面 TA 名字旁的状态点（点击可改 TA 状态） */
