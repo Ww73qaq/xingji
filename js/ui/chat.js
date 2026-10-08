@@ -423,6 +423,7 @@ function jumpToMsg(id,ev){
 async function sendMessageObject(message){
   if(Date.now()<state.taMuteMeEndTime){showToast('对方暂时不想理你，等 TA 缓一缓');return null;}
   message.sender='me';message.time=message.time||Date.now();message.read=false;message.state='sending';
+  if(typeof touchInteract==='function')touchInteract();   // v3.6.0：我方发消息 → 连接频率上升
   if(quoteTarget&&!message.quote){message.quote=quoteTarget;quoteTarget=null;document.getElementById('quote-input').classList.remove('show');}
   const rec=await dbPut('messages',message);
   closeEmojiPanel();
@@ -482,7 +483,7 @@ async function refreshReadTicks(){
 function updateChatSubtitle(){
   const sub=document.getElementById('chat-subtitle');
   const title=document.getElementById('chat-title');
-  if(title)title.textContent=state.other.name||'TA';
+  if(title){const nn=title.firstChild;if(nn&&nn.nodeType===3)nn.nodeValue=state.other.name||'TA';}   // 只改名字文本，保留状态徽标 span（v3.6.0 修 bug：textContent 会抹掉 chat-ta-status）
   if(!sub)return;
   const j=_scheduler.activeJob;
   // 唯一状态来源：在线 / 正在输入…（含 waiting+typing 全程） / 被禁言 / 通话中
@@ -835,15 +836,38 @@ function showMuteBanner(sec){
   refresh();muteBannerInterval=setInterval(refresh,1000);
 }
 async function pushSys(text){const m={sender:'sys',type:'text',content:text,time:Date.now()};m.id=await dbPut('messages',m);if(isAppVisible())appendMsgRow(m,true);}            // TA 禁言时长（10 分钟）   // 两次 TA 禁言的最小冷却（40 分钟）
+/* v3.6.0：禁言原因文案池随机抽取 */
+function pickMuteReason(){
+  return MUTE_REASONS[Math.floor(Math.random()*MUTE_REASONS.length)];
+}
 function maybeTaMuteMe(){
   if(state.taMuteMeEndTime>Date.now())return;          // 正在被禁言中
   if(Date.now()-state.taMuteLastEnd<TA_MUTE_COOLDOWN_MS)return;
+  if(state.taMuteCycleSkip){                           // v3.6.0 跳过层：本周期 TA 不想这样 → 重新进冷却（间隔自然翻倍，恢复"偶尔"感）
+    state.taMuteCycleSkip=false;
+    state.taMuteLastEnd=Date.now();
+    saveKey('taMuteMeEndTime');saveKey('taMuteCycleSkip');
+    return;
+  }
   if(Math.random()<0.03){
     state.taMuteMeEndTime=Date.now()+TA_MUTE_MS;
     state.taMuteLastEnd=state.taMuteMeEndTime;
     state.taMuteReqAt=0;
-    saveKey('taMuteMeEndTime');
-    pushSys('对方似乎暂时不想理你…（TA 正在整理自己的意识）');
+    state.taMuteReason=pickMuteReason();
+    // v3.6.0：禁言同步 TA 状态——随机切一个非在线状态（职业/生活），保持与禁言同长，到期由状态机自动回在线
+    if(typeof statusPool==='function'){
+      const pool=statusPool().filter(x=>x.s!=='在线');
+      if(pool.length){
+        const st=pool[Math.floor(Math.random()*pool.length)];
+        state.taStatus=st.s;state.other.status=st.s;
+        state.taStatusUntil=state.taMuteMeEndTime;
+        saveKey('other');saveKey('taStatusUntil');
+        if(typeof updateTaStatusBadge==='function')updateTaStatusBadge();
+      }
+    }
+    state.taMuteCycleSkip=Math.random()<0.6;           // v3.6.0：下一周期 60% 跳过（TA 低频、不粘人）
+    saveKey('taMuteMeEndTime');saveKey('taMuteCycleSkip');
+    pushSys('对方暂时不想理你…（'+state.taMuteReason+'）');
     showTaMuteBanner();
     updateChatSubtitle();
   }
@@ -865,7 +889,7 @@ function showTaMuteBanner(){
     const act=document.getElementById('ta-mute-actions');
     // v3.5.1：验证码式 60 秒冷却——申请后按钮进入动态倒计时，归零才能再次申请
     const cool=Math.ceil(60-(Date.now()-(state.taMuteReqCoolAt||0))/1000);
-    txt.innerHTML=`对方暂时不想理你，剩余 <b>${remain}</b> 秒`;
+    txt.innerHTML=`对方暂时不想理你（${esc(state.taMuteReason||'TA 需要一点空间')}），剩余 <b>${remain}</b> 秒`;
     if(cool>0){
       act.innerHTML=`<span class="mute-mini" style="opacity:.45;pointer-events:none">${cool} 秒后可再次申请</span>`;
     }else{
@@ -897,6 +921,7 @@ function syncInputDisabled(){
 }
 async function pushReply(text){
   const msg={sender:'other',type:'text',content:text,time:Date.now(),read:false};
+  if(typeof touchInteract==='function')touchInteract();   // v3.6.0：TA 回复 → 连接频率上升
   msg.id=await dbPut('messages',msg);
   // 增量追加：不在聊天页时才弹 Toast + 角标 + 系统通知
   if(isAppVisible())appendMsgRow(msg,true);

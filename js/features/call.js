@@ -104,8 +104,15 @@ function maybeTaCall(){
   if(Date.now()<state.muteEndTime||Date.now()<state.taMuteMeEndTime)return;
   const last=Number(state.stats.taCallLastAt)||0;
   if(last&&Date.now()-last<TA_CALL_COOLDOWN_MS)return;
+  if(state.taCallCycleSkip){                           // v3.6.0 跳过层：本周期 TA 不打 → 重新进冷却（TA 医生、不粘人，需要时才会来）
+    state.taCallCycleSkip=false;
+    state.stats.taCallLastAt=Date.now();saveKey('stats');
+    return;
+  }
   if(Math.random()<0.01){
     state.stats.taCallLastAt=Date.now();saveKey('stats');
+    state.taCallCycleSkip=Math.random()<0.6;           // 下一周期 60% 跳过
+    saveKey('stats');
     simulateIncomingCall(Math.random()<0.6?'video':'voice');
   }
 }

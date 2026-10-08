@@ -8,23 +8,29 @@ function statusPool(){return Array.isArray(state.statusPool)&&state.statusPool.l
 function saveStatusPool(){state.statusPool=statusPool();saveKey('statusPool');}
 function statusColor(s){const p=statusPool().find(x=>x.s===s);return p?p.c:'';}
 
-/* 状态选择弹窗（我的 / TA 的）+ 池管理入口 */
+/* 状态选择弹窗（我的 / TA 的）+ 池管理入口；v3.6.0：改 TA 状态可选手动保持时长（默认 10 分钟，可选 15 分钟） */
 function editStatus(who_){
   const p=who_==='me'?state.me:state.other;
   const cur=(who_==='other'?(state.taStatus||'在线'):(p.status||'在线'));
   const items=statusPool().map(x=>
     `<div class="modal-item" onclick="closeModal();saveStatus('${who_}','${esc(x.s)}')"><span class="status-dot" style="background:${x.c}"></span>${esc(x.s)}${x.s===cur?' <span style="color:var(--hint)">（当前）</span>':''}</div>`
   ).join('');
-  const manage='<div class="modal-item" style="color:var(--hint)" onclick="closeModal();manageStatusPool()">⚙ 管理状态池（新增/删除）</div>';
+  let manage='<div class="modal-item" style="color:var(--hint)" onclick="closeModal();manageStatusPool()">⚙ 管理状态池（新增/删除）</div>';
+  if(who_==='other'){
+    const lockMin=state.taStatusLockMin||10;
+    const seg=(m)=>`<span style="padding:4px 12px;border-radius:14px;cursor:pointer;${lockMin===m?'background:rgba(76,217,100,.18);font-weight:700':'background:rgba(128,128,128,.12)'}" onclick="setStatusLockMin(${m})">${m} 分钟</span>`;
+    manage='<div class="modal-item" style="justify-content:space-between"><span style="color:var(--hint)">手动保持</span><span style="display:flex;gap:6px">'+seg(10)+seg(15)+'</span></div>'+manage;
+  }
   showModal(who_==='me'?'我的状态':'TA 的状态',items+manage,'<div class="modal-btn-row"><button class="modal-btn" onclick="closeModal()">取消</button></div>');
 }
+function setStatusLockMin(m){state.taStatusLockMin=m;saveKey('taStatusLockMin');editStatus('other');}
 function saveStatus(who_,s){
   if(who_==='me'){
     state.me.status=s;saveKey('me');
   }else{
     state.other.status=s;
     state.taStatus=s;
-    state.taStatusUntil=Date.now()+30*60000;   // 手动设定后 30 分钟不被自动切换覆盖
+    state.taStatusUntil=Date.now()+(state.taStatusLockMin||10)*60000;   // v3.6.0：手动设定后默认保持 10 分钟（可选 15）不被自动切换覆盖
     saveKey('other');saveKey('taStatusUntil');
   }
   updateHome();renderProfile();updateChatHeader();updateTaStatusBadge();

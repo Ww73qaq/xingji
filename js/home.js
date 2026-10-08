@@ -225,16 +225,13 @@ async function refreshAllBadges(){
   updateTabBadge('moments',momUnread);
   updateTabBadge('cards',0);
 }
-/* 信号强弱（v3.5.9）：带权重随机跳变——信号好（3/4/5 格）概率高、差（1/2 格）概率低，
-   且与上一档差值限幅 ≤2（平滑，不跳变），每 2.6~5.2 秒呼吸换一档 */
-const SIG_W=[0.08,0.14,0.32,0.26,0.20];  // 权重：1格~5格
-function sigNext(prev){
-  const total=SIG_W.reduce((a,b)=>a+b,0);
-  let r=Math.random()*total,n=1;
-  for(let i=0;i<SIG_W.length;i++){r-=SIG_W[i];if(r<=0){n=i+1;break;}}
-  if(prev){if(n-prev>2)n=prev+2;else if(prev-n>2)n=prev-2;}
-  return n;
-}
+/* 信号强弱（v3.6.0）：连接频率的镜子——目标档位由"距最后一条互动的时长"决定：
+   刚互动 → 4~5 格（频率高）；长时间静默 → 缓慢降到 1~2 格（频率低）。
+   当前档位向目标缓慢移动（一格一格走，天然平滑），停靠目标时叠加轻微呼吸。
+   由主心跳每秒驱动，不再自持定时器。 */
+let _sigLevel=3;
+let _lastInteractAt=Date.now();
+function touchInteract(){_lastInteractAt=Date.now();}
 function renderSignal(){
   const el=document.getElementById('sb-signal');if(!el)return;
   if(!el.childElementCount){
@@ -246,19 +243,19 @@ function renderSignal(){
       el.appendChild(b);
     }
   }
-  clearTimeout(renderSignal._t);
-  let prev=0;
-  const step=()=>{
-    const n=sigNext(prev);prev=n;
-    const bars=el.children;
-    for(let i=0;i<bars.length;i++){
-      bars[i].style.opacity=i<n?1:.25;
-      bars[i].style.transform=i<n?'scaleY(1)':'scaleY(.6)';
-    }
-    const hold=2600+Math.random()*2600;   // 呼吸：2.6~5.2 秒换一档
-    renderSignal._t=setTimeout(step,hold);
-  };
-  step();
+  const age=(Date.now()-_lastInteractAt)/60000;   // 距最后互动：分钟
+  let target=age<10?4.5:age<60?3.5:age<180?2.5:1.5;
+  target+=Math.random()*0.9;                      // 目标档位轻微浮动
+  target=Math.max(1,Math.min(5,Math.round(target)));
+  if(_sigLevel<target)_sigLevel++;
+  else if(_sigLevel>target)_sigLevel--;
+  else if(Math.random()<0.3)_sigLevel+=Math.random()<0.5?1:-1;   // 停靠目标时小呼吸
+  _sigLevel=Math.max(1,Math.min(5,_sigLevel));
+  const bars=el.children;
+  for(let i=0;i<bars.length;i++){
+    bars[i].style.opacity=i<_sigLevel?1:.25;
+    bars[i].style.transform=i<_sigLevel?'scaleY(1)':'scaleY(.6)';
+  }
 }
 function paintTabIcons(){
   document.querySelectorAll('.tab-ico[data-ico]').forEach(el=>{
