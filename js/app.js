@@ -66,6 +66,9 @@ document.getElementById('widget-avatars').addEventListener('click',e=>{
 });
 
 
+/* 注册 Service Worker：Android Edge/Chrome 通知必需（通知统一走 reg.showNotification 发送） */
+if('serviceWorker' in navigator){navigator.serviceWorker.register('./sw.js').catch(()=>{});}
+
 openDB().then(async()=>{
   checkUpdate();
   checkVersion();

@@ -79,15 +79,31 @@ function toggleTaNote(){
   if(typeof openTaNoteSettings==='function'&&document.getElementById('modal').classList.contains('show'))openTaNoteSettings();
 }
 function notifySystem(title,body,onClick){
+  const n=state.notify||{};
+  if(n.enabled===false||!notifyPermGranted())return;
+  // 聊天消息：仅当页面不可见时才弹（避免前台刷屏）；其他类按开关直接弹
+  const tag=(title||'').indexOf(state.other.name)>=0?'chat':'other';
+  if(tag==='chat'&&n.chat===false)return;
+  if(tag==='other'&&n.moments===false)return;
+  if(!document.hidden)return;
+  sendWebNotify(title||'星迹',body,tag+'|'+Date.now(),onClick);
+}
+/* 系统通知统一发送：优先 Service Worker（Android 必须注册 SW 才能显示通知，
+   通知由浏览器原生调度，页面后台/冻结也能弹出）；无 SW 时回退 Notification API。 */
+function sendWebNotify(title,body,tag,onClick){
+  if(!notifySupported()||!notifyPermGranted())return;
+  const opts={body:(body||'').slice(0,120),tag:tag||('xingji|'+Date.now())};
+  if('serviceWorker' in navigator){
+    navigator.serviceWorker.ready.then(reg=>reg.showNotification(title||'星迹',opts))
+      .then(()=>{})
+      .catch(()=>fallbackNotify(title,body,onClick));
+    return;
+  }
+  fallbackNotify(title,body,onClick);
+}
+function fallbackNotify(title,body,onClick){
   try{
-    const n=state.notify||{};
-    if(!n.enabled||!notifyPermGranted())return;
-    // 聊天消息：仅当页面不可见时才弹（避免前台刷屏）；其他类按开关直接弹
-    const tag=(title||'').indexOf(state.other.name)>=0?'chat':'other';
-    if(tag==='chat'&&n.chat===false)return;
-    if(tag==='other'&&n.moments===false)return;
-    if(!document.hidden)return;
-    const nt=new Notification(title||'星迹',{body:(body||'').slice(0,120),tag:tag+'|'+Date.now(),icon:location.origin+'/favicon.ico'});
+    const nt=new Notification(title||'星迹',{body:(body||'').slice(0,120),tag:'xingji|'+Date.now()});
     if(typeof onClick==='function'){nt.onclick=()=>{window.focus();try{onClick();}catch(e){}nt.close();};}
     setTimeout(()=>nt.close(),10000);
   }catch(e){/* 通知失败静默（iOS 需添加到主屏幕 / 浏览器未授权等） */}
@@ -105,32 +121,27 @@ function openNotifySettings(){
     <div class="modal-item" onclick="setNotify('moments')"><span style="flex:1">朋友圈互动</span><span class="cs-switch${n.moments!==false?' on':''}" onclick="event.stopPropagation();setNotify('moments')"></span></div>
     <div class="modal-item" onclick="setNotify('letters')"><span style="flex:1">信件回信</span><span class="cs-switch${n.letters!==false?' on':''}" onclick="event.stopPropagation();setNotify('letters')"></span></div>
     <button class="btn-pill" style="width:100%;margin-top:8px" onclick="testNotify()">测试通知（当场发一条验证链路）</button>
-    <div style="font-size:11px;color:var(--hint);line-height:1.8;margin-top:10px">说明：<br>· 通知需要浏览器授权，首次开启会弹出授权请求；<br>· 若授权框不弹、或已被浏览器自动禁止（Edge / Chrome 会挡反复请求的站点）→ 按上面红字去浏览器设置添加例外；<br>· 手机端点「测试通知」如提示先切后台：切回桌面/其它App 等 3 秒即可收到；<br>· iPhone Safari：先「添加到主屏幕」再从桌面图标打开，通知才能稳定生效；<br>· QQ / 微信内置浏览器：部分版本会拦截网页通知，建议用系统浏览器打开本站；<br>· 页面完全关闭后无法收到（静态站无推送服务器），保持后台打开即可。</div>`);
+    <div style="font-size:11px;color:var(--hint);line-height:1.8;margin-top:10px">说明：<br>· 通知需要浏览器授权，首次开启会弹出授权请求；<br>· 若授权框不弹、或已被浏览器自动禁止（Edge / Chrome 会挡反复请求的站点）→ 按上面红字去浏览器设置添加例外；<br>· 手机端点「测试通知」：切回桌面/其它App 后通知即弹出（Android 前台页面不显示通知）；<br>· iPhone Safari：先「添加到主屏幕」再从桌面图标打开，通知才能稳定生效；<br>· QQ / 微信内置浏览器：部分版本会拦截网页通知，建议用系统浏览器打开本站；<br>· 页面完全关闭后无法收到（静态站无推送服务器），保持后台打开即可。</div>`);
 }
 function testNotify(){
   if(!notifySupported()){showToast('当前浏览器不支持通知');return;}
   if(Notification.permission==='granted'){
-    if(document.hidden||sendTestNotification()){
-      /* 已发送成功（页面在后台；或桌面浏览器前台也可发） */
-    }else{
-      /* Android Edge/Chrome：前台页面禁止网页弹系统通知，引导切后台后自动补发 */
-      showToast('手机端请先切回桌面或其它App，3 秒后自动发送测试通知');
-      setTimeout(sendTestNotification,3000);
-    }
+    sendTestNotification();
+    showToast(document.hidden?'已发送测试通知，请看通知栏':'测试通知已发送，请切回桌面/其它App 查看');
   }else if(Notification.permission==='default'){
     Notification.requestPermission().then(p=>{if(p==='granted')testNotify();else showToast('通知权限未允许');});
   }else{
     openNotifySettings();
   }
 }
-/* 发送测试通知：返回是否成功（Android 前台页面 new Notification 会抛异常） */
+/* 发送测试通知：走 Service Worker——前台调用不抛异常，Android 上通知在切回桌面/其它App 后显示 */
 function sendTestNotification(){
-  try{
-    const nt=new Notification('星迹 · 测试通知',{body:'通知链路已打通，你已能收到本网站的系统通知'});
-    setTimeout(()=>nt.close(),8000);
-    showToast('已发送测试通知，请看通知栏');
-    return true;
-  }catch(e){return false;}
+  if('serviceWorker' in navigator&&navigator.serviceWorker.controller){
+    navigator.serviceWorker.ready.then(reg=>reg.showNotification('星迹 · 测试通知',{body:'通知链路已打通，你已能收到本网站的系统通知',tag:'xingji-test'}))
+      .catch(()=>fallbackNotify('星迹 · 测试通知','通知链路已打通，你已能收到本网站的系统通知'));
+  }else{
+    fallbackNotify('星迹 · 测试通知','通知链路已打通，你已能收到本网站的系统通知');
+  }
 }
 function setNotify(k){
   state.notify=state.notify||{enabled:false,chat:true,moments:true,letters:true};
