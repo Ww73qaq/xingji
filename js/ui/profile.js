@@ -123,7 +123,7 @@ function openNotifySettings(){
     <div class="modal-item" onclick="setNotify('moments')"><span style="flex:1">朋友圈互动</span><span class="cs-switch${n.moments!==false?' on':''}" onclick="event.stopPropagation();setNotify('moments')"></span></div>
     <div class="modal-item" onclick="setNotify('letters')"><span style="flex:1">信件回信</span><span class="cs-switch${n.letters!==false?' on':''}" onclick="event.stopPropagation();setNotify('letters')"></span></div>
     <button class="btn-pill" style="width:100%;margin-top:8px" onclick="testNotify()">测试通知（当场发一条验证链路）</button>
-    <div style="font-size:11px;color:var(--hint);line-height:1.8;margin-top:10px">说明：<br>· 通知需要浏览器授权，首次开启会弹出授权请求；<br>· 若授权框不弹、或已被浏览器自动禁止（Edge / Chrome 会挡反复请求的站点）→ 按上面红字去浏览器设置添加例外；<br>· 手机端点「测试通知」：切回桌面/其它App 后通知即弹出（Android 前台页面不显示通知）；<br>· iPhone Safari：先「添加到主屏幕」再从桌面图标打开，通知才能稳定生效；<br>· QQ / 微信内置浏览器：部分版本会拦截网页通知，建议用系统浏览器打开本站；<br>· 页面完全关闭后无法收到（静态站无推送服务器），保持后台打开即可。</div>`);
+    <div style="font-size:11px;color:var(--hint);line-height:1.8;margin-top:10px">说明：<br>· 通知需要浏览器授权，首次开启会弹出授权请求；<br>· 若授权框不弹、或已被浏览器自动禁止（Edge / Chrome 会挡反复请求的站点）→ 按上面红字去浏览器设置添加例外；<br>· 手机端点「测试通知」：切回桌面/其它App 后通知即弹出（Android 前台页面不显示通知）；<br>· iPhone Safari：先「添加到主屏幕」再从桌面图标打开，通知才能稳定生效；<br>· QQ / 微信内置浏览器：部分版本会拦截网页通知，建议用系统浏览器打开本站；<br>· Android 后台运行：设置→应用→Edge/Chrome→电池→「不受限制」；最近任务把浏览器「锁定」；关闭浏览器省电模式/后台限制——否则锁屏后系统会休眠浏览器导致通知失效；<br>· 页面完全关闭后无法收到（静态站无推送服务器），保持后台打开即可。</div>`);
 }
 function testNotify(){
   if(!notifySupported()){showToast('当前浏览器不支持通知');return;}
@@ -164,24 +164,49 @@ function setNotify(k){
 /* ===== 后台保活音频（借鉴 mochi bg-keep 模块）：通知开启时播放静音循环，
    Android 浏览器对「正在播放媒体」的页面不会冻结后台 JS → 定时器/心跳继续运行，
    切到别的 App 后 TA 消息调度与通知能按时触发。 ===== */
-let _keepCtx=null,_keepSrc=null;
+let _keepCtx=null,_keepSrc=null,_keepTimer=null,_keepVisBound=false;
 function keepAliveActive(){return !!(state.notify&&state.notify.enabled&&_keepCtx);}
+/* 后台保活音频（增强版，借鉴 mochi bg-keep）：
+   - 近静音正弦波（18000Hz 人耳不可闻，幅度 0.006×0.05≈-70dBFS）——必须有「实际信号」才被
+     Android 视为媒体播放中；gain=0 纯静音不算，后台照样被冻结。
+   - 重试定时器：Chromium 139+ 安卓后台冻结线缩到 1 分钟，隐藏期 ≤15s 检查一次 AudioContext
+     是否被挂起（suspended）并 resume，保证音频不停、页面不被冻结。
+   - visibilitychange：切后台确保保活在跑；切回前台 resume 被挂起的上下文。 */
 function startKeepAlive(){
   if(_keepCtx)return;
   try{
     const AC=window.AudioContext||window.webkitAudioContext;
     if(!AC)return;
     const ctx=new AC();
-    const buf=ctx.createBuffer(1,1,22050); /* 1 样本静音缓冲 */
+    const rate=ctx.sampleRate||44100;
+    const buf=ctx.createBuffer(1,rate,rate); /* 1 秒近静音正弦波 */
+    const ch=buf.getChannelData(0);
+    for(let i=0;i<ch.length;i++)ch[i]=Math.sin(2*Math.PI*18000*i/rate)*0.006;
     const src=ctx.createBufferSource();
     src.buffer=buf;src.loop=true;
-    const g=ctx.createGain();g.gain.value=0; /* 静音输出 */
+    const g=ctx.createGain();g.gain.value=0.05;
     src.connect(g);g.connect(ctx.destination);
     src.start();
     _keepCtx=ctx;_keepSrc=src;
+    if(_keepTimer)clearInterval(_keepTimer);
+    _keepTimer=setInterval(()=>{
+      if(!_keepCtx)return;
+      if(_keepCtx.state==='suspended'){try{_keepCtx.resume();}catch(e){}}
+    },document.hidden?15000:60000);
+    if(!_keepVisBound){
+      _keepVisBound=true;
+      document.addEventListener('visibilitychange',()=>{
+        if(document.hidden){
+          if(state.notify&&state.notify.enabled)startKeepAlive();
+        }else if(_keepCtx&&_keepCtx.state==='suspended'){
+          try{_keepCtx.resume();}catch(e){}
+        }
+      });
+    }
   }catch(e){_keepCtx=null;_keepSrc=null;}
 }
 function stopKeepAlive(){
+  if(_keepTimer){clearInterval(_keepTimer);_keepTimer=null;}
   if(_keepCtx){try{_keepSrc.stop();_keepCtx.close();}catch(e){}}
   _keepCtx=null;_keepSrc=null;
 }
