@@ -70,7 +70,7 @@
   <div class="status-bar">
     <span class="time" id="status-time">--:--</span>
     <span class="notch-spacer"></span>
-    <span class="sb-right"><span id="sb-signal" class="sb-signal"></span></span>
+    <span class="sb-right"><span id="sb-ta-time" class="sb-ta-time" title="TA 的世界时间，与现实有偏差"></span><span id="sb-signal" class="sb-signal"></span></span>
   </div>
   <div class="widget-area">
     <div class="widget-avatars" id="widget-avatars">
@@ -156,6 +156,7 @@
       <div class="more-item" onclick="openPollModal('poll')"><div class="more-ico"><svg viewBox="0 0 24 24"><circle cx="5.5" cy="12" r="2"/><path d="M9.5 12h11M9.5 6.5h11M9.5 17.5h11"/></svg></div><div class="more-label">单选</div></div>
       <div class="more-item" onclick="openPollModal('multipoll')"><div class="more-ico"><svg viewBox="0 0 24 24"><path d="M5 7.5 7 9.5l3.5-4"/><path d="M9.5 7.5h11M9.5 12h11M9.5 16.5h11"/></svg></div><div class="more-label">多选</div></div>
       <div class="more-item" onclick="openPollModal('survey')"><div class="more-ico"><svg viewBox="0 0 24 24"><path d="M5 4h14v16H5zM9 9h6M9 13h6M9 17h3"/></svg></div><div class="more-label">问卷</div></div>
+      <div class="more-item" onclick="helpMeDecide()"><div class="more-ico"><svg viewBox="0 0 24 24"><path d="M12 3a5 5 0 0 0-5 5v1a5 5 0 0 0 2 4v3h6v-3a5 5 0 0 0 2-4V8a5 5 0 0 0-5-5Z"/><path d="M9.5 19.5a2.5 2.5 0 0 0 5 0"/></svg></div><div class="more-label">帮我决定</div></div>
     </div>
   </div>
 </div>
@@ -349,6 +350,7 @@
 <script src="js/ui/companion.js"></script>
 <script src="js/ui/probability.js"></script>
 <script src="js/features/reply-library.js"></script>
+<script src="js/features/decide.js"></script>
 <script src="js/features/group-chat.js"></script>
 <script src="js/ui/room.js"></script>
 <script src="js/data/backup.js"></script>

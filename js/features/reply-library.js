@@ -49,11 +49,11 @@ async function renderCards(){
     <div class="card-stats">
       <span>全部 <b>${all.length}</b></span><span>可用 <b>${enabledCount}</b></span><span>停用 <b>${all.length-enabledCount}</b></span><span>累计使用 <b>${totalUse}</b></span>
     </div>
-    <div class="tabs" style="overflow-x:auto;flex-wrap:nowrap">${names.map((n,i)=>`<button class="tab${cardGroupFilter===n?' active':''}" style="flex:0 0 auto;padding:8px 14px" onclick="pickCardGroup(${i})">${esc(n)}</button>`).join('')}
-    <button class="tab" style="flex:0 0 auto;padding:8px 14px" onclick="addCard()">＋ 字卡</button>
-    <button class="tab" style="flex:0 0 auto;padding:8px 14px" onclick="exportCards()">导出</button>
-    <button class="tab" style="flex:0 0 auto;padding:8px 14px" onclick="importCards()">导入</button>
-    <button class="tab" style="flex:0 0 auto;padding:8px 14px" onclick="manageCardGroups()">分组</button></div>
+    <div class="card-actions" style="display:flex;gap:8px;padding:2px 0 8px">
+      <button class="btn-pill" style="flex:1" onclick="addCard()">＋ 字卡</button>
+      <button class="btn-pill ghost" style="flex:1" onclick="manageCardGroups()">分组管理</button>
+    </div>
+    <div class="tabs" style="overflow-x:auto;flex-wrap:nowrap">${names.map((n,i)=>`<button class="tab${cardGroupFilter===n?' active':''}" style="flex:0 0 auto;padding:8px 14px" onclick="pickCardGroup(${i})">${esc(n)}</button>`).join('')}</div>
     <div class="card-toolbar" style="color:var(--hint);font-size:11px">默认按字母排序 · 用过的字卡排在前面</div>
     <div class="search-bar">&#128269;<input type="text" id="card-search" placeholder="搜索字卡" oninput="filterCards(this.value)"></div>
     <div id="card-list"></div>`;
@@ -62,7 +62,7 @@ async function renderCards(){
 }
 let cardGroupNames=[];
 function pickCardGroup(i){cardGroupFilter=cardGroupNames[i]||'全部';renderCards();}
-function renderCardList(){dbGetAll('cards').then(all=>{let list=all.filter(c=>cardGroupFilter==='全部'||(c.group||'默认')===cardGroupFilter);list.sort(cardCompare);const box=document.getElementById('card-list');if(!list.length){box.innerHTML='<div class="empty">这个分组还没有字卡<br>点击右上角 + 添加</div>';return;}box.innerHTML=list.map(c=>{const n=Number(c.useCount)||0;const meta=n?(' · '+n+' 次使用'+(c.lastUsedAt?(' · 最近 '+fmtChatDate(c.lastUsedAt)):'')):'';return `<div class="list-card" style="display:flex;align-items:center;gap:10px" data-t="${esc(c.text||'')}"><input class="card-select" type="checkbox" ${selectedCardIds.has(c.id)?'checked':''} onchange="toggleCardSelect(${c.id},this.checked)"><div style="flex:1;min-width:0;cursor:pointer" onclick="sendCardPoke('${esc(c.text)}')"><div class="list-card-title">${esc(c.text)}</div><div class="list-card-sub">${esc(c.group||'默认')}${meta}</div></div><button class="btn-pill ghost" style="padding:6px 10px" onclick="editCard(${c.id})">改</button><button class="btn-pill ghost" style="padding:6px 10px;color:${c.enabled===false?'#c0392b':'var(--sub)'}" onclick="toggleCardEnabled(${c.id})">${c.enabled===false?'启用':'停用'}</button><button class="btn-pill ghost" style="padding:6px 10px" onclick="delCard(${c.id})">删</button></div>`;}).join('');});}
+function renderCardList(){dbGetAll('cards').then(all=>{let list=all.filter(c=>cardGroupFilter==='全部'||(c.group||'默认')===cardGroupFilter);list.sort(cardCompare);const box=document.getElementById('card-list');if(!list.length){box.innerHTML='<div class="empty">这个分组还没有字卡<br>点击上方 ＋ 字卡 添加</div>';return;}box.innerHTML=list.map(c=>{const n=Number(c.useCount)||0;const meta=n?(' · '+n+' 次使用'+(c.lastUsedAt?(' · 最近 '+fmtChatDate(c.lastUsedAt)):'')):'';return `<div class="list-card" style="display:flex;align-items:center;gap:10px" data-t="${esc(c.text||'')}"><input class="card-select" type="checkbox" ${selectedCardIds.has(c.id)?'checked':''} onchange="toggleCardSelect(${c.id},this.checked)"><div style="flex:1;min-width:0;cursor:pointer" onclick="sendCardPoke('${esc(c.text)}')"><div class="list-card-title">${esc(c.text)}</div><div class="list-card-sub">${esc(c.group||'默认')}${meta}</div></div><button class="btn-pill ghost" style="padding:6px 10px" onclick="editCard(${c.id})">改</button><button class="btn-pill ghost" style="padding:6px 10px;color:${c.enabled===false?'#c0392b':'var(--sub)'}" onclick="toggleCardEnabled(${c.id})">${c.enabled===false?'启用':'停用'}</button><button class="btn-pill ghost" style="padding:6px 10px" onclick="delCard(${c.id})">删</button></div>`;}).join('');});}
 function toggleCardSelect(id,on){if(on)selectedCardIds.add(id);else selectedCardIds.delete(id);}
 async function toggleCardEnabled(id){
   const all=await dbGetAll('cards');const c=all.find(x=>x.id===id);if(!c)return;

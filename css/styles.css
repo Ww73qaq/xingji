@@ -704,3 +704,7 @@ body{-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;letter
 .mood-chip.add{color:var(--hint);font-style:normal}
 .note-head-mood{font-size:11px;margin-left:6px;color:var(--sub);white-space:nowrap}
 .app-input-multi{width:100%;font:inherit;font-size:14px;color:var(--text);background:transparent;border:none;outline:none;border-bottom:1px solid rgba(128,128,128,.25);padding:6px 0;box-sizing:border-box;display:block}
+
+/* ===== v3.5.10：TA 世界时间（信号格左侧紧贴） ===== */
+.sb-ta-time{font-size:10px;color:var(--sub);margin-right:5px;white-space:nowrap;letter-spacing:.3px}
+.sb-right{display:flex;align-items:center}

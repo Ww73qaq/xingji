@@ -26,6 +26,20 @@ function updateStatusClock(){
   const st=document.getElementById('status-time');if(st)st.textContent=t;
   const ct=document.getElementById('chat-status-time');if(ct)ct.textContent=t;
 }
+/* TA 的世界时间（v3.5.10，借鉴 mochi taTimeOf）：与现实无关的随机时刻，
+   每 1~8 小时重新抽一次；抽出的时刻避免与现实时间太接近（保持"时差"感） */
+let _taClock={hh:9,mm:0,nextAt:0};
+function renderTaTime(){
+  if(Date.now()>=_taClock.nextAt){
+    let hh=Math.floor(Math.random()*24),mm=Math.floor(Math.random()*60);
+    const d=new Date();
+    const diff=Math.abs((hh*60+mm)-(d.getHours()*60+d.getMinutes()));
+    if(Math.min(diff,1440-diff)<20)hh=(hh+8+Math.floor(Math.random()*8))%24;   // 避免与现实时间撞车
+    _taClock={hh:hh,mm:mm,nextAt:Date.now()+(1+Math.random()*7)*3600000};
+  }
+  const el=document.getElementById('sb-ta-time');
+  if(el)el.textContent='TA '+String(_taClock.hh).padStart(2,'0')+':'+String(_taClock.mm).padStart(2,'0');
+}
 
 /* 唯一主心跳：原先散落的 4 个 setInterval（1s 时钟/信号、5s 朋友圈、60s 陪伴、15s 信件）
    合并为一个 1 秒定时器；页面切到后台时暂停（除非「通知开启」→ 保活音频让后台继续跑，
@@ -36,6 +50,7 @@ function startHeartbeat(){
     if(document.hidden&&!keepAliveActive())return;
     _tick++;
     updateStatusClock();
+    renderTaTime();
     renderSignal();
     if(_tick%5===0){
       processMomentReplies();
