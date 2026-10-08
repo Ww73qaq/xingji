@@ -76,9 +76,9 @@ function startRing(){
 }
 function stopRing(){if(ringIv){clearInterval(ringIv);ringIv=null;}}
 /* 来电（TA 主动打来） */
-function simulateIncomingCall(){
+function simulateIncomingCall(kind){
   if(state.callActive){showToast('当前正在通话中');return;}
-  callMode='in';state.callActive=true;callSec=0;callMuted=false;callSpeaker=false;
+  callMode='in';callKind=kind||'voice';state.callActive=true;callSec=0;callMuted=false;callSpeaker=false;camOn=(callKind==='video');
   showCallOverlay();
   setCallBadge('星迹',true);
   setCallStatus(`${state.other.name} 正在呼叫…<br><span style="opacity:.6;font-size:12px">${CALL_BG[Math.floor(Math.random()*CALL_BG.length)]}</span>`);
@@ -94,6 +94,20 @@ function simulateIncomingCall(){
   startRing();
   if(navigator.vibrate)navigator.vibrate([400,200,400]);
   callIv=setTimeout(()=>{ if(!state.callActive)return; endCall('miss-in'); showToast(`${state.other.name} 的来电未接听`); },30000);
+}
+/* v3.5.9：TA 主动来电调度（借鉴 mochi 概率模型，挂心跳每 5 秒检测一次）
+   规则：通话中 / 被禁言 / 距上次来电 30 分钟冷却内不触发；
+   每 5 秒 1% 概率触发；60% 视频来电 / 40% 语音来电 */
+const TA_CALL_COOLDOWN_MS=30*60000;
+function maybeTaCall(){
+  if(state.callActive)return;
+  if(Date.now()<state.muteEndTime||Date.now()<state.taMuteMeEndTime)return;
+  const last=Number(state.stats.taCallLastAt)||0;
+  if(last&&Date.now()-last<TA_CALL_COOLDOWN_MS)return;
+  if(Math.random()<0.01){
+    state.stats.taCallLastAt=Date.now();saveKey('stats');
+    simulateIncomingCall(Math.random()<0.6?'video':'voice');
+  }
 }
 /* 去电 */
 function callOutgoing(kind){

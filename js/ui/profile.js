@@ -2,7 +2,7 @@
    星迹 · 我的：资料 / 密码 / 通知 / 相遇时间 / 开屏语
    ========================================================= */
 
-function editSplashText(){appPrompt('开屏语（换行请用空格分隔）',state.splashText.replace(/\n/g,' '),t=>{if(t===null||!t.trim())return false;state.splashText=t.trim();saveKey('splashText');renderSplashLetter();showToast('开屏语已更新');});}
+function editSplashText(){appPrompt('开屏语（可换行）',state.splashText,t=>{if(t===null||!t.trim())return false;state.splashText=t.trim();saveKey('splashText');renderSplashLetter();showToast('开屏语已更新');});}
 
 /* ===== PROFILE（「我的」标签页 = 原设置页） ===== */
 function renderProfile(){

@@ -19,7 +19,7 @@ function updateHome(){
    owner:'other' = TA 写的 → 用户可以编辑覆盖（编辑后 owner 变回 'me'） */
 function noteAt(i){
   state.notes=state.notes||[];
-  if(!state.notes[i])state.notes[i]={id:i===0?'a':'b',owner:'me',text:''};
+  if(!state.notes[i])state.notes[i]={id:i===0?'a':'b',owner:'me',text:'',mood:''};
   return state.notes[i];
 }
 function noteIsTa(i){return noteAt(i).owner==='other';}
@@ -58,6 +58,11 @@ function renderNotes(){
     }
     if(body)body.textContent=n.text||'写点什么…';
     if(card)card.classList.toggle('from-ta',noteIsTa(i));
+    // 心情标记：便签名字右侧
+    let moodEl=head.parentElement.querySelector('.note-head-mood');
+    if(!moodEl){moodEl=document.createElement('span');moodEl.className='note-head-mood';head.parentElement.insertBefore(moodEl,head.nextSibling);}
+    moodEl.textContent=n.mood||'';
+    moodEl.style.display=n.mood?'':'none';
   });
 }
 /* 进入桌面 = 看见便签 → 清掉未读红点 */
@@ -82,7 +87,7 @@ function openNoteMenu(id){
 function clearNote(id){
   const i=id==='a'?0:1;
   appConfirm('清空便签','清空后无法恢复，确定吗？',async()=>{
-    state.notes[i]={id:id,owner:'me',text:''};
+    state.notes[i]={id:id,owner:'me',text:'',mood:''};
     saveKey('notes');updateHome();showToast('便签已清空');
   });
 }
@@ -135,7 +140,9 @@ function taWriteNote(force){
   const used=state.stats.taNoteUsed||{};
   const pool=TA_NOTE_LINES.filter(t=>!used[t]);
   const text=(pool.length?pool:TA_NOTE_LINES)[Math.floor(Math.random()*(pool.length||TA_NOTE_LINES.length))];
-  state.notes[1]={id:'b',owner:'other',text,at:Date.now()};
+  const moods=MOOD_POOL.concat(Array.isArray(state.moodPool)?state.moodPool:[]);
+  const mood=moods.length?moods[Math.floor(Math.random()*moods.length)]:'';
+  state.notes[1]={id:'b',owner:'other',text,at:Date.now(),mood};
   used[text]=1;
   state.stats.taNoteUsed=used;
   state.stats.taNoteLastAt=Date.now();
@@ -151,24 +158,46 @@ function taWriteNote(force){
   showToast(state.other.name+' 在便签上写了一句话');
   return true;
 }
+let noteMood='',_noteEditId='a';
 function editNote(id){
   const idx=id==='a'?0:1;
+  _noteEditId=id;
   const cur=(state.notes&&state.notes[idx]&&state.notes[idx].text)||'';
+  noteMood=(state.notes&&state.notes[idx]&&state.notes[idx].mood)||'';
   const title=id==='a'?'我的便签':state.other.name+'的便签';
   const fromTa=idx===1&&noteIsTa(1);
   const tip=idx===1
     ?(fromTa?'<div style="font-size:11px;color:var(--hint);margin-top:8px">这是 '+esc(state.other.name)+' 写的便签。你改动之后 TA 不会再自动覆盖这一张。</div>'
           :'<div style="font-size:11px;color:var(--hint);margin-top:8px">你写这张便签后，'+esc(state.other.name)+' 不会覆盖它；想换一句可长按便签选「让 TA 重新写」。</div>')
     :'';
-  showModal(title,`<textarea class="textarea-full" id="note-input" style="min-height:120px" placeholder="写点什么…">${esc(cur)}</textarea>${tip}
+  const moods=MOOD_POOL.concat(Array.isArray(state.moodPool)?state.moodPool:[]);
+  const moodsHtml='<div style="display:flex;flex-wrap:wrap;gap:5px;margin-top:8px">'
+    +moods.map(m=>`<span class="mood-chip${m===noteMood?' on':''}" onclick="toggleNoteMood(this,'${esc(m)}')">${esc(m)}</span>`).join('')
+    +'<span class="mood-chip add" onclick="addCustomMood()">＋ 新增</span></div>';
+  showModal(title,`<textarea class="textarea-full" id="note-input" style="min-height:120px" placeholder="写点什么…">${esc(cur)}</textarea><div style="font-size:11px;color:var(--hint);margin-top:8px">心情（可选，显示在便签名字右侧）：</div>${moodsHtml}${tip}
     <div class="modal-btn-row"><button class="modal-btn" onclick="closeModal()">取消</button><button class="modal-btn primary" onclick="saveNote('${id}')">保存</button></div>`);
   setTimeout(()=>{const i=document.getElementById('note-input');if(i)i.focus();},80);
+}
+function toggleNoteMood(el,m){
+  if(noteMood===m){noteMood='';document.querySelectorAll('.mood-chip.on').forEach(x=>x.classList.remove('on'));return;}
+  noteMood=m;
+  document.querySelectorAll('.mood-chip').forEach(x=>x.classList.remove('on'));
+  el.classList.add('on');
+}
+function addCustomMood(){
+  appPrompt('新增心情','输入心情（可带符号/表情），如：🌸 赏花',v=>{
+    v=(v||'').trim();if(!v)return false;
+    state.moodPool=state.moodPool||[];
+    if(state.moodPool.indexOf(v)>=0){showToast('已存在，直接点选即可');return true;}
+    state.moodPool.push(v);saveKey('moodPool');
+    editNote(_noteEditId);return false;
+  });
 }
 function saveNote(id){
   const idx=id==='a'?0:1;
   const v=document.getElementById('note-input')?document.getElementById('note-input').value:'';
   // 用户编辑后 owner 归为 'me'：TA 之后不会再自动覆盖这一张
-  state.notes[idx]={id:id,owner:'me',text:v,at:Date.now()};
+  state.notes[idx]={id:id,owner:'me',text:v,at:Date.now(),mood:noteMood||''};
   saveKey('notes');closeModal();updateHome();showToast('便签已保存');
 }
 function updateTabBar(){
@@ -196,8 +225,16 @@ async function refreshAllBadges(){
   updateTabBadge('moments',momUnread);
   updateTabBadge('cards',0);
 }
-/* 信号强弱：动态跳动，模拟链接强度；每 2.5 秒随机一次强弱 */
-const SIG_SEQ=[1,2,3,2,4,3,5,4,5,3];  // 楼梯式离散状态：1→2→3→2→4→3→5→4…
+/* 信号强弱（v3.5.9）：带权重随机跳变——信号好（3/4/5 格）概率高、差（1/2 格）概率低，
+   且与上一档差值限幅 ≤2（平滑，不跳变），每 2.6~5.2 秒呼吸换一档 */
+const SIG_W=[0.08,0.14,0.32,0.26,0.20];  // 权重：1格~5格
+function sigNext(prev){
+  const total=SIG_W.reduce((a,b)=>a+b,0);
+  let r=Math.random()*total,n=1;
+  for(let i=0;i<SIG_W.length;i++){r-=SIG_W[i];if(r<=0){n=i+1;break;}}
+  if(prev){if(n-prev>2)n=prev+2;else if(prev-n>2)n=prev-2;}
+  return n;
+}
 function renderSignal(){
   const el=document.getElementById('sb-signal');if(!el)return;
   if(!el.childElementCount){
@@ -210,16 +247,15 @@ function renderSignal(){
     }
   }
   clearTimeout(renderSignal._t);
-  let idx=0;
+  let prev=0;
   const step=()=>{
-    const n=SIG_SEQ[idx%SIG_SEQ.length];
+    const n=sigNext(prev);prev=n;
     const bars=el.children;
     for(let i=0;i<bars.length;i++){
       bars[i].style.opacity=i<n?1:.25;
       bars[i].style.transform=i<n?'scaleY(1)':'scaleY(.6)';
     }
-    idx++;
-    const hold=2600+Math.random()*2600;   // 楼梯式呼吸：2.6~5.2 秒换一次
+    const hold=2600+Math.random()*2600;   // 呼吸：2.6~5.2 秒换一档
     renderSignal._t=setTimeout(step,hold);
   };
   step();

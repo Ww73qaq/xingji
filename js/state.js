@@ -42,12 +42,14 @@ let state = {
   stats:{diaryOpen:false,companionTime:0,companionStreak:0,diaryCount:0,momentCount:0,chatCount:0,
     myPoke:'',notifCenter:[],momentReplyQueue:[],hiddenMoments:[],momentsAllowPost:1,momentsAllowComment:1,momentsAllowEmoji:1,momentsAllowEmojiPack:1,momentsAllowMultiBubble:1,momentsAllowCardReply:1,momentsAllowLike:1,
     // TA 写便签：开关（默认开）/ 上次写入时间 / 便签是否有未读新内容 / 已用过的句子
-    taNoteEnabled:1,taNoteLastAt:0,taNoteUnread:0,taNoteUsed:{}},
-  taMuteLastEnd:0,taMuteReqAt:0
+    taNoteEnabled:1,taNoteLastAt:0,taNoteUnread:0,taNoteUsed:{},taCallLastAt:0},
+  taMuteLastEnd:0,taMuteReqAt:0,
+  // v3.5.9：状态池 / 心情池（自定义部分持久化；内置在 config.js fallback）/ TA 状态自动切换
+  statusPool:[],moodPool:[],taStatusUntil:0,taStatusCoolAt:0
 };
 
 async function loadSettings(){
-  const keys=['me','other','skin','pin','prob','meetTime','quote','splashText','stats','chat','muteEndTime','muteRequest','surveySettings','notify','notes','taMuteMeEndTime','taMuteReqCoolAt','diaryReqAt','writings','taMuteLastEnd','taMuteReqAt'];
+  const keys=['me','other','skin','pin','prob','meetTime','quote','splashText','stats','chat','muteEndTime','muteRequest','surveySettings','notify','notes','taMuteMeEndTime','taMuteReqCoolAt','diaryReqAt','writings','taMuteLastEnd','taMuteReqAt','statusPool','moodPool','taStatusUntil','taStatusCoolAt'];
   for(const k of keys){const v=await dbGet('settings',k);if(v&&v.value!==undefined)state[k]=typeof v.value==='object'&&v.value!==null?{...state[k],...v.value}:v.value;}
 }
 async function saveKey(key){const v=await dbGet('settings',key);if(v){v.value=state[key];await dbPut('settings',v);}else{await dbPut('settings',{key,value:state[key]});}}

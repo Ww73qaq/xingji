@@ -5,7 +5,7 @@
 let appInputCb=null;
 function appPrompt(title,def,onOk){
   appInputCb=onOk;
-  showModal(title,'<input id="app-input" class="app-input" value="'+esc(def==null?'':String(def))+'" placeholder="请输入"><div class="modal-btn-row"><button class="modal-btn" onclick="appPromptCancel()">取消</button><button class="modal-btn primary" onclick="appPromptOk()">确定</button></div>');
+  showModal(title,'<textarea id="app-input" class="app-input app-input-multi" placeholder="请输入" style="min-height:84px;resize:none;white-space:pre-wrap;word-break:break-word;overflow-wrap:break-word">'+esc(def==null?'':String(def))+'</textarea><div class="modal-btn-row"><button class="modal-btn" onclick="appPromptCancel()">取消</button><button class="modal-btn primary" onclick="appPromptOk()">确定</button></div>');
   setTimeout(()=>{const i=document.getElementById('app-input');if(i){i.focus();i.select();}},80);
 }
 function appPromptCancel(){appInputCb=null;closeModal();}

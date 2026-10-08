@@ -7,6 +7,7 @@ function updateChatHeader(){
   const t=document.getElementById('chat-title');
   if(t){t.firstChild.nodeValue=state.other.name||'TA';const p=document.getElementById('chat-presence');if(p)p.textContent=state.other.status==='离线'?'离线':'在线';}
   document.getElementById('chat-quote').textContent=state.quote;
+  updateTaStatusBadge();
 }
 function editQuote(){appPrompt('编辑顶部文字',state.quote,q=>{if(q!==null&&q!==state.quote){state.quote=q||'遇你，与你，予你，余你';saveKey('quote');document.getElementById('chat-quote').textContent=state.quote;showToast('顶部文字已修改');}});}
 function msgPreviewText(m){

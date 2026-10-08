@@ -40,6 +40,8 @@ function startHeartbeat(){
     if(_tick%5===0){
       processMomentReplies();
       maybeTaMuteMe();
+      if(typeof maybeTaStatusChange==='function')maybeTaStatusChange();
+      if(typeof maybeTaCall==='function')maybeTaCall();
       const badge=document.getElementById('mom-notif-badge');
       if(badge)badge.style.display=notifUnreadCount()>0?'block':'none';
       refreshStalePolls();          // 题目「等太久」的文案翻转（只刷那几条气泡）

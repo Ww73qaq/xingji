@@ -5,6 +5,7 @@
 let roomState={preset:'房间',cols:6,rows:4,grid:Array(24).fill(null),taPos:-1};
 let roomPresets={'房间':{cols:6,rows:4,grid:Array(24).fill(null)}};
 let roomPickerOpen=false,dragFromIdx=-1;
+let _sensing=false,_senseTimer=null;   // v3.5.9：感应中标志（防连点 + 延迟显示）
 
 function initRoom(){
   // 感应页：布局系统。默认 4 行 × 6 列、格子里没有任何字（方案：房间只是默认首个布局，内容由用户放置）
@@ -105,7 +106,7 @@ function renderRoom(){
   document.getElementById('room-info-title').textContent=roomState.preset;
   document.getElementById('room-rows-n').textContent=roomState.rows;
   document.getElementById('room-cols-n').textContent=roomState.cols;
-  if(placed||roomState.taPos>=0){
+  if((placed||roomState.taPos>=0)&&!_sensing){
     const item=roomState.grid[roomState.taPos];
     const actions=ROOM_ACTIONS[item]||['正静静地在这里'];
     const action=actions[Math.floor(Math.random()*actions.length)];
@@ -205,13 +206,22 @@ function deleteRoomPreset(){
   });
 }
 function doSense(){initRoom();}
+/* v3.5.9：感应 TA——点击后「正在感应…」，10~15 秒延迟才出结果（防连点/防瞬变） */
 function senseTA(){
-  const idx=Math.floor(Math.random()*24);
-  roomState.taPos=idx;
-  const item=roomState.grid[idx];
-  const actions=item?ROOM_ACTIONS[item]:['在房间的某个角落','正在房间里走动','好像刚进房间','在房间发呆','在房间的窗边站着'];
-  const action=actions[Math.floor(Math.random()*actions.length)];
-  document.getElementById('room-info-sub').textContent='TA '+action;
-  saveRoom();renderRoom();showToast('感应完成');
+  if(_sensing){showToast('正在感应中，稍等一下…');return;}
+  _sensing=true;
+  const sub=document.getElementById('room-info-sub');
+  if(sub)sub.textContent='正在感应…';
+  const delay=10000+Math.random()*5000;   // 10~15 秒
+  _senseTimer=setTimeout(()=>{
+    _sensing=false;_senseTimer=null;
+    const idx=Math.floor(Math.random()*24);
+    roomState.taPos=idx;
+    const item=roomState.grid[idx];
+    const actions=item?ROOM_ACTIONS[item]:['在房间的某个角落','正在房间里走动','好像刚进房间','在房间发呆','在房间的窗边站着'];
+    const action=actions[Math.floor(Math.random()*actions.length)];
+    document.getElementById('room-info-sub').textContent='TA '+action;
+    saveRoom();renderRoom();showToast('感应完成');
+  },delay);
 }
 function saveRoomLayout(){saveRoom();showToast('布局已保存');}

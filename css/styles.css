@@ -694,3 +694,13 @@ body{-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;letter
 .pc-5{--pc-1:#EDEAF1;--pc-2:#DCD7E7;--pc-ink:#7A7392}
 /* 我方气泡内的明信片：略微提亮，保证在深色气泡上有层次 */
 .msg-row.me .postcard{box-shadow:0 2px 8px rgba(0,0,0,.18)!important}
+
+/* ===== v3.5.9 新增：状态点 / 状态池 / 心情 chip / 多行输入 ===== */
+.chat-ta-status{font-size:10px;font-weight:400;color:var(--hint);margin-left:6px;cursor:pointer;white-space:nowrap;vertical-align:middle}
+.ts-dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:4px;vertical-align:1px}
+.status-dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:8px;vertical-align:1px}
+.mood-chip{display:inline-block;font-size:12px;padding:4px 8px;border-radius:12px;background:rgba(128,128,128,.1);cursor:pointer;line-height:1.4}
+.mood-chip.on{background:rgba(120,170,120,.35);outline:1px solid rgba(90,140,90,.5)}
+.mood-chip.add{color:var(--hint);font-style:normal}
+.note-head-mood{font-size:11px;margin-left:6px;color:var(--sub);white-space:nowrap}
+.app-input-multi{width:100%;font:inherit;font-size:14px;color:var(--text);background:transparent;border:none;outline:none;border-bottom:1px solid rgba(128,128,128,.25);padding:6px 0;box-sizing:border-box;display:block}
