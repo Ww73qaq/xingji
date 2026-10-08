@@ -104,21 +104,32 @@ function openNotifySettings(){
     <div class="modal-item" onclick="setNotify('moments')"><span style="flex:1">朋友圈互动</span><span class="cs-switch${n.moments!==false?' on':''}" onclick="event.stopPropagation();setNotify('moments')"></span></div>
     <div class="modal-item" onclick="setNotify('letters')"><span style="flex:1">信件回信</span><span class="cs-switch${n.letters!==false?' on':''}" onclick="event.stopPropagation();setNotify('letters')"></span></div>
     <button class="btn-pill" style="width:100%;margin-top:8px" onclick="testNotify()">测试通知（当场发一条验证链路）</button>
-    <div style="font-size:11px;color:var(--hint);line-height:1.8;margin-top:10px">说明：<br>· 通知需要浏览器授权，首次开启会弹出授权请求；<br>· 若授权框不弹、或已被浏览器自动禁止（Edge / Chrome 会挡反复请求的站点）→ 按上面红字去浏览器设置添加例外；<br>· iPhone Safari：先「添加到主屏幕」再从桌面图标打开，通知才能稳定生效；<br>· QQ / 微信内置浏览器：部分版本会拦截网页通知，建议用系统浏览器打开本站；<br>· 页面完全关闭后无法收到（静态站无推送服务器），保持后台打开即可。</div>`);
+    <div style="font-size:11px;color:var(--hint);line-height:1.8;margin-top:10px">说明：<br>· 通知需要浏览器授权，首次开启会弹出授权请求；<br>· 若授权框不弹、或已被浏览器自动禁止（Edge / Chrome 会挡反复请求的站点）→ 按上面红字去浏览器设置添加例外；<br>· 手机端点「测试通知」如提示先切后台：切回桌面/其它App 等 3 秒即可收到；<br>· iPhone Safari：先「添加到主屏幕」再从桌面图标打开，通知才能稳定生效；<br>· QQ / 微信内置浏览器：部分版本会拦截网页通知，建议用系统浏览器打开本站；<br>· 页面完全关闭后无法收到（静态站无推送服务器），保持后台打开即可。</div>`);
 }
 function testNotify(){
   if(!notifySupported()){showToast('当前浏览器不支持通知');return;}
   if(Notification.permission==='granted'){
-    try{
-      const nt=new Notification('星迹 · 测试通知',{body:'通知链路已打通，你已能收到本网站的系统通知',icon:location.origin+'/favicon.ico'});
-      setTimeout(()=>nt.close(),8000);
-      showToast('已发送测试通知，请看通知栏');
-    }catch(e){showToast('发送失败，请在浏览器设置允许通知权限');}
+    if(document.hidden||sendTestNotification()){
+      /* 已发送成功（页面在后台；或桌面浏览器前台也可发） */
+    }else{
+      /* Android Edge/Chrome：前台页面禁止网页弹系统通知，引导切后台后自动补发 */
+      showToast('手机端请先切回桌面或其它App，3 秒后自动发送测试通知');
+      setTimeout(sendTestNotification,3000);
+    }
   }else if(Notification.permission==='default'){
     Notification.requestPermission().then(p=>{if(p==='granted')testNotify();else showToast('通知权限未允许');});
   }else{
     openNotifySettings();
   }
+}
+/* 发送测试通知：返回是否成功（Android 前台页面 new Notification 会抛异常） */
+function sendTestNotification(){
+  try{
+    const nt=new Notification('星迹 · 测试通知',{body:'通知链路已打通，你已能收到本网站的系统通知'});
+    setTimeout(()=>nt.close(),8000);
+    showToast('已发送测试通知，请看通知栏');
+    return true;
+  }catch(e){return false;}
 }
 function setNotify(k){
   state.notify=state.notify||{enabled:false,chat:true,moments:true,letters:true};
