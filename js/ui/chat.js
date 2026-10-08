@@ -778,20 +778,22 @@ function allPokeTexts(){ensurePokeGroups();return Object.values(state.stats.poke
 function showPokeToast(text){const t=document.getElementById('poke-toast');if(!t)return;t.textContent=text;t.classList.add('show');clearTimeout(showPokeToast._t);showPokeToast._t=setTimeout(()=>t.classList.remove('show'),2200);}
 function editMyPoke(){
   ensurePokeGroups();
-  appPrompt('我的拍一拍','我'+(state.stats.myPoke||'拍了拍'+state.other.name+'的肩膀'),t=>{
+  const nm=state.me.name||'我';
+  appPrompt('我的拍一拍',nm+(state.stats.myPoke||'拍了拍'+state.other.name+'的肩膀'),t=>{
     const v=(t||'').trim();
     if(v!==null&&v!==undefined&&v!==''){
-      state.stats.myPoke=v.replace(/^我/,'');
-      saveKey('stats');renderChatInfo();showToast('已更新（发送时显示：我'+state.stats.myPoke+'「'+state.other.name+'」）');
+      state.stats.myPoke=v.replace(new RegExp('^'+nm.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')),'').replace(/^我/,'');
+      saveKey('stats');renderChatInfo();showToast('已更新（发送时显示：'+nm+state.stats.myPoke+'「'+state.other.name+'」）');
     }
     return false;
   });
 }
 function pokeChat(){
   const name=state.other.name;
+  const nm=state.me.name||'我';
   ensurePokeGroups();
   const myPoke=state.stats.myPoke||'拍了拍'+name+'的肩膀';
-  showPokeToast(`我${myPoke}「${name}」`); dbPut('messages',{sender:'sys',type:'text',content:`我${myPoke}「${name}」`,time:Date.now()}).then(()=>{if(isAppVisible())renderChat(true);});
+  showPokeToast(`${nm}${myPoke}「${name}」`); dbPut('messages',{sender:'sys',type:'text',content:`${nm}${myPoke}「${name}」`,time:Date.now()}).then(()=>{if(isAppVisible())renderChat(true);});
   if(Math.random()<0.6)setTimeout(()=>{showPokeToast(`「${name}」拍了拍你`);dbPut('messages',{sender:'sys',type:'text',content:`「${name}」拍了拍你`,time:Date.now()}).then(()=>{if(isAppVisible())renderChat(true);});},1000+Math.random()*1300);
 }
 let pokeManageGroup='默认';
