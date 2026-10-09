@@ -38,7 +38,7 @@ function showActionBar(items,opt){
   _abCleanup=()=>{if(scroller)scroller.removeEventListener('scroll',onScroll);window.removeEventListener('resize',closeActionBar);};
 }
 /* 定位：优先用锚点元素矩形，其次用坐标；上方空间不足自动改放下方 */
-function positionActionBar(bar,anchorEl,point){
+function positionActionBar(bar,anchorEl,point,opt){
   const phone=document.getElementById('phone');
   if(!phone)return;
   const pr=phone.getBoundingClientRect();
@@ -57,8 +57,16 @@ function positionActionBar(bar,anchorEl,point){
   const gap=12;
   let left=_clamp(ax-barW/2,8,Math.max(8,pr.width-barW-8));
   let top,dir;
-  if(at-barH-gap>=8){top=at-barH-gap;dir='above';}
-  else{top=ab+gap;dir='below';}
+  // v3.7：聊天长按菜单默认放消息条下方（prefer:'below'），下方放不下才移上方
+  const preferBelow=opt&&opt.prefer==='below';
+  if(preferBelow){
+    if(ab+barH+gap<=pr.height-8){top=ab+gap;dir='below';}
+    else if(at-barH-gap>=8){top=at-barH-gap;dir='above';}
+    else{top=Math.max(8,pr.height-barH-8);dir='below';}
+  }else{
+    if(at-barH-gap>=8){top=at-barH-gap;dir='above';}
+    else{top=ab+gap;dir='below';}
+  }
   top=_clamp(top,8,Math.max(8,pr.height-barH-8));
   bar.classList.remove('above','below');
   bar.classList.add(dir);

@@ -147,10 +147,38 @@ window.openApp=function(id,...rest){const r=_origOpenApp.apply(this,[id,...rest]
 paintTabIcons();
 startHeartbeat();
 
-/* v3.6.13：贴边小蝴蝶刷新——点击扇翅后重连（手机主屏幕快捷方式不方便手动刷新） */
+/* v3.7：贴边小蝴蝶 = 连接 TA 世界的通道（不重载页面，保留当前状态与 TA 时间）
+   点击 → 仪式感连接动画（约 2.1s）→ 同步 TA 意识状态一轮 + 检查新版本 */
+let _connecting=false;
 function refreshSite(){
+  if(_connecting)return;
+  _connecting=true;
   const b=document.getElementById('refresh-butterfly');
   if(b)b.classList.add('flap');
-  if(typeof showToast==='function')showToast('正在重新连接 TA 的世界…');
-  setTimeout(()=>location.reload(),750);
+  const ov=document.getElementById('connect-overlay');
+  const tx=document.getElementById('connect-text');
+  const setT=s=>{if(tx)tx.textContent=s;};
+  ov.classList.remove('done');ov.classList.add('show');
+  setT('正在连接 TA 的世界…');
+  setTimeout(()=>{
+    setT('建立意识通道…');
+    // 同步 TA 意识状态一轮（页面原地更新，不重载）
+    try{
+      if(typeof calSyncTodayNotes==='function')calSyncTodayNotes(true);
+      if(typeof ensureTaSchedule==='function')ensureTaSchedule();
+      if(typeof renderNotes==='function')renderNotes();
+      if(typeof updateHome==='function')updateHome();
+      if(typeof renderTaTime==='function')renderTaTime();
+      if(typeof refreshAllBadges==='function')refreshAllBadges();
+      if(typeof refreshStalePolls==='function')refreshStalePolls();
+    }catch(e){console.warn('connect sync',e);}
+  },700);
+  setTimeout(()=>{setT('TA 在附近');ov.classList.add('done');},1500);
+  setTimeout(()=>{
+    ov.classList.remove('show');
+    _connecting=false;
+    if(b)b.classList.remove('flap');
+    // 版本检查：有新版本提示手动刷新（不自动重载，不打断连接）
+    try{if(typeof checkVersion==='function')checkVersion();}catch(e){}
+  },2150);
 }

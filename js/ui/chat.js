@@ -339,7 +339,7 @@ async function openCtxMenu(id,ev){
   const row=document.querySelector(`.msg-row[data-mid="${id}"]`);
   // 定位锚点：优先用长按/右键坐标，没有则退回消息行
   const point=(ev&&ev.clientX)?{x:ev.clientX,y:ev.clientY}:null;
-  showActionBar(items,{anchor:point?null:row,point,scroller:document.getElementById('chat-content')});
+  showActionBar(items,{anchor:point?null:row,point,scroller:document.getElementById('chat-content'),prefer:'below'});
 }
 /* 兼容旧调用：关闭动作条 */
 function closeCtxMenu(){
