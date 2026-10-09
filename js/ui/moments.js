@@ -17,7 +17,7 @@ function openMomentsSettings(){
   showModal('朋友圈设置','<div style="padding:4px 2px 10px;font-size:12px;color:var(--hint);line-height:1.7">这里控制 TA 在朋友圈可以使用的能力；是否发生互动仍由 TA 自己的行为节奏决定。</div>'+rows,
     '<div class="modal-btn-row single"><button class="modal-btn" onclick="closeModal()">取消</button></div>');
 }
-function setMomentRate(i){const v=[10,25,60][i]||25;state.prob.momentProb=v;saveKey('prob');openMomentsSettings();}
+function setMomentRate(i){const v=[10,20,50][i]||20;state.prob.momentProb=v;saveKey('prob');openMomentsSettings();}
 function toggleMomentsOpt(k){
   const key='momentsAllow'+k.charAt(0).toUpperCase()+k.slice(1);
   state.stats[key]=state.stats[key]===0?1:0;
@@ -197,7 +197,7 @@ function isHiddenMoment(id){return (state.stats.hiddenMoments||[]).indexOf(Numbe
    3) 禁言期间（TA 在整理意识 / TA 不想理你）→ 不写；
    4) 到点后按 momentProb（默认 25%）概率发一条，文案从 TA_MOMENT_LINES 抽。 */
 const TA_MOMENT_GAP_MIN=4*3600000;
-const TA_MOMENT_GAP_MAX=10*3600000;
+const TA_MOMENT_GAP_MAX=24*3600000;
 async function maybeTaMoment(){
   if(state.stats.momentsAllowPost===0)return;
   const last=Number(state.stats.taMomentLastAt)||0;

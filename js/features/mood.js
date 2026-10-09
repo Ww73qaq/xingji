@@ -25,6 +25,7 @@ function editStatus(who_){
 }
 function setStatusLockMin(m){state.taStatusLockMin=m;saveKey('taStatusLockMin');editStatus('other');}
 function saveStatus(who_,s){
+  dbPut('events',{who:who_,type:'status',text:s,time:Date.now()}).catch(()=>{});   // v3.6.12：状态变更写入事件，计入心跳轨迹（状态=在做什么=轨迹）
   if(who_==='me'){
     state.me.status=s;saveKey('me');
     if(typeof pushSys==='function')pushSys(state.me.name+' 现在的状态：'+s);   // v3.7.6：我的状态变化同样记录到聊天页（和 TA 一致）
@@ -67,6 +68,7 @@ function maybeTaStatusChange(){
   if(state.taStatusUntil>Date.now())return;            // 当前状态保持中
   if(state.taStatus&&state.taStatus!=='在线'){           // 到期回在线
     state.taStatus='在线';state.other.status='在线';state.taStatusCoolAt=Date.now();
+    dbPut('events',{who:'ta',type:'status',text:'在线',time:Date.now()}).catch(()=>{});   // v3.6.12 状态计入轨迹
     saveKey('other');saveKey('taStatusUntil');saveKey('taStatusCoolAt');
     updateTaStatusBadge();try{if(typeof updateHomeStatusOnly==='function')updateHomeStatusOnly();}catch(e){}
     return;
@@ -77,6 +79,7 @@ function maybeTaStatusChange(){
     if(!pool.length)return;
     const st=pool[Math.floor(Math.random()*pool.length)];
     state.taStatus=st.s;state.other.status=st.s;
+    dbPut('events',{who:'ta',type:'status',text:st.s,time:Date.now()}).catch(()=>{});   // v3.6.12 状态计入轨迹
     state.taStatusUntil=Date.now()+30000+Math.random()*570000;  // 保持 30s~10min
     saveKey('other');saveKey('taStatusUntil');
     updateTaStatusBadge();try{if(typeof updateHomeStatusOnly==='function')updateHomeStatusOnly();}catch(e){}

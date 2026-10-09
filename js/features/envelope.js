@@ -19,9 +19,9 @@ function _buildLetterReply(l){
    3) 禁言期间（TA 在整理意识 / TA 不想理你）→ 不写（不强行传达，符合设定）；
    4) 到点后 70% 概率写一封。
    主动信内容：从字卡库随机挑 1~4 张字卡（承载想说的意思）＋ 一段意识收束。 */
-const TA_LETTER_GAP_MIN=12*3600000;
-const TA_LETTER_GAP_MAX=36*3600000;
-const TA_LETTER_PROB=70;
+const TA_LETTER_GAP_MIN=72*3600000;
+const TA_LETTER_GAP_MAX=72*3600000;
+const TA_LETTER_PROB=50;
 function taLetterEnabled(){return (state.stats.taLetterEnabled===undefined)?true:!!state.stats.taLetterEnabled;}
 async function maybeTaLetter(){
   if(!taLetterEnabled())return;

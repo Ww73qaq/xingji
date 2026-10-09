@@ -22,7 +22,7 @@ let state = {
     readIgnoreEnabled:false, repeatExclude:5, customRatio:90,
     // 主动消息：只暴露「开关 + 最小间隔（分钟）」，TA 的想不想主动属于内部行为
     proactiveEnabled:true, proactiveMinIntervalMin:30, proactiveCountMin:1, proactiveCountMax:2,
-    momentProb:25
+    momentProb:20
   },
   // 问卷回答期限（秒）：问卷提交后 TA 最迟在 deadlineSec 内回应（与回复时间取更早者）
   surveySettings:{deadlineSec:60,earlySubmitProb:30,multiMin:1,multiMax:6},
@@ -111,7 +111,7 @@ function migrateProb(){
       proactiveMinIntervalMin:old.proactiveMinIntervalMin!==undefined?old.proactiveMinIntervalMin:(old.proactiveMin!==undefined?old.proactiveMin:30),
       proactiveCountMin:old.proactiveCountMin!==undefined?old.proactiveCountMin:1,
       proactiveCountMax:old.proactiveCountMax!==undefined?old.proactiveCountMax:2,
-      momentProb:old.momentProb!==undefined?old.momentProb:25
+      momentProb:old.momentProb!==undefined?old.momentProb:20
     };
   }
   // v3.0：主动消息只剩「开关+最小间隔」，删除概率/最长/安静期用户键
@@ -126,6 +126,7 @@ function migrateProb(){
   if(!(state.prob.proactiveMinIntervalMin>0))state.prob.proactiveMinIntervalMin=30;
   // 删除 v1.3 残留旧键
   ['fastSec','slowSec','c1','c2','c3','c4','c5','normalProb','emojiProb','pokeProb','quoteProb','heartProb','qaProb','proactive','readIgnoreProb','multiEnabled','multiProb','minPerBubble','maxPerBubble','pollProb'].forEach(k=>delete state.prob[k]);
+  if(state.prob.momentProb===25)state.prob.momentProb=20;   // v3.6.13 朋友圈主动概率降到 20（旧默认 25 迁移，TA 想用才触发）
   saveKey('prob');
   // surveySettings / notify / notes 默认补齐（对象级深合并已在 loadSettings 完成，这里补缺省键）
   if(!state.surveySettings||!state.surveySettings.deadlineSec)state.surveySettings={deadlineSec:60,earlySubmitProb:30,multiMin:1,multiMax:6};

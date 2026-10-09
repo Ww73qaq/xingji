@@ -109,7 +109,7 @@ function resetProb(){
     readIgnoreEnabled:false,repeatExclude:5,customRatio:90,
     proactiveEnabled:true,proactiveMinIntervalMin:30,
     proactiveCountMin:1,proactiveCountMax:2,
-    momentProb:25
+    momentProb:20
   };
   state.surveySettings={deadlineSec:60,earlySubmitProb:30,multiMin:1,multiMax:6};
   saveKey('prob');saveKey('surveySettings');renderProbability();scheduleProactive();showToast('已恢复默认设置');
