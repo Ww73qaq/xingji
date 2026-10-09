@@ -3,6 +3,8 @@
    ========================================================= */
 
 function momentOptOn(k,def=true){const v=state.stats&&state.stats[k];return v===undefined?def:v!==0;}
+/* 更多菜单三点（线性，与 ICO 同族；config.js 未收录，本文件自用） */
+const MOMENT_MORE_ICO='<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" stroke="none" style="vertical-align:-3px"><circle cx="5" cy="12" r="1.7"/><circle cx="12" cy="12" r="1.7"/><circle cx="19" cy="12" r="1.7"/></svg>';
 function openMomentsSettings(){
   const opts=[
     ['post','允许 TA 发布朋友圈',true],
@@ -28,12 +30,10 @@ async function renderMoments(){
   let moments=await dbGetAll('moments');
   // TA 生成新动态（低频，momentProb）
   const taCount=moments.filter(m=>m.owner==='other'&&!isHiddenMoment(m.id)).length;
-  if(taCount<2&&state.stats.momentsAllowPost!==0&&Math.random()<((state.prob.momentProb??25)/100)){
+  if(taCount<2&&state.stats.momentsAllowPost!==0&&!taOutputBlocked()&&Math.random()<((state.prob.momentProb??25)/100)){
     const line=TA_MOMENT_LINES[Math.floor(Math.random()*TA_MOMENT_LINES.length)];
-    const rec=await dbPut('moments',{owner:'other',name:state.other.name,content:line,time:Date.now()-Math.floor(Math.random()*6)*3600000,likes:0,comments:[],read:true});
-    // 提醒中心 + 系统通知
-    pushNotif({type:'newMoment',from:state.other.name,text:'发布了新动态',momentId:rec});
-    notifySystem(`${state.other.name} 发了新动态`,line.slice(0,50),()=>switchTab('moments'));
+    // 种子发圈＝页内补底：read:true 且用户正在看，不发提醒（避免「点进去却已读」）；不写冷却，与心跳 maybeTaMoment 分工
+    await dbPut('moments',{owner:'other',name:state.other.name,content:line,time:Date.now()-Math.floor(Math.random()*6)*3600000,likes:0,comments:[],read:true});
   }
   moments=await dbGetAll('moments');
   /* 进入朋友圈 → TA 动态 / TA 日记 / TA 评论一律标记已读（红点随之消失） */
@@ -67,12 +67,12 @@ async function renderMoments(){
     // v3.6.10：头像/昵称全局替换——我的动态与评论一律用 state.me.name / state.me.avatar
     const whoName=(m.owner==='me')?(m.name&&m.name!=='我'?m.name:state.me.name):(m.name||state.other.name||'TA');
     const whoAv=(m.owner==='me')?state.me.avatar:state.other.avatar;
-    body.innerHTML+=`<div class="list-card moment-card" data-mid="${m.id}"><div style="display:flex;align-items:center;gap:10px"><div class="moment-avatar" style="background:${m.owner==='other'?'var(--c-rose)':'var(--c-gray)'}">${whoAv?`<img src="${esc(whoAv)}">`:esc(whoName.slice(0,1))}</div><div class="list-card-title" style="flex:1;margin:0">${esc(whoName)}</div><div class="letter-time">${fmtFull(m.time)}</div><span style="font-size:17px;color:var(--hint);cursor:pointer;padding:2px 6px" onclick="momentMenu('${m.id}')">&#8942;</span></div><div style="margin:8px 0;font-size:14px;line-height:1.7">${esc(m.content)}</div>${imgHtml}
+    body.innerHTML+=`<div class="list-card moment-card" data-mid="${m.id}"><div style="display:flex;align-items:center;gap:10px"><div class="moment-avatar" style="background:${m.owner==='other'?'var(--c-rose)':'var(--c-gray)'}">${whoAv?`<img src="${esc(whoAv)}">`:esc(whoName.slice(0,1))}</div><div class="list-card-title" style="flex:1;margin:0">${esc(whoName)}</div><div class="letter-time">${fmtFull(m.time)}</div><span style="color:var(--hint);cursor:pointer;padding:2px 6px" onclick="momentMenu('${m.id}')">${MOMENT_MORE_ICO}</span></div><div style="margin:8px 0;font-size:14px;line-height:1.7">${esc(m.content)}</div>${imgHtml}
     <div style="display:flex;gap:6px;justify-content:flex-end;color:var(--hint);font-size:12px">
       <span class="mom-act ${m.likedByMe?'liked':''}" onclick="likeMoment('${m.id}',this)">${HEART_ICO}${likeByMe}${m.likes?`<i>${m.likes}</i>`:''}</span>
       <span class="mom-act" onclick="commentMoment('${m.id}')">${COMMENT_ICO}评论${(m.comments||[]).length?`<i>${m.comments.length}</i>`:''}</span>
     </div>
-    ${(m.comments||[]).map((c,ci)=>`<div class="moment-comment" onclick="replyMomentComment('${m.id}',${ci})" style="cursor:pointer;margin-left:${c.replyTo?'18px':'0'}"><b>${esc(c.name==='我'?(state.me.name||'我'):c.name)}</b>${c.replyTo?' <span style="color:var(--hint)">回复</span> <b>'+esc(c.replyTo.name||'')+'</b>':''}：${esc(c.text)}${c.card?'<span class="moment-reply-card"> · 字卡：'+esc(c.card)+'</span>':''}</div>`).join('')}
+    ${(m.comments||[]).map((c,ci)=>`<div class="moment-comment" onclick="replyMomentComment('${m.id}',${ci})" style="cursor:pointer;margin-left:${c.replyTo?'18px':'0'}"><b>${esc(c.name==='我'?(state.me.name||'我'):c.name)}</b>${c.replyTo?' <span style="color:var(--hint)">回复</span> <b>'+esc(c.replyTo.name||'')+'</b>':''}：${esc(c.text)}${c.card?'<span class="moment-reply-card"> · 字卡：'+esc(c.card)+'</span>':''}${c.smile?'<span class="moment-reply-card"> '+ICO.smile+'</span>':''}</div>`).join('')}
     </div>`;
   }
   if(notifUnread>0){
@@ -135,7 +135,8 @@ async function sendMomentReply(momentId,commentIndex){
   m.comments=m.comments||[];
   const replyTo={index:commentIndex,name:target.name||'评论'};
   const cardText=(window._momentReplyCardText||''); window._momentReplyCardText='';
-  m.comments.push({name:state.me.name||'我',text:v,time:Date.now(),replyTo,card:cardText||null});
+  const smileFlag=!!window._momentReplySmile; window._momentReplySmile=false;
+  m.comments.push({name:state.me.name||'我',text:v,time:Date.now(),replyTo,card:cardText||null,smile:smileFlag||null});
   await dbPut('moments',m);closeModal();renderMoments();showToast('回复已发送');
   if(m.owner==='other'&&momentOptOn('momentsAllowComment')){
     const delay=(Number(state.prob.replyDelaySec)||20)*1000+Math.random()*6000;
@@ -164,7 +165,10 @@ function useMomentReplyCard(id){
   });
 }
 function pickMomentReplyEmoji(){
-  const inp=document.getElementById('comment-input');if(inp){inp.value=(inp.value||'')+' 😊';inp.focus();}
+  // 线性表情回应：不再向文本框注入字面 😊，改为挂一个微笑 chip，发出后以 ICO.smile 渲染
+  window._momentReplySmile=!window._momentReplySmile;
+  const extra=document.getElementById('moment-reply-extra');
+  if(extra)extra.innerHTML=window._momentReplySmile?('<span style="display:inline-flex;align-items:center;gap:4px">表情回应 '+ICO.smile+'</span>'):'';
 }
 function pushNotif(n){
   state.stats.notifCenter=state.stats.notifCenter||[];
@@ -201,8 +205,9 @@ const TA_MOMENT_GAP_MAX=24*3600000;
 async function maybeTaMoment(){
   if(state.stats.momentsAllowPost===0)return;
   const last=Number(state.stats.taMomentLastAt)||0;
-  if(last&&Date.now()-last<TA_MOMENT_GAP_MIN+Math.random()*(TA_MOMENT_GAP_MAX-TA_MOMENT_GAP_MIN))return;
-  if(Date.now()<state.muteEndTime||Date.now()<state.taMuteMeEndTime)return;
+  const gap=(TA_MOMENT_GAP_MIN+Math.random()*(TA_MOMENT_GAP_MAX-TA_MOMENT_GAP_MIN))*proactiveGapScale();
+  if(last&&Date.now()-last<gap)return;
+  if(taOutputBlocked())return;
   if(Math.random()<((state.prob.momentProb??25)/100))return taPostMoment();
   return false;
 }
@@ -222,9 +227,15 @@ function processMomentReplies(){
   const now=Date.now();
   const due=q.filter(x=>x.at<=now);
   if(!due.length)return;
-  state.stats.momentReplyQueue=q.filter(x=>x.at>now);
+  const kept=[];               // 静音期未处理：留在队列，解除后下轮再回
+  const processed=[];
+  for(const x of due){
+    if(taOutputBlocked()){kept.push(x);continue;}
+    processed.push(x);
+  }
+  state.stats.momentReplyQueue=q.filter(x=>x.at>now).concat(kept);
   saveKey('stats');
-  due.forEach(async x=>{
+  processed.forEach(async x=>{
     const ms=await dbGetAll('moments');const mm=ms.find(y=>y.id===Number(x.momentId));if(!mm)return;
     mm.comments=mm.comments||[];
     let text=MOMENT_COMMENTS[Math.floor(Math.random()*MOMENT_COMMENTS.length)];
@@ -312,6 +323,7 @@ function removeMomentImg(i){momentDraftImgs.splice(i,1);const box=document.getEl
 async function scheduleTaMomentInteraction(momentId){
   const delay=3500+Math.random()*9000;
   setTimeout(async()=>{
+    if(taOutputBlocked())return;   // 静音期不赞不评：本次放弃（延时已过，不补发）
     const ms=await dbGetAll('moments');
     const m=ms.find(x=>String(x.id)===String(momentId));
     if(!m||m.owner!=='me')return;

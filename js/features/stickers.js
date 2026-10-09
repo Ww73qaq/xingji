@@ -1,6 +1,8 @@
 /* =========================================================
    星迹 · 表情包管理
    ========================================================= */
+/* 线性描边关闭 ×（删除角标用，替代原实心红圆＋字符 ×） */
+const STICKER_CLOSE_ICO='<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 6l12 12M18 6L6 18"/></svg>';
 
 /* ===== EMOJI（表情包管理） ===== */
 async function renderEmojis(){
@@ -15,7 +17,7 @@ function renderStickerList(list){
   box.innerHTML=`<div class="emoji-body" style="background:#fff;border-radius:14px;padding:12px">`+list.map(e=>`
     <div class="emoji-item" style="position:relative;width:64px;height:64px" title="${esc(e.name||'')}">
       ${e.src?`<img src="${e.src}">`:`<span style="font-size:28px">${esc(e.name||'')}</span>`}
-      <span style="position:absolute;top:-4px;right:-4px;width:20px;height:20px;border-radius:50%;background:#c0392b;color:#fff;font-size:12px;display:flex;align-items:center;justify-content:center;cursor:pointer" onclick="delSticker(${e.id})">&#10005;</span>
+      <span style="position:absolute;top:-4px;right:-4px;width:20px;height:20px;border-radius:50%;background:var(--bg,#fff);color:#c0392b;border:1px solid var(--input,rgba(0,0,0,.08));display:flex;align-items:center;justify-content:center;cursor:pointer" onclick="delSticker(${e.id})">${STICKER_CLOSE_ICO}</span>
     </div>`).join('')+`</div>`;
 }
 function addSticker(){
@@ -32,4 +34,4 @@ function addSticker(){
   };
   input.click();
 }
-function delSticker(id){dbDelete('emojis',id).then(()=>renderEmojis());showToast('已删除');}
+function delSticker(id){appConfirm('删除表情包','确定删除这个表情包吗？删除后不可恢复。',()=>{dbDelete('emojis',id).then(()=>renderEmojis()).catch(()=>{});showToast('已删除');});}

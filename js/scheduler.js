@@ -26,11 +26,13 @@ const _scheduler={
 };
 
 
-/* 回复总时长（ms）：从用户发送到 TA 第一条回复出现（固定 replyDelaySec，含「正在输入…」窗口） */
+/* 回复总时长（ms）：从用户发送到 TA 第一条回复出现（含「正在输入…」窗口）
+   v3.7.0：固定秒数加 ±20% 随机偏置，消除每轮整 20s 的机械定时器感 */
 function _replyTotalMs(){
   const p=state.prob||{};
   const sec=Math.max(1,Number(p.replyDelaySec)||20);
-  return sec*1000;
+  const bias=0.8+Math.random()*0.4;   // 0.8 ~ 1.2
+  return sec*1000*bias;
 }
 /* 正在输入窗口：包含在总回复时间内（最后 typingRatio 段，钳制 1~4 秒） */
 function _typingWindow(totalMs){
@@ -112,7 +114,8 @@ function _queueNextRound(cfg){
 function enqueueTaJob(config){
   const cfg=config||{};
   const source=cfg.source||'passive';
-  if(Date.now()<state.muteEndTime){showToast('对方已被禁言');return;}
+  // v3.7.0：入口统一静音判据（你静音 + TA 收起声音），替代原先只判 muteEndTime
+  if(taOutputBlocked()){showToast('TA 正在安静，缓一缓');return;}
   const now=Date.now();
   _scheduler.lastUserMsgAt=now;
   const j=_scheduler.activeJob;
@@ -140,12 +143,15 @@ function enqueueTaJob(config){
   const hasDeadline=Number.isFinite(deadlineSec)&&deadlineSec>0;
   let earlySubmitProb=null;
   if(hasDeadline){
-    let eff=deadlineSec;
     const ss=state.surveySettings||{};
     const ep=Number(cfg.earlySubmitProb);
     earlySubmitProb=Number.isFinite(ep)?_clamp(ep,0,100):(Number.isFinite(Number(ss.earlySubmitProb))?Number(ss.earlySubmitProb):30);
-    if(_roll(earlySubmitProb))eff=deadlineSec*(0.25+Math.random()*0.5);
-    totalMs=Math.max(_typingWindow(totalMs),eff*1000);
+    /* v3.7.0：期限是「最晚兜底」而非「思考时长」。
+       原先 Math.max(typingWindow, 期限ms) 会把 600s 期限做成约 10 分钟沉默、
+       「正在输入」只在最后几秒出现——偏冷。现在 TA 按自己的平时节奏（_replyTotalMs）
+       作答，min 保证绝不晚于期限；期限宽裕时 TA 提前作答，正在输入落在几十秒内，消除长沉默。 */
+    totalMs=Math.min(totalMs, deadlineSec*1000);
+    totalMs=Math.max(totalMs, 1200);   // 至少留一小段「正在输入」窗口
   }
   const tw=_typingWindow(totalMs);
   const typingAt=now+totalMs-tw;
@@ -171,7 +177,8 @@ function enqueueTaJob(config){
 }
 /* 「继续」：只改变 source，时间机制与普通消息完全一致 */
 function continueReply(){
-  if(Date.now()<state.muteEndTime){showToast('对方已被禁言');return;}
+  // v3.7.0：统一静音判据
+  if(taOutputBlocked()){showToast('TA 正在安静，缓一缓');return;}
   if(_scheduler.activeJob){showToast('对方正在回复中');return;}
   enqueueTaJob({type:'reply',source:'continue'});
 }
@@ -197,6 +204,13 @@ function _finishJob(){
   _stopTick();                       // 无任务时停掉每秒倒计时，避免定时器常驻
   _clearPersistJob();
   if(_scheduler.pendingQueue>0){
+    // v3.7.0：静音/收起声音期间不 shift、不递减队列——排队的必答题留待解禁后补答，
+    // 不再被静默丢弃（原先 enqueueTaJob 被门挡回，但队首已 shift、计数已减）。
+    if(taOutputBlocked()){
+      setTimeout(()=>_finishJob(),2500);   // 稍后重试，队列原样保留
+      _syncSubtitle();
+      return;
+    }
     _scheduler.pendingQueue--;
     const next=_scheduler.pendingJobs.shift()||{};
     setTimeout(()=>enqueueTaJob({type:'reply',source:'passive',messageId:next.messageId,deadlineSec:next.deadlineSec,earlySubmitProb:next.earlySubmitProb}),650);
@@ -231,8 +245,8 @@ function runProactive(){
   const p=state.prob||{};
   _scheduler.proactiveNextAt=0;_persistProactiveNext();
   if(!p.proactiveEnabled)return;
-  if(Date.now()<state.muteEndTime){scheduleProactive();return;}
-  if(Date.now()<state.taMuteMeEndTime){scheduleProactive();return;}
+  // v3.7.0：主动避让的静音判据统一为 taOutputBlocked()（原两行内联双判）
+  if(taOutputBlocked()){scheduleProactive();return;}
   const j=_scheduler.activeJob;
   if(j&&(j.status==='waiting'||j.status==='typing'||j.status==='sending')){scheduleProactive();return;}
   if(state.callActive){scheduleProactive();return;}

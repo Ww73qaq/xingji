@@ -87,9 +87,10 @@ async function _jobPollTarget(job){
   return null;
 }
 
-/* ---- 表情回应 ---- */
+/* ---- 微情绪回应（v3.7.0：不再发 emoji 字符，改纯文字微情绪词，走普通文本气泡） ---- */
 const EMOJI_REPLY_POOL=[
-  '😊','😄','🥰','😌','😉','🤭','😳','🥹','😮','💕','✨','🌙','👍','👀','🫶','☺️'
+  '笑了','眼睛弯了一下','愣了一下','点点头','安静地看了你一眼','轻轻嗯了一声',
+  '垂眼想了想','嘴角动了一下','抬眼看你','没说话，只是看着你','歪了一下头','低低应了一声'
 ];
 /* ---- 拍一拍 ---- */
 async function _allPokeTexts(){
@@ -98,9 +99,9 @@ async function _allPokeTexts(){
   Object.values(groups).forEach(arr=>{if(Array.isArray(arr))arr.forEach(t=>out.push(String(t)));});
   return out.filter(Boolean);
 }
-/* ---- 礼物池（心意卡合并进礼物） ---- */
+/* ---- 礼物池（心意卡合并进礼物；v3.7.0：去掉 emoji 前缀只留名字，礼物图案仍由 GIFTS 渲染） ---- */
 const GIFT_REPLY_POOL=[
-  '☕ 咖啡','🌹 鲜花','🎂 蛋糕','🌙 月亮','🍀 幸运','📖 书','🍰 甜点','🥤 饮料','🎁 小礼物','💐 花束'
+  '咖啡','鲜花','蛋糕','月亮','幸运','书','甜点','饮料','小礼物','花束'
 ];
 /* ---- QA 应答风格字卡（普通/安慰/回应） ---- */
 const QA_REPLY_POOL=[
@@ -254,28 +255,45 @@ async function buildReply(context){
     bubbles.push({type:msgType,content,quote,cardIds,proactive:context.source==='proactive',intent,answerOf});
   }
 
-  // 独立互动：表情 / 拍一拍 / 礼物（作为额外气泡，受每轮最多 2 个限制）
-  if(emojiRoll&&extraInteractions<MAX_EXTRA){
-    bubbles.push({type:'emoji',content:EMOJI_REPLY_POOL[Math.floor(Math.random()*EMOJI_REPLY_POOL.length)],cardIds:[],intent:'emoji'});
-    extraInteractions++;
-  }
-  if(pokeRoll&&extraInteractions<MAX_EXTRA){
-    const pokes=await _allPokeTexts();
-    const poke=(pokes.length?pokes[Math.floor(Math.random()*pokes.length)]:'拍了拍你');
-    bubbles.push({type:'poke',content:(state.other.name||'TA')+'拍了拍你：'+poke,isPoke:true,cardIds:[],intent:'poke'});
-    extraInteractions++;
-  }
-  if(giftRoll&&extraInteractions<MAX_EXTRA){
-    bubbles.push({type:'gift',content:GIFT_REPLY_POOL[Math.floor(Math.random()*GIFT_REPLY_POOL.length)],cardIds:[],intent:'gift'});
-    extraInteractions++;
+  // 独立互动：微情绪 / 拍一拍 / 礼物（作为额外气泡，受每轮最多 2 个限制）
+  // v3.7.0：必答题（mustAnswer）时全部跳过——答完题不顺带撩，保持清冷专注
+  if(!mustAnswer){
+    if(emojiRoll&&extraInteractions<MAX_EXTRA){
+      // 纯文字微情绪，走普通文本气泡（不再是 emoji 大表情）
+      bubbles.push({type:'text',content:EMOJI_REPLY_POOL[Math.floor(Math.random()*EMOJI_REPLY_POOL.length)],cardIds:[],intent:'emotion',proactive:context.source==='proactive'});
+      extraInteractions++;
+    }
+    if(pokeRoll&&extraInteractions<MAX_EXTRA){
+      const pokes=await _allPokeTexts();
+      const poke=(pokes.length?pokes[Math.floor(Math.random()*pokes.length)]:'拍了拍你');
+      bubbles.push({type:'poke',content:(state.other.name||'TA')+'拍了拍你：'+poke,isPoke:true,cardIds:[],intent:'poke'});
+      extraInteractions++;
+    }
+    if(giftRoll&&extraInteractions<MAX_EXTRA){
+      bubbles.push({type:'gift',content:GIFT_REPLY_POOL[Math.floor(Math.random()*GIFT_REPLY_POOL.length)],cardIds:[],intent:'gift',proactive:context.source==='proactive'});
+      extraInteractions++;
+    }
   }
 
-  /* v3.6.8：TA 记得——12% 概率前置一条「引用」气泡（最近礼物/便签/话题/心情/感应/待办/信/朋友圈） */
-  if(_roll(12)&&Date.now()>=state.muteEndTime&&Date.now()>=state.taMuteMeEndTime){   // v3.6.14 禁言/收起声音时不前置记忆气泡（避免一边锁门一边安慰）
+  /* v3.6.8：TA 记得——12% 概率前置一条「引用」气泡（最近礼物/便签/话题/心情/感应/待办/信/朋友圈）
+     v3.7.0：内联双禁言统一改为 taOutputBlocked()；必答时也不前置（答完题不顺带撩） */
+  if(!mustAnswer&&_roll(12)&&!taOutputBlocked()){
     try{
       const quote=await makeTaQuote();
       if(quote)bubbles.unshift({type:'text',content:quote,cardIds:[],intent:'quote',proactive:context.source==='proactive'});
     }catch(e){}
+  }
+
+  /* v3.7.0：医生提醒——深夜（小时≥23 或 <2）或本轮上下文偏累/长时间用眼时，
+     低内部概率（10~15%）把一句医生提醒作为领句 unshift 到最前；不做定时闹钟、不刷存在感。 */
+  if(!mustAnswer&&!taOutputBlocked()){
+    const hr=new Date().getHours();
+    const lateNight=(hr>=23||hr<2);
+    const ctxTired=/累|困|眼|熬夜|加班|盯着|屏幕|头疼|疲惫|晕/.test(context.latestUserText||'');
+    if((lateNight||ctxTired)&&_roll(12)){
+      const dr=pickDoctorReminder();
+      if(dr)bubbles.unshift({type:'text',content:dr,cardIds:[],intent:'doctor',proactive:context.source==='proactive'});
+    }
   }
 
   return {bubbles,usage,intent};
@@ -301,7 +319,7 @@ async function makeTaQuote(){
   try{
     const evs=await dbGetAll('events');
     const senses=evs.filter(e=>e.type==='sense'&&e.who==='ta');
-    if(senses.length){const s=senses[senses.length-1];items.push({name:'上次我从你'+s.dir+'靠近过你'});}
+    if(senses.length){const s=senses[senses.length-1];const d=s.dir||'';items.push({name:(d&&d!=='附近')?('上次感应到你在'+d+'附近'):'上次感应到你就在附近'});}
   }catch(e){}
   try{
     const cals=await dbGetAll('calendar');
@@ -404,8 +422,8 @@ async function _applyPollAnswer(answerOf){
 /* ---- 执行一轮回复：逐条落库 + 增量渲染 + 统计（含已读不回开关） ----
    纯生成在 buildReply()，这里只负责「执行」：落库、增量渲染、角标、系统通知。 ---- */
 async function executeReply(job){
-  // 禁言检查
-  if(Date.now()<state.muteEndTime){
+  // v3.7.0：入口统一静音判据（你静音 + TA 收起声音），替代原先只判 muteEndTime
+  if(taOutputBlocked()){
     _scheduler.activeJob=null;
     return;
   }
@@ -449,8 +467,8 @@ async function executeReply(job){
     }
   }
 
-  // v3.6.14：生成后、发送前二次门控——若此刻禁言/TA收起声音已开始，整条放弃（含「TA记得」记忆气泡），不落库任何内容
-  if(Date.now()<state.muteEndTime||Date.now()<state.taMuteMeEndTime){
+  // v3.7.0：生成后、发送前二次门控——若此刻静音/TA收起声音已开始，整条放弃（含「TA记得」/医生提醒），不落库任何内容
+  if(taOutputBlocked()){
     _scheduler.activeJob=null;
     return;
   }
@@ -458,7 +476,8 @@ async function executeReply(job){
   let lastSent=null;
   for(let i=0;i<totalBubbles.length;i++){
     const b=totalBubbles[i];
-    if(Date.now()<state.muteEndTime)break;
+    // v3.7.0：发送循环内统一判双静音（补上原先漏判的 taMuteMeEndTime）——门堵在走廊
+    if(taOutputBlocked())break;
     if(i>0){
       const gap=800+Math.random()*1600;
       await new Promise(r=>setTimeout(r,gap));

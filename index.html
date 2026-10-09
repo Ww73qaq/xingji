@@ -66,7 +66,7 @@
 
 <!-- ===== SPLASH（开屏页） ===== -->
 <div id="screen-splash" class="screen splash-screen">
-  <div class="splash-mark">&#10022;</div>
+  <div class="splash-mark"><svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l2.7 5.8 6.3.7-4.7 4.2 1.3 6.3L12 17.2 6.4 20l1.3-6.3L3 9.5l6.3-.7L12 3Z"/></svg></div>
   <div class="splash-letter" id="splash-letter">谢绝一切内外意识体进入本网站，暂不开放！<br>（本网站为个人字卡传讯作品，专属于「我」，归我所有、由我掌控）</div>
   <div class="splash-sub">STAR TRACE</div>
   <button class="splash-btn" onclick="confirmEnter()">进入空间</button>
@@ -106,15 +106,16 @@
     <div class="trace-card-legend"><span><i style="background:#54c0a6"></i>我</span><span><i style="background:#f0a485"></i><b id="tw-legend-ta" style="font-weight:normal">TA</b></span><span style="margin-left:auto">活跃密度 0-5</span></div>
   </div>
   <!-- 应用网格：桌面只放「信箱/日记/数据与回忆/表情/感应房间/拼写」，四个 Tab 不重复 -->
+  <!-- v3.7.0：彩色圆底汉字 → 统一线性图标，底走暖/中性（去紫、去冷色） -->
   <div class="app-grid" id="app-grid">
-    <div class="app-item" onclick="openApp('mailbox')"><div class="app-icon" style="background:var(--c-purple)">信</div><div class="app-label">信箱</div></div>
-    <div class="app-item" onclick="openApp('diary')"><div class="app-icon" style="background:#f0a485">记</div><div class="app-label">日记</div></div>
-    <div class="app-item" onclick="openApp('memory')"><div class="app-icon" style="background:#8c8c8c">忆</div><div class="app-label">数据与回忆</div></div>
-    <div class="app-item" onclick="openApp('emoji')"><div class="app-icon" style="background:var(--c-green)">表</div><div class="app-label">表情</div></div>
-    <div class="app-item" onclick="openApp('sense')"><div class="app-icon" style="background:#7a9a8c">感</div><div class="app-label">感应房间</div></div>
-    <div class="app-item" onclick="openApp('writing')"><div class="app-icon" style="background:#a97a5c">拼</div><div class="app-label">拼写</div></div>
-    <div class="app-item" onclick="openApp('calendar')"><div class="app-icon" style="background:#54c0a6">历</div><div class="app-label">日历</div></div>
-    <div class="app-item" onclick="openApp('trace')"><div class="app-icon" style="background:#54c0a6">迹</div><div class="app-label">轨迹</div></div>
+    <div class="app-item" onclick="openApp('mailbox')"><div class="app-icon" style="background:#b08968"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/></svg></div><div class="app-label">信箱</div></div>
+    <div class="app-item" onclick="openApp('diary')"><div class="app-icon" style="background:#e0a888"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20V3H6.5A2.5 2.5 0 0 0 4 5.5v14Z"/><path d="M4 19.5A2.5 2.5 0 0 0 6.5 22H20v-5"/></svg></div><div class="app-label">日记</div></div>
+    <div class="app-item" onclick="openApp('memory')"><div class="app-icon" style="background:#9c938a"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 9h18M7 15h4"/></svg></div><div class="app-label">数据与回忆</div></div>
+    <div class="app-item" onclick="openApp('emoji')"><div class="app-icon" style="background:#c2a98e"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M8.5 14.5s1.2 1.8 3.5 1.8 3.5-1.8 3.5-1.8"/><path d="M9 9.5h.01M15 9.5h.01"/></svg></div><div class="app-label">表情</div></div>
+    <div class="app-item" onclick="openApp('sense')"><div class="app-icon" style="background:#8aa398"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Z"/><path d="M9 12l2 2 4-4"/></svg></div><div class="app-label">感应房间</div></div>
+    <div class="app-item" onclick="openApp('writing')"><div class="app-icon" style="background:#a97a5c"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3l4 4L7 21l-5 1 1-5z"/></svg></div><div class="app-label">拼写</div></div>
+    <div class="app-item" onclick="openApp('calendar')"><div class="app-icon" style="background:#d9b38c"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M8 3v4M16 3v4M3 10h18"/></svg></div><div class="app-label">日历</div></div>
+    <div class="app-item" onclick="openApp('trace')"><div class="app-icon" style="background:#c99a7a"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V10M10 20V4M16 20v-8M22 20H2"/></svg></div><div class="app-label">轨迹</div></div>
   </div>
   <!-- 手机底部标签栏（4 个一级入口，与网格互斥） -->
   <div class="tabbar" id="tabbar">
@@ -164,7 +165,7 @@
     <div class="chat-quote-edit" onclick="editQuote()">&#9998;</div>
   </div>
   <div class="mute-banner" id="mute-banner">
-    <span id="mute-text">对方已被禁言，剩余 <b id="mute-remain">0</b> 秒</span>
+    <span id="mute-text">对方已被你静音</span>
     <span class="mute-actions" id="mute-actions"></span>
   </div>
   <div class="mute-banner" id="ta-mute-banner" style="background:#5c6b7a">
@@ -174,7 +175,7 @@
   <div class="chat-content" id="chat-content"></div>
   <div class="chat-continue-wrap" id="chat-continue-wrap" style="display:none"><button class="chat-continue-btn" onclick="continueReply()">继续</button></div>
   <div class="chat-quote-input" id="quote-input">
-    <span style="flex-shrink:0">&#128172;</span>
+    <span style="flex-shrink:0;display:inline-flex;vertical-align:-3px"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a8 8 0 0 1-8 8H4l2-3a8 8 0 1 1 15-5Z"/></svg></span>
     <div class="qi-text" id="quote-input-text"></div>
     <div class="qi-close" onclick="cancelQuoteInput()">&#10005;</div>
   </div>
@@ -295,9 +296,9 @@
   </div>
 </div>
 
-<!-- PROBABILITY（回复设置） -->
+<!-- PROBABILITY（相处节奏） -->
 <div id="app-probability" class="app-page">
-  <div class="app-header"><div class="back" onclick="goBack()">&#8249;</div><h1>回复设置</h1><div class="act" style="opacity:.25">&#8942;</div></div>
+  <div class="app-header"><div class="back" onclick="goBack()">&#8249;</div><h1>相处节奏</h1><div class="act" style="opacity:.25">&#8942;</div></div>
   <div class="app-body" id="probability-body"></div>
 </div>
 
@@ -357,7 +358,7 @@
     <div class="call-name" id="call-name">TA</div>
     <div class="call-status" id="call-status">正在呼叫...</div>
     <div class="call-video" id="call-video" style="display:none">
-      <div class="cv-remote" id="cv-remote"><span class="cv-remote-tag">TA 的画面</span><span class="cv-remote-ph" id="cv-remote-ph">&#128250;</span></div>
+      <div class="cv-remote" id="cv-remote"><span class="cv-remote-tag">TA 的画面</span><span class="cv-remote-ph" id="cv-remote-ph"><svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="6" width="13" height="12" rx="2"/><path d="M15.5 10.5l6-3v9l-6-3"/></svg></span></div>
       <video id="cv-local" autoplay muted playsinline style="display:none"></video>
       <div class="cv-local-ph" id="cv-local-ph" style="display:none">摄像头已关闭</div>
     </div>

@@ -1,8 +1,21 @@
 /* =========================================================
    星迹 · 版本检测与更新提示
    ========================================================= */
-
-/* ===== 更新提示弹窗（部署检测）：与 version.json 对比，发现新版本弹「立即刷新 / 3 分钟后刷新」 ===== */
+/* v3.7.0：自动刷新改为「切后台/空闲时」再 reload——避免对话中途被打断。
+   先等 baseMs；到点若页面已在后台则立即刷新，否则挂一次 visibilitychange，
+   等用户切到后台/锁屏时再刷新。更新能力不失效（下次进后台即生效）。 */
+let _bgReloadTimer=null;
+function scheduleBackgroundReload(baseMs){
+  if(_bgReloadTimer)clearTimeout(_bgReloadTimer);
+  _bgReloadTimer=setTimeout(()=>{
+    _bgReloadTimer=null;
+    if(document.hidden){location.reload();return;}
+    const onVis=()=>{if(document.hidden){document.removeEventListener('visibilitychange',onVis);location.reload();}};
+    document.addEventListener('visibilitychange',onVis);
+    showToast('稍后切到后台时自动刷新');
+  },baseMs||180000);
+}
+/* ===== 更新提示弹窗（部署检测）：与 version.json 对比，发现新版本弹「立即刷新 / 稍后刷新」 ===== */
 function checkVersion(){
   try{
     fetch('version.json?t='+Date.now(),{cache:'no-store'})
@@ -29,7 +42,7 @@ function showVersionUpdateModal(version){
   modal.dataset.forceUpdate='1';
   document.getElementById('modal-title').textContent='发现新版本';
   document.getElementById('modal-body').innerHTML=`<div style="text-align:center;padding:8px 0 16px;font-size:15px;color:var(--text)">星迹已更新到 <b>v${esc(version)}</b><br><span style="font-size:12px;color:var(--hint)">请选择一种方式继续</span></div>
-    <div class="modal-btn-row"><button class="modal-btn" onclick="postponeRefresh()">3 分钟后刷新</button><button class="modal-btn primary" onclick="forceVersionReload()">立即刷新</button></div>`;
+    <div class="modal-btn-row"><button class="modal-btn" onclick="postponeRefresh()">稍后再刷新</button><button class="modal-btn primary" onclick="forceVersionReload()">立即刷新</button></div>`;
   const ma=document.getElementById('modal-actions');if(ma){ma.innerHTML='';ma.style.display='none';}
   const mc=document.getElementById('modal-close');if(mc)mc.style.display='none';
   modal.classList.remove('bottom');
@@ -43,8 +56,8 @@ function postponeRefresh(){
   localStorage.setItem('xjPostpone',String(Date.now()+180000));
   const modal=document.getElementById('modal');
   if(modal)modal.dataset.forceUpdate='';
-  closeModal();showToast('将在 3 分钟后自动刷新');
-  setTimeout(()=>location.reload(),180000);
+  closeModal();showToast('3 分钟后、你切到后台时自动刷新');
+  scheduleBackgroundReload(180000);
 }
 /* ===== 版本更新通知 ===== */
 let updateTimer=null;
@@ -67,7 +80,6 @@ function showUpdateDialog(old){
   const c=document.querySelector('.modal-close');if(c)c.textContent='暂不刷新';
 }
 function scheduleReload(){
-  if(updateTimer)clearInterval(updateTimer);
-  updateTimer=setInterval(()=>location.reload(),180000);
-  showToast('3 分钟后将自动刷新');
+  scheduleBackgroundReload(180000);
+  showToast('3 分钟后、你切到后台时自动刷新');
 }

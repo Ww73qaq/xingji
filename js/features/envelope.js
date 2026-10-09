@@ -26,8 +26,9 @@ function taLetterEnabled(){return (state.stats.taLetterEnabled===undefined)?true
 async function maybeTaLetter(){
   if(!taLetterEnabled())return;
   const last=Number(state.stats.taLetterLastAt)||0;
-  if(last&&Date.now()-last<TA_LETTER_GAP_MIN+Math.random()*(TA_LETTER_GAP_MAX-TA_LETTER_GAP_MIN))return;
-  if(Date.now()<state.muteEndTime||Date.now()<state.taMuteMeEndTime)return;
+  const gap=(TA_LETTER_GAP_MIN+Math.random()*(TA_LETTER_GAP_MAX-TA_LETTER_GAP_MIN))*proactiveGapScale();
+  if(last&&Date.now()-last<gap)return;
+  if(taOutputBlocked())return;
   if(!_roll(TA_LETTER_PROB))return;
   return taSendLetter();
 }
@@ -59,18 +60,21 @@ async function processPendingReplies(){
   const now=Date.now();
   const letters=await dbGetAll('letters');
   const due=letters.filter(l=>l.sender==='me'&&l.status==='waiting'&&l.replyAt&&l.replyAt<=now);
+  let replied=0;
   for(const l of due){
+    if(taOutputBlocked())continue;   // 静音期不落回信：该项留在 waiting 队列，解除后下轮再回
     const text=_buildLetterReply(l);
     const reply=await dbPut('letters',{sender:'other',title:'RE: '+(l.title||'无标题'),content:text,time:now,status:'replied',read:false,replyTo:l.id,threadId:l.threadId||('letter-'+l.id)});
     l.status='replied';l.repliedId=reply;
     await dbPut('letters',l);
+    replied++;
   }
-  if(due.length){
-    showToast('收到 '+due.length+' 封新回信');
-    if((state.notify||{}).letters!==false)notifySystem(`${state.other.name} 回信了`,'收到 '+due.length+' 封新回信',()=>openApp('mailbox'));
+  if(replied){
+    showToast('收到 '+replied+' 封新回信');
+    if((state.notify||{}).letters!==false)notifySystem(`${state.other.name} 回信了`,'收到 '+replied+' 封新回信',()=>openApp('mailbox'));
   }
   updateTabBadge('chat',await countUnreadLetters());
-  return due.length;
+  return replied;
 }
 
 async function exportLetters(){

@@ -22,35 +22,23 @@ function renderSplashLetter(){
   el.classList.toggle('long',t.length>=30);
 }
 
-/* ===== 进入确认（10 秒内未确认自动留在开屏页；确认在左不强调，取消在右强调） ===== */
-let enterTimer=null;
+/* ===== 进入确认（无时限、不自动关闭；确认＝primary 迎接进入，取消＝ghost 对等） ===== */
 function confirmEnter(){
-  if(enterTimer)return;
   const mc=document.querySelector('#modal .modal-close');
   if(mc)mc.style.display='none';
-  let left=10;
   showModal('进入确认',
-    '<div style="text-align:center;padding:2px 4px 14px;font-size:14px;line-height:1.95;color:var(--text)">谢绝一切内外意识体进入本网站。<br>本网站为个人字卡传讯作品，专属于「我」，归我所有、由我掌控。<br><span id="enter-count" style="color:var(--sub);font-size:12px;line-height:1.6;display:inline-block;margin-top:10px">剩余 <b style="color:var(--c-ink)">10</b> 秒，未确认将自动取消</span></div>'+
+    '<div style="text-align:center;padding:2px 4px 14px;font-size:14px;line-height:1.95;color:var(--text)">谢绝一切内外意识体进入本网站。<br>本网站为个人字卡传讯作品，专属于「我」，归我所有、由我掌控。</div>'+
     '<div style="display:flex;gap:10px">'+
-      '<button class="btn-pill ghost" style="flex:1;padding:13px 0;font-size:15px" onclick="confirmEnterOk()">确认</button>'+
-      '<button class="btn-pill primary" style="flex:1;padding:13px 0;font-size:15px" onclick="cancelEnter()">取消</button>'+
+      '<button class="btn-pill primary" style="flex:1;padding:13px 0;font-size:15px" onclick="confirmEnterOk()">确认</button>'+
+      '<button class="btn-pill ghost" style="flex:1;padding:13px 0;font-size:15px" onclick="cancelEnter()">取消</button>'+
     '</div>');
-  enterTimer=setInterval(()=>{
-    if(!document.getElementById('modal').classList.contains('show')){clearInterval(enterTimer);enterTimer=null;restoreModalClose();return;}
-    left--;
-    const b=document.getElementById('enter-count');
-    if(b)b.innerHTML='剩余 <b style="color:var(--c-ink)">'+left+'</b> 秒，未确认将自动取消';
-    if(left<=0){clearInterval(enterTimer);enterTimer=null;cancelEnter(true);}
-  },1000);
 }
 function confirmEnterOk(){
-  if(enterTimer){clearInterval(enterTimer);enterTimer=null;}
   closeModal();
   restoreModalClose();
   enterSpace();
 }
 function cancelEnter(silent){
-  if(enterTimer){clearInterval(enterTimer);enterTimer=null;}
   closeModal();
   restoreModalClose();
   if(!silent)showToast('已取消进入');

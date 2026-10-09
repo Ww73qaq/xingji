@@ -205,7 +205,8 @@ function maybeTaWriteNote(skipThrottle){
   if(!taNoteEnabled())return false;
   if(!skipThrottle){
     const last=Number(state.stats.taNoteLastAt)||0;
-    if(last&&Date.now()-last<TA_NOTE_MIN_GAP*(1+Math.random()*0.8))return false;
+    // v3.7.0：最小间隔再乘主动冷却缩放（安静独处/常来看看由用户三档关系语义决定）
+    if(last&&Date.now()-last<TA_NOTE_MIN_GAP*(1+Math.random()*0.8)*proactiveGapScale())return false;
     if(!_roll(TA_NOTE_PROB))return false;
   }
   return taWriteNote(false);
@@ -214,7 +215,8 @@ function taWriteNote(force){
   const n=noteAt(1);
   // 数据安全第一：用户写过就不覆盖（只有用户主动点「让 TA 重新写」才允许覆盖）
   if(!force&&n.owner==='me'&&(n.text||'').trim())return false;
-  if(!force&&(Date.now()<state.muteEndTime||Date.now()<state.taMuteMeEndTime))return false;
+  // v3.7.0：统一静音判据 taOutputBlocked()，替代散落的双禁言内联判断
+  if(!force&&taOutputBlocked())return false;
   const used=state.stats.taNoteUsed||{};
   const pool=TA_NOTE_LINES.filter(t=>!used[t]);
   const text=(pool.length?pool:TA_NOTE_LINES)[Math.floor(Math.random()*(pool.length||TA_NOTE_LINES.length))];
@@ -230,12 +232,10 @@ function taWriteNote(force){
   if(typeof calUpsertNote==='function')calUpsertNote('ta',state.notes[1],'auto');
   renderNotes();
   if(state.currentApp&&state.currentApp!=='chat')return true;
-  // 不在聊天页时给一条系统消息 + 手机通知，回到桌面就能看到便签
+  // v3.7.0：便签播报收敛为「一通道（系统通知）＋便签未读红点/提醒中心」，不再同时往聊天塞系统消息 + 弹 toast 重复打扰
   if(navStack.length||document.getElementById('app-pages').classList.contains('on')){
-    pushSys(state.other.name+' 在便签上留下了一句话');
+    notifySystem(state.other.name+' 写了便签',text.slice(0,40),()=>goHome());
   }
-  notifySystem(state.other.name+' 写了便签',text.slice(0,40),()=>goHome());
-  showToast(state.other.name+' 在便签上写了一句话');
   return true;
 }
 let noteMood='',_noteEditId='a';
@@ -322,8 +322,8 @@ function maybeNoteAlarm(){
     if(done[key])return;
     state.noteAlarmDone=done;done[key]=1;saveKey('noteAlarmDone');
     const title=idx===0?'我的便签提醒':(state.other.name||'TA')+'的便签提醒';
-    showToast('⏰ '+title);
-    if(typeof pushSys==='function')pushSys('⏰ '+title+'：'+((n.text||'').slice(0,40)||'到了看便签的时间'));
+    showToast(title);
+    if(typeof pushSys==='function')pushSys(title+'：'+((n.text||'').slice(0,40)||'到了看便签的时间'));
     if(typeof notifySystem==='function')notifySystem(title,(n.text||'').slice(0,40),()=>goHome());
   });
 }
@@ -352,15 +352,15 @@ async function refreshAllBadges(){
   updateTabBadge('moments',momUnread);
   updateTabBadge('cards',0);
 }
-/* 信号强弱（v3.6.0）：连接频率的镜子——目标档位由"距最后一条互动的时长"决定：
-   刚互动 → 4~5 格（频率高）；长时间静默 → 缓慢降到 1~2 格（频率低）。
-   当前档位向目标缓慢移动（一格一格走，天然平滑），停靠目标时叠加轻微呼吸。
-   由主心跳每秒驱动，不再自持定时器。 */
+/* 此刻状态灯（v3.6.0 / v3.7.0 弱化语义）：不再表达「通讯强弱」，而是 TA 此刻在线的状态灯。
+   刚互动 → 4~5 格；长时间静默 → 缓慢落到 2 格为止（不再掉到 1 格）。
+   语义是「安静是各自在忙，不是断了」，避免「我冷落他了」的内疚。由主心跳每秒驱动。 */
 let _sigLevel=3;
 let _lastInteractAt=Date.now();
 function touchInteract(){_lastInteractAt=Date.now();}
 function renderSignal(){
   const el=document.getElementById('sb-signal');if(!el)return;
+  el.title='此刻在线 · 安静是各自在忙，不是断了';
   if(!el.childElementCount){
     for(let i=0;i<5;i++){
       const b=document.createElement('span');
@@ -371,13 +371,14 @@ function renderSignal(){
     }
   }
   const age=(Date.now()-_lastInteractAt)/60000;   // 距最后互动：分钟
-  let target=age<10?4.5:age<60?3.5:age<180?2.5:1.5;
+  // v3.7.0：长期静默停在 2 格，不再掉到 1.5/1 格
+  let target=age<10?4.5:age<60?3.5:age<180?2.5:2;
   target+=Math.random()*0.9;                      // 目标档位轻微浮动
-  target=Math.max(1,Math.min(5,Math.round(target)));
+  target=Math.max(2,Math.min(5,Math.round(target)));
   if(_sigLevel<target)_sigLevel++;
   else if(_sigLevel>target)_sigLevel--;
   else if(Math.random()<0.3)_sigLevel+=Math.random()<0.5?1:-1;   // 停靠目标时小呼吸
-  _sigLevel=Math.max(1,Math.min(5,_sigLevel));
+  _sigLevel=Math.max(2,Math.min(5,_sigLevel));
   const bars=el.children;
   for(let i=0;i<bars.length;i++){
     // v3.7.5：黑白极简渐变——点亮格由浅灰(72%)逐格加深到墨黑(20%)，空格淡灰 90%，强度一目了然

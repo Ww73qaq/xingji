@@ -1,6 +1,8 @@
 /* =========================================================
    星迹 · 我的：资料 / 密码 / 通知 / 相遇时间 / 开屏语
    ========================================================= */
+/* 线性描边警告三角（config 无此图标，本地内联，fill:none;stroke） */
+const WARN_ICO='<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3L2.5 20h19L12 3Z"/><path d="M12 10v4"/><path d="M12 17.5h.01"/></svg>';
 
 function editSplashText(){appPrompt('开屏语（可换行）',state.splashText,t=>{if(t===null||!t.trim())return false;state.splashText=t.trim();saveKey('splashText');renderSplashLetter();showToast('开屏语已更新');});}
 
@@ -12,8 +14,8 @@ function renderProfile(){
     <div class="cs-hero">
       <div class="cs-avatar" onclick="pickAvatar('me')" style="cursor:pointer">${avatarHtml('me')}</div>
       <div style="flex:1;min-width:0">
-        <div class="cs-hero-name" onclick="editName('me')" style="cursor:pointer">${esc(state.me.name)} &#9998;</div>
-        <div class="cs-hero-sub" onclick="editStatus('me')" style="cursor:pointer">${esc(state.me.status||'在线')} &#9998;</div>
+        <div class="cs-hero-name" onclick="editName('me')" style="cursor:pointer">${esc(state.me.name)}<span style="opacity:.55;margin-left:5px;vertical-align:-2px">${ICO_EDIT}</span></div>
+        <div class="cs-hero-sub" onclick="editStatus('me')" style="cursor:pointer">${esc(state.me.status||'在线')}<span style="opacity:.55;margin-left:5px;vertical-align:-2px">${ICO_EDIT}</span></div>
       </div>
     </div>
     <div class="cs-group">
@@ -28,7 +30,7 @@ function renderProfile(){
     <div class="cs-group">
       <div class="cs-item" onclick="openApp('cards')"><span class="cs-ico">${ICO.card}</span><span class="cs-label">字卡管理</span><span class="cs-arrow">&#8250;</span></div>
       <div class="cs-item" onclick="openApp('emoji')"><span class="cs-ico">${ICO.smile}</span><span class="cs-label">表情管理</span><span class="cs-arrow">&#8250;</span></div>
-      <div class="cs-item" onclick="openApp('probability')"><span class="cs-ico">${ICO.chart}</span><span class="cs-label">回复设置</span><span class="cs-arrow">&#8250;</span></div>
+      <div class="cs-item" onclick="openApp('probability')"><span class="cs-ico">${ICO.chart}</span><span class="cs-label">相处节奏</span><span class="cs-arrow">&#8250;</span></div>
       <div class="cs-item" onclick="editMyPoke()"><span class="cs-ico">${ICO.poke}</span><span class="cs-label">我的拍一拍</span><span class="cs-val">${esc(state.stats.myPoke||'拍了拍TA的肩膀')}</span><span class="cs-arrow">&#8250;</span></div>
       <div class="cs-item" onclick="managePokes()"><span class="cs-ico">${ICO.poke}</span><span class="cs-label">TA 拍我</span><span class="cs-val">${(allPokeTexts()||[]).length} 条动作</span><span class="cs-arrow">&#8250;</span></div>
       <div class="cs-item" onclick="openTaNoteSettings()"><span class="cs-ico">${ICO.star}</span><span class="cs-label">TA 写便签</span><span class="cs-val">${taNoteEnabled()?'已开启':'已关闭'}</span><span class="cs-switch${taNoteEnabled()?' on':''}" onclick="event.stopPropagation();toggleTaNote()"></span></div>
@@ -46,7 +48,7 @@ function renderProfile(){
     </div>
 <div class="cs-group-title">数据清理</div>
     <div class="cs-group">
-      <div class="cs-item" onclick="clearAllXingjiData()"><span class="cs-ico">&#9888;</span><span class="cs-label" style="color:#c0392b">清除全部数据</span><span class="cs-val">不可恢复</span><span class="cs-arrow">&#8250;</span></div>
+      <div class="cs-item" onclick="clearAllXingjiData()"><span class="cs-ico" style="color:#c0392b">${WARN_ICO}</span><span class="cs-label" style="color:#c0392b">清除全部数据</span><span class="cs-val">不可恢复</span><span class="cs-arrow">&#8250;</span></div>
     </div>
     <div style="text-align:center;color:var(--hint);font-size:11px;padding:10px 0 4px">星迹 · STAR TRACE<br>数据全部保存在本机浏览器</div>`;
 }
@@ -107,13 +109,13 @@ function openNotifySettings(){
   const deniedHint=(notifySupported()&&Notification.permission==='denied')
     ?'<div style="font-size:11px;color:#c55;line-height:1.8;margin:6px 0 4px;padding:8px 10px;background:rgba(200,80,80,.08);border-radius:8px">浏览器已「自动禁止」本站通知（Edge / Chrome 在多次拒绝授权框后会自动挡掉该站点）。<br>请到：<br>· Edge：地址栏左侧图标 → 网站权限 → 通知 → 允许；<br>· 或 浏览器 设置 → 网站设置 → 通知 →「添加网站例外」→ 输入本站网址。<br>允许后回来点下方「测试通知」验证。</div>'
     :'';
-  showModal('消息通知',`<div style="font-size:12px;color:var(--sub);line-height:1.9;margin-bottom:8px">浏览器权限：<b>${perm}</b>${!notifySupported()?'（当前浏览器不支持通知）':''}<br>开启后，TA 发消息/回信/朋友圈互动时，即使你切到别的 App 也能收到手机通知。</div>${deniedHint}
+  showModal('消息通知',`<div style="font-size:12px;color:var(--sub);line-height:1.9;margin-bottom:8px">让 TA 找你时能弹出通知。<br><span style="color:var(--hint)">浏览器权限：${perm}${!notifySupported()?'（当前浏览器不支持）':''}</span></div>${deniedHint}
     <div class="modal-item" onclick="setNotify('enabled')"><span style="flex:1">总开关</span><span class="cs-switch${n.enabled?' on':''}" onclick="event.stopPropagation();setNotify('enabled')"></span></div>
     <div class="modal-item" onclick="setNotify('chat')"><span style="flex:1">聊天消息</span><span class="cs-switch${n.chat!==false?' on':''}" onclick="event.stopPropagation();setNotify('chat')"></span></div>
     <div class="modal-item" onclick="setNotify('moments')"><span style="flex:1">朋友圈互动</span><span class="cs-switch${n.moments!==false?' on':''}" onclick="event.stopPropagation();setNotify('moments')"></span></div>
     <div class="modal-item" onclick="setNotify('letters')"><span style="flex:1">信件回信</span><span class="cs-switch${n.letters!==false?' on':''}" onclick="event.stopPropagation();setNotify('letters')"></span></div>
     <button class="btn-pill" style="width:100%;margin-top:8px" onclick="testNotify()">测试通知（当场发一条验证链路）</button>
-    <div style="font-size:11px;color:var(--hint);line-height:1.8;margin-top:10px">说明：<br>· 通知需要浏览器授权，首次开启会弹出授权请求；<br>· 若授权框不弹、或已被浏览器自动禁止（Edge / Chrome 会挡反复请求的站点）→ 按上面红字去浏览器设置添加例外；<br>· 手机端点「测试通知」：切回桌面/其它App 后通知即弹出（Android 前台页面不显示通知）；<br>· iPhone Safari：先「添加到主屏幕」再从桌面图标打开，通知才能稳定生效；<br>· QQ / 微信内置浏览器：部分版本会拦截网页通知，建议用系统浏览器打开本站；<br>· Android 后台运行：设置→应用→Edge/Chrome→电池→「不受限制」；最近任务把浏览器「锁定」；关闭浏览器省电模式/后台限制——否则锁屏后系统会休眠浏览器导致通知失效；<br>· 页面完全关闭后无法收到（静态站无推送服务器），保持后台打开即可。</div>`);
+    <details style="margin-top:10px;font-size:11px;color:var(--hint)"><summary style="cursor:pointer;outline:none">？ 通知说明</summary><div style="line-height:1.8;margin-top:6px">说明：<br>· 通知需要浏览器授权，首次开启会弹出授权请求；<br>· 若授权框不弹、或已被浏览器自动禁止（Edge / Chrome 会挡反复请求的站点）→ 按上面红字去浏览器设置添加例外；<br>· 手机端点「测试通知」：切回桌面/其它App 后通知即弹出（Android 前台页面不显示通知）；<br>· iPhone Safari：先「添加到主屏幕」再从桌面图标打开，通知才能稳定生效；<br>· QQ / 微信内置浏览器：部分版本会拦截网页通知，建议用系统浏览器打开本站；<br>· Android 后台运行：设置→应用→Edge/Chrome→电池→「不受限制」；最近任务把浏览器「锁定」；关闭浏览器省电模式/后台限制——否则锁屏后系统会休眠浏览器导致通知失效；<br>· 页面完全关闭后无法收到（静态站无推送服务器），保持后台打开即可。</div></details>`);
 }
 function testNotify(){
   if(!notifySupported()){showToast('当前浏览器不支持通知');return;}

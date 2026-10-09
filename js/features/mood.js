@@ -15,7 +15,7 @@ function editStatus(who_){
   const items=statusPool().map(x=>
     `<div class="modal-item" onclick="closeModal();saveStatus('${who_}','${esc(x.s)}')"><span class="status-dot" style="background:${x.c}"></span>${esc(x.s)}${x.s===cur?' <span style="color:var(--hint)">（当前）</span>':''}</div>`
   ).join('');
-  let manage='<div class="modal-item" style="color:var(--hint)" onclick="closeModal();manageStatusPool()">⚙ 管理状态池（新增/删除）</div>';
+  let manage='<div class="modal-item" style="color:var(--hint)" onclick="closeModal();manageStatusPool()">'+ICO_EDIT+' 管理状态池（新增/删除）</div>';
   if(who_==='other'){
     const lockMin=state.taStatusLockMin||10;
     const seg=(m)=>`<span style="padding:4px 12px;border-radius:14px;cursor:pointer;${lockMin===m?'background:rgba(76,217,100,.18);font-weight:700':'background:rgba(128,128,128,.12)'}" onclick="setStatusLockMin(${m})">${m} 分钟</span>`;
@@ -71,6 +71,7 @@ function maybeTaStatusChange(){
     dbPut('events',{who:'ta',type:'status',text:'在线',time:Date.now()}).catch(()=>{});   // v3.6.12 状态计入轨迹
     saveKey('other');saveKey('taStatusUntil');saveKey('taStatusCoolAt');
     updateTaStatusBadge();try{if(typeof updateHomeStatusOnly==='function')updateHomeStatusOnly();}catch(e){}
+    try{if(typeof updateChatHeader==='function')updateChatHeader();}catch(e){}   // v3.7.0：自动路径补刷顶栏
     return;
   }
   if(Date.now()-(state.taStatusCoolAt||0)<45000)return;
@@ -83,7 +84,9 @@ function maybeTaStatusChange(){
     state.taStatusUntil=Date.now()+30000+Math.random()*570000;  // 保持 30s~10min
     saveKey('other');saveKey('taStatusUntil');
     updateTaStatusBadge();try{if(typeof updateHomeStatusOnly==='function')updateHomeStatusOnly();}catch(e){}
-    if(Math.random()<0.6)pushSys(state.other.name+' 现在的状态：'+st.s);   // v3.6.1：60% 提示你（原 40%）
+    try{if(typeof updateChatHeader==='function')updateChatHeader();}catch(e){}   // v3.7.0：自动路径补刷顶栏
+    // v3.7.0：静音/收起声音期间只切状态点、不对外发系统消息；平时也由 60% 降到 30%，避免几分钟一次打扰
+    if(!taOutputBlocked()&&Math.random()<0.3)pushSys(state.other.name+' 现在的状态：'+st.s);
   }
 }
 /* 聊天界面 TA 名字旁的状态点（点击可改 TA 状态） */

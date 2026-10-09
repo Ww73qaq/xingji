@@ -902,8 +902,8 @@ function showMuteBanner(sec){
     const text=document.getElementById('mute-text');const actions=document.getElementById('mute-actions');
     if(remain<=0){clearInterval(muteBannerInterval);state.muteRequest=null;saveKey('muteRequest');banner.classList.remove('show');return;}
     if(state.muteRequest&&state.muteRequest.status==='pending'){text.textContent='已申请解除禁言，等待对方同意';actions.innerHTML='<span class="mute-mini agree" onclick="agreeUnmute()">同意解除</span><span class="mute-mini" onclick="rejectUnmute()">拒绝</span>';}
-    else if(state.muteRequest&&state.muteRequest.status==='rejected'){text.textContent=`对方拒绝了解除申请，禁言继续，剩余 ${remain} 秒`;actions.innerHTML='<span class="mute-mini" onclick="requestUnmute()">再次申请</span>';}
-    else{text.innerHTML=`对方已被禁言，剩余 <b>${remain}</b> 秒`;actions.innerHTML='<span class="mute-mini" onclick="requestUnmute()">申请解除</span>';}
+    else if(state.muteRequest&&state.muteRequest.status==='rejected'){text.textContent='对方拒绝了解除申请，禁言继续';actions.innerHTML='<span class="mute-mini" onclick="requestUnmute()">再次申请</span>';}
+    else{text.textContent='对方已被你静音，约 '+Math.max(1,Math.ceil(remain/60))+' 分钟后解除';actions.innerHTML='<span class="mute-mini" onclick="requestUnmute()">申请解除</span>';}
   };
   refresh();muteBannerInterval=setInterval(refresh,1000);
 }
@@ -992,6 +992,7 @@ function syncInputDisabled(){
   if(sendBtn)sendBtn.style.display=(muted||!inp||!inp.value.trim())?'none':'block';
 }
 async function pushReply(text){
+  if(typeof taOutputBlocked==='function'&&taOutputBlocked())return null;   // v3.7.0 纵深门控：静音/收起声音时底层也不输出（双保险；各调用方仍应先判）
   const msg={sender:'other',type:'text',content:text,time:Date.now(),read:false};
   if(typeof touchInteract==='function')touchInteract();   // v3.6.0：TA 回复 → 连接频率上升
   msg.id=await dbPut('messages',msg);

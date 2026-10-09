@@ -6,6 +6,52 @@ function _roll(pct){return Math.random()*100 < (Number.isFinite(pct)?pct:0);}
 function _clamp(v,min,max){return Math.max(min,Math.min(max,v));}
 function _randomInt(min,max){min=Math.ceil(min);max=Math.floor(max);return Math.floor(Math.random()*(max-min+1))+min;}
 
+/* =========================================================
+   TA 输出统一门控（v3.7.0）——所有 TA 对外输出入口统一调用，替代原先散落各通道的重复判据
+   ========================================================= */
+/* 两种静默：muteEndTime（你把 TA 静音）/ taMuteMeEndTime（TA 收起声音、整理意识）。
+   返回 true＝此刻 TA 不应输出（不发消息、不推送、不弹系统通知）。 */
+function taOutputBlocked(){
+  const now=Date.now();
+  return now<Number(state.muteEndTime||0) || now<Number(state.taMuteMeEndTime||0);
+}
+
+/* 语义档位 → 底层数值映射（设置页内化；底层值不在 UI 暴露百分比/秒/分钟） */
+const REPLY_PACE_VAL={slow:45,natural:20,fast:8};            // 说话节奏 → replyDelaySec
+const PROACTIVE_FREQ_VAL={rare:120,occasional:30,frequent:10}; // 主动频率 → proactiveMinIntervalMin
+const CARD_RATIO_VAL={mine:90,half:50,free:20};              // 用词比例 → customRatio
+function setReplyPace(tier){
+  if(!REPLY_PACE_VAL[tier])return;
+  state.prob.replyPace=tier; state.prob.replyDelaySec=REPLY_PACE_VAL[tier];
+}
+function setProactiveFreqTier(tier){
+  if(!PROACTIVE_FREQ_VAL[tier])return;
+  state.prob.proactiveFreq=tier; state.prob.proactiveMinIntervalMin=PROACTIVE_FREQ_VAL[tier];
+  if(typeof scheduleProactive==='function')scheduleProactive();
+}
+function setCardRatioTier(tier){
+  if(!CARD_RATIO_VAL[tier])return;
+  state.prob.cardRatio=tier; state.prob.customRatio=CARD_RATIO_VAL[tier];
+}
+/* 主动频率三档对应的全局间隔缩放：主动来信/朋友圈/便签/来电等内部冷却乘以此系数 */
+function proactiveGapScale(){
+  switch(state.prob&&state.prob.proactiveFreq){
+    case 'rare':return 2;        // 安静独处：间隔拉长
+    case 'frequent':return 0.5;  // 常来看看：间隔缩短
+    default:return 1;
+  }
+}
+/* 医生提醒选句（v3.70）：两次提醒至少间隔、不唠叨；返回一句或 null。
+   由回复引擎在「夜间 / 长时间用眼」语境轻概率调用，不做定时闹钟、不刷存在感。 */
+let _doctorRemindLast=0;
+function pickDoctorReminder(force){
+  if(typeof DOCTOR_REMINDERS==='undefined'||!DOCTOR_REMINDERS.length)return null;
+  const now=Date.now();
+  if(!force&&now-_doctorRemindLast<90*60000)return null;   // 至少间隔 90 分钟
+  _doctorRemindLast=now;
+  return DOCTOR_REMINDERS[Math.floor(Math.random()*DOCTOR_REMINDERS.length)];
+}
+
 
 function haptic(){try{navigator.vibrate&&navigator.vibrate(12);}catch(e){}}
 function fmtChatDate(t){

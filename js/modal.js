@@ -1,6 +1,8 @@
 /* =========================================================
    星迹 · 弹窗体系（showModal / appPrompt / appConfirm / 图片查看器）
    ========================================================= */
+/* 线性描边关闭 ×（config 无此图标，本地内联，fill:none;stroke） */
+const CLOSE_ICO='<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 6l12 12M18 6L6 18"/></svg>';
 
 let appInputCb=null;
 function appPrompt(title,def,onOk){
@@ -31,8 +33,11 @@ function appConfirmOk(){
   if(appConfirmCb){const cb=appConfirmCb;appConfirmCb=null;cb();}
   closeModal();
 }
-/* ===== MODAL ===== */
-function showModal(title,body,actions,position){
+/* ===== MODAL =====
+   v3.7.0：新增第 5 个可选参数 opts={showClose:boolean}，显式控制右上角 ✕。
+   未传 opts（或未给 showClose）时沿用旧逻辑——actions 文案含「取消」即隐藏 ✕，
+   保证所有既有调用向后兼容、不破坏弹窗行为。 */
+function showModal(title,body,actions,position,opts){
   document.getElementById('modal-title').textContent=title;
   document.getElementById('modal-body').innerHTML=body;
   const ma=document.getElementById('modal-actions');
@@ -41,7 +46,12 @@ function showModal(title,body,actions,position){
     else{ma.innerHTML='';ma.style.display='none';}
   }
   const mc=document.getElementById('modal-close');
-  if(mc)mc.style.display=(actions&&/取消/.test(actions))?'none':'block';
+  if(mc){
+    let closeVisible;
+    if(opts&&typeof opts==='object'&&typeof opts.showClose==='boolean')closeVisible=opts.showClose;
+    else closeVisible=!(actions&&/取消/.test(actions));
+    mc.style.display=closeVisible?'block':'none';
+  }
   const m=document.getElementById('modal');
   m.classList.toggle('bottom',position==='bottom');
   m.classList.add('show');
@@ -67,7 +77,7 @@ function openImageViewer(imgEl,label,idx){
   const idxEl=document.createElement('div');idxEl.className='iv-idx';
   idxEl.textContent=imgs.length>1?`${(idx||0)+1} / ${imgs.length}`:(label||'');
   const bar=document.createElement('div');bar.className='iv-bar';
-  bar.innerHTML=`<div class="iv-btn" onclick="event.stopPropagation();closeImageViewer()">&#10005;</div>`;
+  bar.innerHTML=`<div class="iv-btn" style="display:flex;align-items:center;justify-content:center" onclick="event.stopPropagation();closeImageViewer()">${CLOSE_ICO}</div>`;
   v.appendChild(big);v.appendChild(idxEl);v.appendChild(bar);
   v.onclick=()=>closeImageViewer();
   document.getElementById('phone').appendChild(v);

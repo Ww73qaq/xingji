@@ -38,6 +38,14 @@ function calTimeLabel(at){
 /* 月经量级：1=少(粉) 2=中(黄) 3=多(红)；排卵期：蓝 */
 const CAL_PERIOD={1:{c:'#f2a8c4',t:'少'},2:{c:'#e6c24a',t:'中'},3:{c:'#e06060',t:'多'}};
 const CAL_OVU_C='#5bb0f0';
+/* v3.7.0：设置齿轮 ⚙ → 线性 SVG（复用全站线性图标语言） */
+const ICO_GEAR='<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>';
+/* v3.7.0：排班节奏三档（关系语义，UI 不暴露概率/%/活跃度）→ 内部浮现权重内化 */
+const TA_SCHED_RHYTHM={
+  busy:  {prob:95,rest:5},    // 他最近：勤——排得密，很少休息
+  normal:{prob:70,rest:20},   // 正常
+  rest:  {prob:40,rest:55}    // 想独处——多留空、多休息
+};
 /* ---------- 月经周期计算（v3.6.6）
    数据：{type:'period_set', start:'YYYY-MM-DD', days:5(持续天数), cycle:28(周期长度)}
    规则：以 start 为基准向前回溯到「最近一个周期起点 s」（s<=今天且 s+cycle>今天）；
@@ -184,7 +192,7 @@ async function renderCalendar(){
       <span class="cal-title" onclick="calBackToToday()">${y} 年 ${m+1} 月</span>
       <button class="cal-nav" onclick="calShift(1)">&#8250;</button>
       <button class="cal-today" onclick="calBackToToday()">今天</button>
-      ${calScope==='ta'?`<button class="cal-nav" style="color:${TA_SCHEDULE_COLOR}" onclick="calTaSchedSettings()">⚙</button>`:''}
+      ${calScope==='ta'?`<button class="cal-nav" style="color:${TA_SCHEDULE_COLOR}" onclick="calTaSchedSettings()">${ICO_GEAR}</button>`:''}
     </div>
     <div class="cal-grid">${head}${cells}</div>
     <div class="cal-legend">
@@ -228,7 +236,7 @@ function renderCalendarDay(body,items,pset,allItems){
       <span class="cal-title" onclick="calBackToToday()">${dsel.getMonth()+1} 月 ${dsel.getDate()} 日${isToday?'<i class="cal-today-tag">今天</i>':''}</span>
       <button class="cal-nav" onclick="calDayShift(1)">&#8250;</button>
       <button class="cal-today" onclick="calBackToToday()">今天</button>
-      ${calScope==='ta'?`<button class="cal-nav" style="color:${TA_SCHEDULE_COLOR}" onclick="calTaSchedSettings()">⚙</button>`:''}
+      ${calScope==='ta'?`<button class="cal-nav" style="color:${TA_SCHEDULE_COLOR}" onclick="calTaSchedSettings()">${ICO_GEAR}</button>`:''}
     </div>
     <div class="cal-ops">
       ${calScope!=='ta'?`<button class="cal-op-btn" onclick="calAddTodo('${calDaySel}')">＋ 待办</button>`:''}
@@ -273,41 +281,42 @@ function renderCalendarDay(body,items,pset,allItems){
 }
 
 /* v3.6.8：TA 日历——医生排班模板自动排未来 3 天（每天 1~2 条，已有则跳过），心跳/渲染时调用 */
-/* v3.6.11：TA 排班偏好设置（「辞明的」tab 右上 ⚙）——意识自动浮现概率 + 休息日概率 */
+/* v3.7.0：排班偏好——删去概率/百分比滑杆，改为无机制的三档关系语义（他最近的状态） */
 function calTaSchedSettings(){
-  const s=Object.assign({prob:85,restProb:20},state.taSchedSettings||{});
-  showModal('排班偏好 · '+esc(state.other.name||'TA'),
-    `<div style="font-size:12px;color:var(--hint);margin-bottom:4px">TA 是灵性圈层的意识体——排班由 TA 的意识自动浮现，你手动增删只是兜底。下面调 TA 的"生活节奏"：</div>
-     <div style="font-size:12.5px;margin:12px 0 2px">自动排班概率 <b id="ts-prob-v" style="color:${TA_SCHEDULE_COLOR}">${s.prob}%</b></div>
-     <input type="range" id="ts-prob" min="0" max="100" value="${s.prob}" oninput="document.getElementById('ts-prob-v').textContent=this.value+'%'" style="width:100%">
-     <div style="font-size:11px;color:var(--hint)">TA 主动浮现未来 3 天日程的活跃度（越低=越少自己排班）</div>
-     <div style="font-size:12.5px;margin:14px 0 2px">休息日概率 <b id="ts-rest-v" style="color:${TA_SCHEDULE_COLOR}">${s.restProb}%</b></div>
-     <input type="range" id="ts-rest" min="0" max="100" value="${s.restProb}" oninput="document.getElementById('ts-rest-v').textContent=this.value+'%'" style="width:100%">
-     <div style="font-size:11px;color:var(--hint)">TA 需要休息/独处（不接诊、不回应）的频率——越高越容易排"休息日"</div>`,
+  const cur=(state.taSchedSettings||{}).rhythm||'normal';
+  const tiers=[['busy','他最近：勤'],['normal','正常'],['rest','想独处']];
+  showModal('排班节奏 · '+esc(state.other.name||'TA'),
+    `<div style="font-size:12px;color:var(--hint);margin-bottom:8px">排班由 TA 的意识自己浮现，你手动增删只是兜底。选他最近大概的状态就好：</div>
+     <div style="display:flex;flex-direction:column;gap:6px">
+       ${tiers.map(t=>`<div class="mood-chip${cur===t[0]?' on':''}" data-rh="${t[0]}" onclick="calSchedPickRhythm(this,'${t[0]}')" style="text-align:center;padding:9px 12px">${t[1]}</div>`).join('')}
+     </div>`,
     '<div class="modal-btn-row"><button class="modal-btn" onclick="closeModal()">取消</button><button class="modal-btn primary" onclick="calTaSchedSettingsOk()">保存</button></div>');
 }
+function calSchedPickRhythm(el,rh){
+  document.querySelectorAll('[data-rh]').forEach(c=>c.classList.remove('on'));
+  el.classList.add('on');
+}
 function calTaSchedSettingsOk(){
-  const p=+document.getElementById('ts-prob').value;
-  const r=+document.getElementById('ts-rest').value;
-  state.taSchedSettings={prob:p,restProb:r};
+  const on=document.querySelector('[data-rh].on');
+  const rh=on?on.dataset.rh:'normal';
+  state.taSchedSettings={rhythm:rh};
   saveKey('taSchedSettings');
   closeModal();
   ensureTaSchedule().then(renderCalendar);
-  showToast('已保存排班偏好');
+  showToast('已保存排班节奏');
 }
 async function ensureTaSchedule(){
   try{await dbReady;}catch(e){}
-  const s=Object.assign({prob:85,restProb:20},state.taSchedSettings||{});
+  // v3.7.0：意识浮现——概率未命中当天就留空（TA 可以真的不排），不再塞保底条目；手动添加是唯一兜底
+  const rh=(TA_SCHED_RHYTHM[(state.taSchedSettings||{}).rhythm])||TA_SCHED_RHYTHM.normal;
   const all=await dbGetAll('calendar');
   for(let i=1;i<=3;i++){
     const key=calDateKey(new Date(Date.now()+i*86400000));
     if(all.some(x=>x.date===key&&x.type==='ta_sched'))continue;
-    // v3.7.4：prob 未命中时保底 1 条——灵性医生每天都有排班（概率只影响丰富度/休息日）
-    if(Math.random()<s.prob/100){
+    if(Math.random()<rh.prob/100){
       const n=1+Math.floor(Math.random()*2);
       const pool=[...TA_SCHEDULE_TEMPLATE];
-      // 休息日按概率提升出现权重：休息概率越高，越可能排休息日
-      if(Math.random()<s.restProb/100&&pool.indexOf('休息日')>=0){
+      if(Math.random()<rh.rest/100&&pool.indexOf('休息日')>=0){
         pool.splice(0,0,'休息日');
       }
       for(let k=0;k<n;k++){
@@ -316,11 +325,8 @@ async function ensureTaSchedule(){
         const text=pool.splice(idx,1)[0];
         await dbPut('calendar',{date:key,type:'ta_sched',text,at:Date.now()+k});
       }
-    }else{
-      const pool=[...TA_SCHEDULE_TEMPLATE].filter(t=>t!=='休息日');
-      const text=pool[Math.floor(Math.random()*pool.length)]||'门诊';
-      await dbPut('calendar',{date:key,type:'ta_sched',text,at:Date.now()});
     }
+    // 未命中：当天留空，不补任何条目（空一天正是 TA 有自己的节奏）
   }
 }
 
@@ -367,7 +373,7 @@ function maybeTodoAlarm(){
         const k=it.id+'_'+key+'_'+it.alarm.freq+'_'+it.alarm.time;
         if(done[k])return;
         done[k]=1;changed=true;
-        showToast('⏰ 待办提醒：'+it.text);
+        showToast('待办提醒：'+it.text);
         if(typeof pushSys==='function')pushSys('待办提醒：'+it.text);
         if(typeof notifySystem==='function')notifySystem('待办提醒',it.text,()=>{openApp('calendar');});
       }
@@ -379,7 +385,7 @@ function maybeTodoAlarm(){
       const k=it.id+'_'+key+'_'+it.alarm.freq+'_'+it.alarm.time;
       if(done[k])return;
       done[k]=1;changed=true;
-      showToast('⏰ 待办提醒：'+it.text);
+      showToast('待办提醒：'+it.text);
       if(typeof pushSys==='function')pushSys('待办提醒：'+it.text);
       if(typeof notifySystem==='function')notifySystem('待办提醒',it.text,()=>{openApp('calendar');});
     });

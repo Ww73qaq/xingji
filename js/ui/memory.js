@@ -5,16 +5,34 @@
 /* ===== MEMORY（回忆录） ===== */
 /* ===== MEMORY（数据与回忆：两个 Tab [回忆][数据]） ===== */
 let memdataTab='memory';
+/* v3.7.0：备份/迁移/导入属于工程数据入口，统一归到「数据」Tab，
+   「回忆」Tab 只保留相遇叙事 / 数字宫格 / 收藏。按钮本身不删，只是换位置。 */
+function backupMigrateHtml(){
+  return `<div class="cs-group-title">备份与迁移</div>
+    <div class="cs-group">
+      <div class="cs-item" onclick="exportCards()"><span class="cs-ico">${ICO.card}</span><span class="cs-label">导出字卡</span><span class="cs-val">只导出字卡与分组</span><span class="cs-arrow">&#8250;</span></div>
+      <div class="cs-item" onclick="importCards()"><span class="cs-ico">${ICO.book}</span><span class="cs-label">导入字卡</span><span class="cs-val">合并到当前字卡库</span><span class="cs-arrow">&#8250;</span></div>
+      <div class="cs-item" onclick="exportData()"><span class="cs-ico">${ICO.mail}</span><span class="cs-label">完整备份</span><span class="cs-val">聊天 / 信件 / 日记 / 朋友圈等</span><span class="cs-arrow">&#8250;</span></div>
+      <div class="cs-item" onclick="showExportSelect()"><span class="cs-ico">${ICO.chart}</span><span class="cs-label">自定义导出</span><span class="cs-val">按类别选择数据</span><span class="cs-arrow">&#8250;</span></div>
+      <div class="cs-item" onclick="showImportMenu()"><span class="cs-ico">${ICO.book}</span><span class="cs-label">导入数据</span><span class="cs-val">合并 / 覆盖 / 完整</span><span class="cs-arrow">&#8250;</span></div>
+    </div>`;
+}
+/* 「数据」Tab：先渲染收藏消息（renderDataPage 在 backup.js），再把备份/迁移入口追加在下面 */
+async function renderMemoryDataTab(){
+  await renderDataPage('memory-body');
+  const body=document.getElementById('memory-body');
+  if(body)body.insertAdjacentHTML('beforeend',backupMigrateHtml());
+}
 function switchMemdataTab(t,btn){
   memdataTab=t;
   document.querySelectorAll('#memdata-tabs .tab').forEach(x=>x.classList.toggle('active',x===btn));
-  if(t==='data') renderDataPage('memory-body');
+  if(t==='data') renderMemoryDataTab();
   else renderMemory();
 }
 async function renderMemory(){
   const body=document.getElementById('memory-body');
   if(!body)return;
-  if(memdataTab==='data'){await renderDataPage('memory-body');return;}
+  if(memdataTab==='data'){await renderMemoryDataTab();return;}
   const msgs=await dbGetAll('messages');
   const letters=await dbGetAll('letters');
   const diaries=await dbGetAll('diaries');
@@ -45,15 +63,7 @@ async function renderMemory(){
         <div class="mem-stat" onclick="switchMemdataTab('data',document.querySelector('#memdata-tabs .tab:nth-child(2)'))"><b>${favCount}</b><span>条收藏</span></div>
       </div>
     </div>
-    <div class="cs-group-title">备份与迁移</div>
-    <div class="cs-group">
-      <div class="cs-item" onclick="exportCards()"><span class="cs-ico">${ICO.card}</span><span class="cs-label">导出字卡</span><span class="cs-val">只导出字卡与分组</span><span class="cs-arrow">&#8250;</span></div>
-      <div class="cs-item" onclick="importCards()"><span class="cs-ico">${ICO.book}</span><span class="cs-label">导入字卡</span><span class="cs-val">合并到当前字卡库</span><span class="cs-arrow">&#8250;</span></div>
-      <div class="cs-item" onclick="exportData()"><span class="cs-ico">${ICO.mail}</span><span class="cs-label">完整备份</span><span class="cs-val">聊天 / 信件 / 日记 / 朋友圈等</span><span class="cs-arrow">&#8250;</span></div>
-      <div class="cs-item" onclick="showExportSelect()"><span class="cs-ico">${ICO.chart}</span><span class="cs-label">自定义导出</span><span class="cs-val">按类别选择数据</span><span class="cs-arrow">&#8250;</span></div>
-      <div class="cs-item" onclick="showImportMenu()"><span class="cs-ico">${ICO.book}</span><span class="cs-label">导入数据</span><span class="cs-val">合并 / 覆盖 / 完整</span><span class="cs-arrow">&#8250;</span></div>
-    </div>
-    <div class="empty" style="font-size:12px;line-height:1.8;text-align:left">这里集中保存「数据与回忆」的全部数据入口；「数据」Tab 只负责查看收藏消息。</div>`;
+    <div class="empty" style="font-size:12px;line-height:1.8;text-align:left">备份、迁移与导入入口已移到「数据」Tab。</div>`;
 }
 function openFavMsg(id){chatPageSize=99999;saveScrollTop();navStack=['chat'];navRoot='chat';renderNav();enterPage('chat');setTimeout(()=>jumpToMsg(id),180);}
 

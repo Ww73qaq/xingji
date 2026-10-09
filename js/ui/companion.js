@@ -6,15 +6,37 @@ let companionTimer=null;
 function allCompanionScenes(){
   return COMPANION_SCENES.concat(state.stats.customCompanion||[]);
 }
+/* v3.7.0：场景与控件 emoji 一律改线性 SVG（fill:none;stroke）。
+   复用 config ICO.*（按目标尺寸缩放）；运动/睡觉/吃饭/摸鱼 config 无对应图标，
+   本地内联描边路径。 */
+function _cpSvg(inner,size,sw){
+  return `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="${sw||1.6}" stroke-linecap="round" stroke-linejoin="round">${inner}</svg>`;
+}
+function _cpScale(icoStr,size){return icoStr.replace('width="17" height="17"',`width="${size}" height="${size}"`);}
+function CP_BOLT(size){return _cpSvg('<path d="M13 2L4 14h6l-1 8 9-12h-6l1-8Z"/>',size,1.8);}
+function CP_CLOSE(size){return _cpSvg('<path d="M6 6l12 12M18 6L6 18"/>',size,1.9);}
+function companionSceneIcon(scn,size){
+  size=size||34;
+  const id=(scn&&scn.id)||'';
+  switch(id){
+    case 'study':return _cpScale(ICO.book,size);
+    case 'work':return _cpScale(ICO.chat,size);
+    case 'sport':return _cpSvg('<circle cx="13.5" cy="4.5" r="1.8"/><path d="M6 9l3.2-.8 2.3 3.1L14 12l3.2 4.2"/><path d="M8.5 13l-1.7 6M12 14l2.2 6"/>',size);
+    case 'sleep':return _cpSvg('<path d="M20 14.5A8 8 0 1 1 9.5 4.2 6.3 6.3 0 0 0 20 14.5Z"/>',size);
+    case 'eat':return _cpSvg('<path d="M4 11h16a8 8 0 0 1-16 0Z"/><path d="M12 19v2"/>',size);
+    case 'fish':return _cpSvg('<path d="M3 12c3-4 7-4 9 0s6 4 9 0c-3 4-7 4-9 0s-6-4-9 0Z"/><circle cx="7.5" cy="11" r=".9" fill="currentColor" stroke="none"/>',size);
+    default:return _cpScale(ICO.smile,size); /* 自定义场景回退中性线性图标 */
+  }
+}
 let companionSession=null,companionTick=null;
 function renderCompanion(){
   const body=document.getElementById('companion-body');body.innerHTML='';
   if(companionSession){renderCompanionTiming(body);return;}
   const extra=(state.stats.companionStart)?(Date.now()-state.stats.companionStart):0;
-  body.innerHTML+=`<div class="companion-status">&#9889; 1 台设备已连接 · 已陪伴 ${fmtDuration((state.stats.companionTime||0)+extra)} · 连续 ${state.stats.companionStreak} 天</div>`;
+  body.innerHTML+=`<div class="companion-status" style="color:var(--hint);font-size:12px;opacity:.9">${CP_BOLT(13)} <span style="vertical-align:-1px">已陪伴 ${fmtDuration((state.stats.companionTime||0)+extra)}<span style="opacity:.65"> · 第 ${state.stats.companionStreak||1} 天</span></span></div>`;
   body.innerHTML+='<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:12px">';
   allCompanionScenes().forEach(sn=>{
-    body.innerHTML+=`<div class="list-card" style="margin:0;display:flex;flex-direction:column;align-items:center;gap:8px;padding:18px 10px;text-align:center;cursor:pointer" onclick="enterCompanion('${sn.id}')"><div style="font-size:36px">${sn.icon}</div><div class="list-card-title">${esc(sn.name)}</div><div class="list-card-sub">${esc(sn.desc||'')}</div></div>`;
+    body.innerHTML+=`<div class="list-card" style="margin:0;display:flex;flex-direction:column;align-items:center;gap:8px;padding:18px 10px;text-align:center;cursor:pointer" onclick="enterCompanion('${sn.id}')"><div style="width:40px;height:40px;display:flex;align-items:center;justify-content:center;color:var(--sub)">${companionSceneIcon(sn,34)}</div><div class="list-card-title">${esc(sn.name)}</div><div class="list-card-sub">${esc(sn.desc||'')}</div></div>`;
   });
   body.innerHTML+='</div>';
   body.innerHTML+=`<button class="btn-pill ghost" style="width:100%;margin-top:14px" onclick="addCompanionScene()">＋ 新增陪伴模式</button>`;
@@ -26,12 +48,12 @@ function renderCompanionTiming(body){
   const act=sc.name.replace('一起','')||'陪伴';
   body.innerHTML=`
     <div class="cp-timing">
-      <div class="cp-conn">&#9889; 1 台设备已连接</div>
+      <div class="cp-conn">${CP_BOLT(13)} <span style="vertical-align:-1px">1 台设备已连接</span></div>
       <div class="cp-ring"><div class="cp-ring-num" id="cp-ring-num">${mm}:${ss}</div><div class="cp-ring-tag">${esc(act)}</div></div>
       <div class="cp-slogan">正在一起${esc(act)} · 加油</div>
       <div style="display:flex;justify-content:center;gap:26px;margin-top:24px;font-size:20px">
-        <span class="cp-quick" onclick="openApp('chat')">&#128172;<div style="font-size:11px;color:var(--hint)">聊天</div></span>
-        <span class="cp-quick" onclick="endCompanion()">&#10006;<div style="font-size:11px;color:var(--hint)">结束</div></span>
+        <span class="cp-quick" onclick="openApp('chat')">${_cpScale(ICO.chat,20)}<div style="font-size:11px;color:var(--hint)">聊天</div></span>
+        <span class="cp-quick" onclick="endCompanion()">${CP_CLOSE(20)}<div style="font-size:11px;color:var(--hint)">结束</div></span>
       </div>
     </div>`;
 }
@@ -66,7 +88,7 @@ function endCompanion(){
 function enterCompanion(id){
   const sc=allCompanionScenes().find(x=>x.id===id);if(!sc)return;
   const act=sc.name.replace('一起','');
-  showModal(sc.icon+' '+sc.name,'<div style="text-align:center;font-size:13px;color:var(--sub);padding-bottom:10px">这次陪你多久？</div><div class="cp-dur-grid" id="cp-dur-grid"></div>');
+  showModal(sc.name,'<div style="display:flex;justify-content:center;margin-bottom:6px;color:var(--sub)">'+companionSceneIcon(sc,30)+'</div><div style="text-align:center;font-size:13px;color:var(--sub);padding-bottom:10px">这次陪你多久？</div><div class="cp-dur-grid" id="cp-dur-grid"></div>');
   const g=document.getElementById('cp-dur-grid');
   [5,10,15,20,25,30].forEach(m=>{
     const d=document.createElement('div');d.className='cp-dur';d.innerHTML='<b>'+m+'</b><span>分钟</span>';
@@ -76,7 +98,7 @@ function enterCompanion(id){
 }
 function openCompanionManage(){
   const list=state.stats.customCompanion||[];
-  showModal('陪伴模式管理',list.map((sc,i)=>`<div style="display:flex;align-items:center;gap:8px;padding:12px 4px;border-bottom:1px solid var(--input)"><span style="font-size:22px">${sc.icon}</span><div style="flex:1"><div style="font-size:15px;font-weight:600">${esc(sc.name)}</div><div style="font-size:12px;color:var(--sub)">${esc(sc.desc||'')}</div></div><span style="cursor:pointer;padding:4px" onclick="closeModal();editCompanionScene(${i})">&#9998;</span><span style="cursor:pointer;padding:4px;color:#c0392b" onclick="closeModal();delCompanionScene(${i})">&#10005;</span></div>`).join('')
+  showModal('陪伴模式管理',list.map((sc,i)=>`<div style="display:flex;align-items:center;gap:8px;padding:12px 4px;border-bottom:1px solid var(--input)"><span style="color:var(--sub);display:inline-flex">${companionSceneIcon(sc,22)}</span><div style="flex:1"><div style="font-size:15px;font-weight:600">${esc(sc.name)}</div><div style="font-size:12px;color:var(--sub)">${esc(sc.desc||'')}</div></div><span style="cursor:pointer;padding:4px;color:var(--sub)" onclick="closeModal();editCompanionScene(${i})">${ICO_EDIT}</span><span style="cursor:pointer;padding:4px;color:#c0392b;display:inline-flex" onclick="closeModal();delCompanionScene(${i})">${CP_CLOSE(14)}</span></div>`).join('')
     +(list.length?'':'<div class="empty" style="padding:14px 4px">还没有自定义模式</div>'));
 }
 function addCompanionScene(){
@@ -90,7 +112,7 @@ function saveCompanionScene(i){
   const name=(document.getElementById('cp-name').value||'').trim();if(!name){showToast('请输入名称');return;}
   const desc=(document.getElementById('cp-desc').value||'').trim();
   const list=state.stats.customCompanion||[];
-  if(i<0){list.push({id:'c'+Date.now(),name,icon:'&#10024;',desc});}
+  if(i<0){list.push({id:'c'+Date.now(),name,icon:'',desc});}
   else{list[i].name=name;list[i].desc=desc;}
   state.stats.customCompanion=list;saveKey('stats');closeModal();renderCompanion();showToast(i<0?'已新增陪伴模式':'已保存');
 }

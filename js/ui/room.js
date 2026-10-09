@@ -82,7 +82,6 @@ function roomResize(delta,type){
 }
 function renderRoom(){
   const grid=document.getElementById('room-grid');if(!grid)return;
-  let placed=false;
   grid.style.gridTemplateColumns=`repeat(${roomState.cols},1fr)`;
   grid.innerHTML='';
   roomState.grid.forEach((item,i)=>{
@@ -106,7 +105,7 @@ function renderRoom(){
   document.getElementById('room-info-title').textContent=roomState.preset;
   document.getElementById('room-rows-n').textContent=roomState.rows;
   document.getElementById('room-cols-n').textContent=roomState.cols;
-  if((placed||roomState.taPos>=0)&&!_sensing){
+  if(roomState.taPos>=0&&!_sensing){
     const item=roomState.grid[roomState.taPos];
     const actions=ROOM_ACTIONS[item]||['正静静地在这里'];
     const action=actions[Math.floor(Math.random()*actions.length)];
@@ -135,7 +134,8 @@ function showRoomPicker(){
     div.onclick=()=>{placeFurniture(item);};
     picker.appendChild(div);
   });
-  const custom=document.createElement('div');custom.className='room-picker-item';custom.textContent='✏️ 文字';
+  const custom=document.createElement('div');custom.className='room-picker-item';
+  custom.innerHTML='<span style="display:inline-flex;vertical-align:-2px;margin-right:5px">'+ICO_EDIT+'</span>文字';
   custom.onclick=()=>{
     const mbody=document.getElementById('modal-body');
     mbody.innerHTML='<input class="app-input" id="room-text-input" placeholder="输入2-6个字，如：时光" maxlength="8">'
@@ -161,8 +161,8 @@ function placeFurniture(item){
 }
 function showRoomEdit(i,item){
   showModal('编辑格子',`<div style="text-align:center;padding:6px 0 14px;font-size:28px;letter-spacing:2px">${esc(item)}</div>`
-    +'<div class="modal-item" onclick="editCellText()">✏️ 修改文字</div>'
-    +'<div class="modal-item" onclick="clearCell()">🗑 清空此格</div>');
+    +'<div class="modal-item" onclick="editCellText()"><span style="display:inline-flex;vertical-align:-2px;margin-right:6px">'+ICO_EDIT+'</span>修改文字</div>'
+    +'<div class="modal-item" onclick="clearCell()"><span style="display:inline-flex;vertical-align:-2px;margin-right:6px">'+ICO_DEL+'</span>清空此格</div>');
   pendingRoomCell=i;
 }
 function editCellText(){
@@ -229,7 +229,8 @@ function senseTA(){
   const delay=10000+Math.random()*5000;   // 10~15 秒
   _senseTimer=setTimeout(()=>{
     _sensing=false;_senseTimer=null;
-    const idx=Math.floor(Math.random()*24);
+    /* v3.7.0：落点用真实格数替代写死的 24——resize/换布局后 taPos 不再越界，.ta-badge 正常渲染 */
+    const idx=Math.floor(Math.random()*roomState.grid.length);
     roomState.taPos=idx;
     const item=roomState.grid[idx];
     const actions=item?ROOM_ACTIONS[item]:['在房间的某个角落','正在房间里走动','好像刚进房间','在房间发呆','在房间的窗边站着'];
@@ -242,8 +243,10 @@ function senseTA(){
     pushSys(text);
   },delay);
 }
-/* v3.6.8：TA 主动感应你——心跳每 5 秒调用；冷却 20~40 分钟；触发时全局通知 + 站内横幅 + 聊天记录 */
+/* v3.6.8：TA 主动感应你——心跳每 5 秒调用；冷却 20~40 分钟；触发时全局通知 + 站内横幅 + 聊天记录
+   v3.7.0：开头统一过 taOutputBlocked()——静音/收起声音期连通知、系统消息、50% 聊天回复一律不发 */
 function maybeTaSense(){
+  if(taOutputBlocked())return;
   if(Date.now()<(state.taSenseCoolAt||0))return;
   if(Math.random()>0.008)return;             // 每 5 秒 0.8% 机会；配合冷却实际约 20~40 分钟一次
   state.taSenseCoolAt=Date.now()+1200000+Math.random()*1200000;   // 冷却 20~40 分钟

@@ -1,81 +1,68 @@
 /* =========================================================
-   星迹 · 回复概率设置页
+   星迹 · 相处节奏设置页（v3.7.0，P0 内化整改）
+   —— 原先约 15 个「概率% / 秒 / 分钟 / 条」滑杆全部删除并内化，
+      UI 只呈现关系语义；底层数值由 js/utils.js 的 set*Tier 派生落库，
+      本页不直接读写工程参数，也绝不显示 % / 秒 / 分钟 / 条。
    ========================================================= */
-
-/* ===== PROBABILITY（回复设置 · 独立概率，不再归一化 100%） ===== */
 let probAdjusting=false;
+
+/* 语义档位分段行：选中 primary、未选 ghost */
+function _tierRow(current, options, applyFn){
+  return `<div style="display:flex;gap:8px;margin-top:12px">
+    ${options.map(([val,label])=>`
+      <button type="button" class="btn-pill ${current===val?'primary':'ghost'}" style="flex:1;padding:11px 0;letter-spacing:0" onclick="${applyFn}('${val}')">${label}</button>
+    `).join('')}
+  </div>`;
+}
+
+/* 相处习惯开关行：只显「开 / 关」，不显概率 */
+function _switchRow(key,label,sub){
+  const on=state.prob[key]!==false;   // 默认开，唯 readIgnoreEnabled 默认关
+  return `<div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 0;border-top:1px solid rgba(0,0,0,.06)">
+    <div>
+      <div style="font-size:14px;color:var(--text)">${label}</div>
+      <div style="font-size:11px;color:var(--hint);margin-top:3px;line-height:1.5">${sub}</div>
+    </div>
+    <button type="button" class="btn-pill ${on?'primary':'ghost'}" style="padding:6px 16px;font-size:12px;flex-shrink:0" onclick="setProb('${key}',${on?0:1})">${on?'开':'关'}</button>
+  </div>`;
+}
+
 function renderProbability(){
   const p=state.prob;
   const body=document.getElementById('probability-body');if(!body)return;
-  const iv=(k,def)=>{const v=Number(p[k]);return Number.isFinite(v)?v:def;};
   body.innerHTML=`
     <div class="list-card">
-      <div class="list-card-title">回复时间</div>
-      <div style="margin-top:10px;font-size:12px;color:var(--sub)">TA 回复你的时间 <b id="lb-replyDelaySec">${iv('replyDelaySec',20)}</b> 秒</div>
-      <input type="range" min="3" max="300" value="${iv('replyDelaySec',20)}" oninput="setProb('replyDelaySec',this.value)" style="width:100%">
-      <div style="font-size:11px;color:var(--hint);margin-top:8px">从你发送消息开始，到 TA 第一条回复出现为止。期间顶部显示“正在输入…”。</div>
+      <div class="list-card-title">说话节奏</div>
+      <div class="list-card-sub">TA 回你的快慢，不用赶。想让 TA 从容一点，还是利落一点。</div>
+      ${_tierRow(p.replyPace||'natural',[['slow','从容慢一点'],['natural','自然'],['fast','快一点']],'applyReplyPace')}
     </div>
     <div class="list-card">
-      <div class="list-card-title">多气泡回复</div>
-      <button class="btn-pill ${p.multiBubbleEnabled===false?'ghost':'primary'}" style="width:100%;margin-top:8px;padding:11px 0" onclick="setProb('multiBubbleEnabled',${p.multiBubbleEnabled===false?1:0})">${p.multiBubbleEnabled===false?'多气泡回复：关闭':'多气泡回复：开启'}</button>
-      ${p.multiBubbleEnabled!==false?`
-      <div style="margin-top:12px;font-size:12px;color:var(--sub)">多气泡概率 <b id="lb-multiBubbleProb">${iv('multiBubbleProb',30)}</b>%</div>
-      <input type="range" min="0" max="100" value="${iv('multiBubbleProb',30)}" oninput="setProb('multiBubbleProb',this.value)" style="width:100%">
-      <div style="margin-top:8px;font-size:12px;color:var(--sub)">最多气泡 <b id="lb-maxBubbles">${iv('maxBubbles',3)}</b> 条</div>
-      <input type="range" min="1" max="5" value="${iv('maxBubbles',3)}" oninput="setProb('maxBubbles',this.value)" style="width:100%">`:''}
-      <div style="font-size:11px;color:var(--hint);margin-top:8px">一次回复由多条独立消息组成，消息间有自然间隔。</div>
+      <div class="list-card-title">主动频率</div>
+      <div class="list-card-sub">TA 多久会想主动找你说说话。</div>
+      ${_tierRow(p.proactiveFreq||'occasional',[['rare','安静独处'],['occasional','偶尔想起'],['frequent','常来看看']],'applyProactiveFreq')}
     </div>
     <div class="list-card">
-      <div class="list-card-title">字卡拼接</div>
-      <button class="btn-pill ${p.cardConcatEnabled===false?'ghost':'primary'}" style="width:100%;margin-top:8px;padding:11px 0" onclick="setProb('cardConcatEnabled',${p.cardConcatEnabled===false?1:0})">${p.cardConcatEnabled===false?'字卡拼接：关闭':'字卡拼接：开启'}</button>
-      ${p.cardConcatEnabled!==false?`
-      <div style="margin-top:12px;font-size:12px;color:var(--sub)">拼接概率 <b id="lb-cardConcatProb">${iv('cardConcatProb',35)}</b>%</div>
-      <input type="range" min="0" max="100" value="${iv('cardConcatProb',35)}" oninput="setProb('cardConcatProb',this.value)" style="width:100%">
-      <div style="margin-top:8px;font-size:12px;color:var(--sub)">每气泡最少 <b id="lb-minCardsPerBubble">${iv('minCardsPerBubble',1)}</b> 张 · 最多 <b id="lb-maxCardsPerBubble">${iv('maxCardsPerBubble',3)}</b> 张</div>
-      <div style="display:flex;gap:10px;margin-top:6px">
-        <input type="range" min="1" max="6" value="${iv('minCardsPerBubble',1)}" oninput="setProb('minCardsPerBubble',this.value)" style="width:100%">
-        <input type="range" min="1" max="6" value="${iv('maxCardsPerBubble',3)}" oninput="setProb('maxCardsPerBubble',this.value)" style="width:100%">
-      </div>
-      <div style="font-size:11px;color:var(--hint);margin-top:8px">开启后一个气泡内可由多张字卡拼接（如「嗯。今天也辛苦了。」）。与多气泡回复相互独立。</div>`:''}
+      <div class="list-card-title">用词与字卡比例</div>
+      <div class="list-card-sub">TA 说话时，多用你为 TA 整理的话，还是让 TA 顺着心意自己发挥。</div>
+      ${_tierRow(p.cardRatio||'mine',[['mine','以你整理的为主'],['half','各占一半'],['free','让 TA 自由发挥']],'applyCardRatio')}
     </div>
     <div class="list-card">
-      <div class="list-card-title">回复类型</div>
-      <div style="font-size:11px;color:var(--hint);margin-top:6px">每项概率独立计算，可同时触发多个互动（每轮最多 2 个额外互动）</div>
-      ${[['emojiReplyProb','表情回应',15],['pokeReplyProb','拍一拍',8],['quoteReplyProb','引用',20],['giftReplyProb','礼物',5]].map(([k,label,def])=>{
-        const v=Number.isFinite(Number(p[k]))?Number(p[k]):def;
-        return `<div style="margin-top:10px;font-size:12px;color:var(--sub)">${label} <b id="lb-${k}">${v}</b>%</div><input type="range" min="0" max="100" value="${v}" oninput="setProb('${k}',this.value)" style="width:100%">`;
-      }).join('')}
-      <div style="margin-top:14px;font-size:12px;color:var(--sub)">颜文字字卡 <b id="lb-emojiCardProb">${iv('emojiCardProb',20)}</b>%</div>
-      <input type="range" min="0" max="100" value="${iv('emojiCardProb',20)}" oninput="setProb('emojiCardProb',this.value)" style="width:100%">
-      <div style="font-size:11px;color:var(--hint);margin-top:6px">命中时 TA 的回复直接用「颜文字」分组字卡（如 ^_^ 小表情）；与上方「表情回应」互不冲突，也不参与字卡拼接。</div>
-      <div style="font-size:11px;color:var(--hint);margin-top:8px">普通字卡是基础回复，始终参与。单选 / 多选 / 问卷属于你明确提交的问题，TA 会<b>必答</b>（不走概率）；问卷期限与多选数量在<b>对应弹窗内</b>设置。</div>
+      <div class="list-card-title">相处习惯</div>
+      <div class="list-card-sub">一些你们之间的小习惯，想开想关都随你。</div>
+      ${_switchRow('proactiveEnabled','主动来消息','TA 想你的时候，会自己先开口')}
+      ${_switchRow('multiBubbleEnabled','分几次说','像当面聊天，把一句话拆成几次发出来')}
+      ${_switchRow('cardConcatEnabled','把话连成一句','把几张字卡拼成一整句，听着更自然')}
+      ${_switchRow('readIgnoreEnabled','偶尔已读不回','有时候 TA 看到了，只想先安静待一会儿')}
     </div>
-    <div class="list-card">
-      <div class="list-card-title">回复行为</div>
-      <button class="btn-pill ${p.readIgnoreEnabled?'primary':'ghost'}" style="width:100%;margin-top:8px;padding:11px 0" onclick="setProb('readIgnoreEnabled',${p.readIgnoreEnabled?0:1})">已读不回：${p.readIgnoreEnabled?'开启':'关闭'}</button>
-      <div style="font-size:11px;color:var(--hint);margin-top:6px">开启后，某些轮次 TA 会显示已读但不回复。</div>
-      <div style="margin-top:14px;font-size:12px;color:var(--sub)">最近重复排除 <b id="lb-repeatExclude">${iv('repeatExclude',5)}</b> 条</div>
-      <input type="range" min="0" max="20" value="${iv('repeatExclude',5)}" oninput="setProb('repeatExclude',this.value)" style="width:100%">
-      <div style="margin-top:14px;font-size:12px;color:var(--sub)">自定义字卡占比 <b id="lb-customRatio">${iv('customRatio',90)}</b>%</div>
-      <input type="range" min="0" max="100" value="${iv('customRatio',90)}" oninput="setProb('customRatio',this.value)" style="width:100%">
-      <div style="font-size:11px;color:var(--hint);margin-top:6px">其余比例使用系统预设字卡。</div>
-    </div>
-    <div class="list-card">
-      <div class="list-card-title">主动消息</div>
-      <button class="btn-pill ${p.proactiveEnabled===false?'ghost':'primary'}" style="width:100%;margin-top:8px;padding:11px 0" onclick="setProb('proactiveEnabled',${p.proactiveEnabled===false?1:0})">开启主动消息：${p.proactiveEnabled===false?'关闭':'开启'}</button>
-      ${p.proactiveEnabled!==false?`
-      <div style="margin-top:12px;font-size:12px;color:var(--sub)">最小间隔 <b id="lb-proactiveMinIntervalMin">${iv('proactiveMinIntervalMin',30)}</b> 分钟</div>
-      <input type="range" min="5" max="720" value="${iv('proactiveMinIntervalMin',30)}" oninput="setProb('proactiveMinIntervalMin',this.value)" style="width:100%">
-      <div style="margin-top:8px;font-size:12px;color:var(--sub)">一次发送 <b id="lb-proactiveCount">${iv('proactiveCountMin',1)}~${iv('proactiveCountMax',2)}</b> 条</div>
-      <div style="display:flex;gap:10px;margin-top:6px">
-        <input type="range" min="1" max="3" value="${iv('proactiveCountMin',1)}" oninput="setProb('proactiveCountMin',this.value)" style="width:100%">
-        <input type="range" min="1" max="3" value="${iv('proactiveCountMax',2)}" oninput="setProb('proactiveCountMax',this.value)" style="width:100%">
-      </div>
-      <div style="font-size:11px;color:var(--hint);margin-top:8px">TA 会在间隔至少 30 分钟后主动联系你。TA 刚回复完、你刚发完消息或正在通话时不会插话，触发前显示“正在输入…”。</div>`:''}
-    </div>
-    <button class="btn-pill ghost" style="width:100%;margin-top:4px" onclick="resetProb()">恢复默认设置</button>`;
+    <button type="button" class="btn-pill ghost" style="width:100%;margin-top:4px" onclick="resetProb()">恢复默认</button>`;
 }
-/* setSurveySetting：v3.4.0 起「回复设置」页不再展示问卷卡片，
+
+/* 档位点击：调用 utils.js 已就绪的 setter 派生底层数值，再落库并刷新选中态 */
+function applyReplyPace(t){ setReplyPace(t); saveKey('prob'); renderProbability(); }
+function applyProactiveFreq(t){ setProactiveFreqTier(t); saveKey('prob'); renderProbability(); }
+function applyCardRatio(t){ setCardRatioTier(t); saveKey('prob'); renderProbability(); }
+
+/* setSurveySetting：v3.4.0 起本页不再展示问卷卡片，
    这里保留为「弹窗默认值的读写入口」——发送问卷/多选时用它取上次的默认数字。 */
 function setSurveySetting(key,v){
   state.surveySettings=state.surveySettings||{deadlineSec:60,earlySubmitProb:30,multiMin:1,multiMax:6};
@@ -85,32 +72,34 @@ function setSurveySetting(key,v){
   else if(key==='multiMax'){let n=Math.max(1,Math.min(10,parseInt(v)||6));if(n<state.surveySettings.multiMin)state.surveySettings.multiMin=n;state.surveySettings.multiMax=n;}
   saveKey('surveySettings');renderProbability();
 }
+
+/* 能力开关：只用于相处习惯的 0/1 开关行 */
 function setProb(key,val){
   if(probAdjusting)return;
-  const p=state.prob;
-  p[key]=parseInt(val);
-  if(key==='minCardsPerBubble'&&p.minCardsPerBubble>p.maxCardsPerBubble){p.maxCardsPerBubble=p.minCardsPerBubble;}
-  if(key==='maxCardsPerBubble'&&p.maxCardsPerBubble<p.minCardsPerBubble){p.minCardsPerBubble=Math.max(1,p.maxCardsPerBubble);}
-  if(key==='proactiveCountMin'&&p.proactiveCountMin>p.proactiveCountMax){p.proactiveCountMax=p.proactiveCountMin;}
-  if(key==='proactiveCountMax'&&p.proactiveCountMax<p.proactiveCountMin){p.proactiveCountMin=Math.max(1,p.proactiveCountMax);}
+  state.prob[key]=parseInt(val)?1:0;
   saveKey('prob');
-  if(['proactiveEnabled','proactiveMinIntervalMin','proactiveCountMin','proactiveCountMax'].includes(key)){
-    scheduleProactive();
-  }
+  if(key==='proactiveEnabled')scheduleProactive();
   renderProbability();
 }
+
 function updateProbHints(){}
+
 function resetProb(){
   state.prob={...state.prob,
     replyDelaySec:20,typingRatio:0.25,
     multiBubbleEnabled:true,multiBubbleProb:30,maxBubbles:3,
     cardConcatEnabled:true,cardConcatProb:35,minCardsPerBubble:1,maxCardsPerBubble:3,
     emojiReplyProb:15,pokeReplyProb:8,quoteReplyProb:20,giftReplyProb:5,
+    emojiCardProb:20,
     readIgnoreEnabled:false,repeatExclude:5,customRatio:90,
     proactiveEnabled:true,proactiveMinIntervalMin:30,
     proactiveCountMin:1,proactiveCountMax:2,
     momentProb:20
   };
+  // 复位三个关系语义档位，并通过 setter 派生对应底层数值
+  setReplyPace('natural');
+  setProactiveFreqTier('occasional');
+  setCardRatioTier('mine');
   state.surveySettings={deadlineSec:60,earlySubmitProb:30,multiMin:1,multiMax:6};
-  saveKey('prob');saveKey('surveySettings');renderProbability();scheduleProactive();showToast('已恢复默认设置');
+  saveKey('prob');saveKey('surveySettings');renderProbability();scheduleProactive();showToast('已恢复默认');
 }

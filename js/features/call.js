@@ -32,7 +32,8 @@ async function startLocalCamera(){
   const v=document.getElementById('cv-local'),ph=document.getElementById('cv-local-ph');
   if(!v||!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){showToast('当前环境不支持摄像头');return;}
   try{
-    if(!mediaStream)mediaStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'user'},audio:true});
+    // v3.7.0：「摄像头」按钮只取 video，不再顺带申请麦克风（麦克风由独立静音开关控制）
+    if(!mediaStream)mediaStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'user'},audio:false});
     else{const tr=mediaStream.getVideoTracks()[0];if(tr)tr.enabled=true;}
     v.srcObject=mediaStream;
     v.style.display='block';
@@ -111,9 +112,15 @@ function simulateIncomingCall(kind){
 const TA_CALL_COOLDOWN_MS=30*60000;
 function maybeTaCall(){
   if(state.callActive)return;
-  if(Date.now()<state.muteEndTime||Date.now()<state.taMuteMeEndTime)return;
+  // v3.7.0：内联双禁言统一为 taOutputBlocked()
+  if(taOutputBlocked())return;
+  // v3.7.0：深夜（23:00-07:00）不主动来电，避免打扰
+  const _h=new Date().getHours();
+  if(_h>=23||_h<7)return;
   const last=Number(state.stats.taCallLastAt)||0;
-  if(last&&Date.now()-last<TA_CALL_COOLDOWN_MS)return;
+  // v3.7.0：来电冷却乘主动频率缩放（rare 拉长 / frequent 缩短）
+  const cd=TA_CALL_COOLDOWN_MS*(proactiveGapScale?proactiveGapScale():1);
+  if(last&&Date.now()-last<cd)return;
   if(state.taCallCycleSkip){                           // v3.6.0 跳过层：本周期 TA 不打 → 重新进冷却（TA 医生、不粘人，需要时才会来）
     state.taCallCycleSkip=false;
     state.stats.taCallLastAt=Date.now();saveKey('stats');
@@ -299,8 +306,7 @@ function initCallFloat(){
     }
   });
 }
-/* 浮窗上的 × ：直接挂断 */
-function miniCallHangup(){endCall('hangup','me');}
+/* v3.7.0：删除未挂载的死函数 miniCallHangup（浮窗已无 × 按钮引用） */
 function toggleMute(){callMuted=!callMuted;if(mediaStream)mediaStream.getAudioTracks().forEach(t=>t.enabled=!callMuted);renderCallActions(callActionsHtml());}
 function toggleSpeaker(){callSpeaker=!callSpeaker;renderCallActions(callActionsHtml());}
 function endCall(reason,by){
@@ -326,6 +332,15 @@ function endCall(reason,by){
     const caller=callInitiator==='ta'?tn:'你';
     const hanger=by==='ta'?tn:'你';
     pushSys(`${caller}发起的${kind==='video'?'视频':'语音'}通话 ${dstr}，${hanger}挂断`);
+    // v3.7.0：接通的通话写入 callLogs（发起人/类型/时长/时间），落 stats 持久化，兑现「视频记录页」
+    try{
+      state.stats=state.stats||{};
+      state.stats.callLogs=Array.isArray(state.stats.callLogs)?state.stats.callLogs:[];
+      state.stats.callLogs.unshift({by:callInitiator||'me',kind:(kind==='video'?'video':'voice'),dur:dur,at:Date.now(),hangedBy:by||'me'});
+      if(state.stats.callLogs.length>60)state.stats.callLogs.length=60;
+      state.callLogs=state.stats.callLogs;   // 便捷引用，供记录页读取
+      if(typeof saveStats==='function')saveStats();
+    }catch(e){}
   }
   else if(reason==='miss-out')pushSys(`呼叫${tn}未接通`);
   else if(reason==='miss-in')pushSys(`${tn}的来电已超时`);

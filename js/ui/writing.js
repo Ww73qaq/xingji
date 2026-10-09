@@ -32,14 +32,14 @@ function renderWriting(){   // 拼写画板：18 个字母固定三行六列，�
     <div class="list-card" style="padding:12px">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:2px">
         <span style="font-size:13px;color:var(--text)">${esc(state.other.name)} 在拼写</span>
-        <span style="font-size:12px;color:var(--sub);cursor:pointer;display:flex;align-items:center;gap:3px" onclick="spellView='history';renderWriting()">&#9201; 记录</span>
+        <span style="font-size:12px;color:var(--sub);cursor:pointer;display:flex;align-items:center;gap:3px" onclick="spellView='history';renderWriting()">${ICO.book} 记录</span>
       </div>
       <div style="font-size:11px;color:var(--hint);margin-bottom:8px">${d.date}${d.completed?' · 已完成':''}</div>
       <div class="spell-book"><div class="spell-cell-row">${cells}</div></div>
       <div style="font-size:11px;color:var(--hint);margin-top:6px">${spellLetters.length} / ${SPELL_MAX} 个字母${spellLetters.length>=SPELL_MAX?' · 已满，可点 × 修改':' · 一排 6 个，共 3 排'}</div>
     </div>
     <div class="list-card" style="padding:10px 12px">
-      <div style="font-size:12px;color:var(--sub);margin-bottom:8px">点击字母，帮他拼写</div>
+      <div style="font-size:12px;color:var(--sub);margin-bottom:8px">陪他把今天的字母排一排，不是传讯</div>
       <div class="spell-keys">${ALPHABET.map(ch=>`<button class="spell-key" onclick="addSpellLetter('${ch}')">${ch}</button>`).join('')}</div>
       <div style="display:flex;gap:8px;margin-top:12px">
         <button class="btn-pill primary" style="flex:1" onclick="spellDone()">完成今天的拼写</button>
@@ -53,7 +53,7 @@ function renderSpellHistory(body){
     <div class="list-card" style="padding:12px">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
         <span style="font-size:13px;font-weight:600">拼写记录</span>
-        <span style="font-size:12px;color:var(--sub);cursor:pointer" onclick="spellView='board';renderWriting()">&#8592; 返回拼写</span>
+        <span style="font-size:12px;color:var(--sub);cursor:pointer" onclick="spellView='board';renderWriting()"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-1px"><path d="M15 5l-7 7 7 7"/></svg> 返回拼写</span>
       </div>
       ${h.length?h.map(r=>`<div class="fav-item"><span style="font-size:11px;color:var(--hint);flex-shrink:0">${esc(r.date)}</span><span style="flex:1;font-family:Georgia,serif;font-size:17px;letter-spacing:3px">${esc(r.letters.join('')||'—')}</span><span style="font-size:11px;color:${r.completed?'#27ae60':'var(--hint)'};flex-shrink:0">${r.completed?'已完成':'未完成'}</span></div>`).join(''):'<div class="empty" style="padding:20px 0">还没有拼写记录</div>'}
     </div>`;
@@ -78,5 +78,9 @@ function spellDone(){
   showToast('今天的拼写已记录');
   renderWriting();
   // 他拼写完成后，小概率在聊天里轻轻说一句（统一回复引擎的候选之一）
-  if(Math.random()<0.5)enqueueTaJob({type:'text',text:SPELL_PRAISES[Math.floor(Math.random()*SPELL_PRAISES.length)]});
+  // v3.7.0：静音/收起声音期间不触发 TA 台词（记录已先落盘，不丢数据）
+  if(Math.random()<0.5){
+    if(taOutputBlocked())return;
+    enqueueTaJob({type:'text',text:SPELL_PRAISES[Math.floor(Math.random()*SPELL_PRAISES.length)]});
+  }
 }

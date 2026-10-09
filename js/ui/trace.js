@@ -1,6 +1,6 @@
 /* =========================================================
    星迹 · 心念轨迹（桌面图标「迹」）
-   上半区：轨迹图卡（左右滑动）——意识距离 / 连接频率 / 双轨对比
+   上半区：轨迹图卡（左右滑动）——意识距离 / 这段日子 / 同频节奏
    下半区：竖向轨迹线——TA 与我的意识动作节点（时间倒序，TA 色/我色）
    ========================================================= */
 const TRACE_NODE_COLORS={ta:'#f0a485',me:'#54c0a6',sys:'#95a5a6'};
@@ -142,30 +142,33 @@ async function renderTrace(){
   // 图卡 1：意识距离
   const distCard=`<div class="tr-card">
     <div class="tr-card-title">意识距离</div>
-    <div class="tr-dist-main"><span class="tr-dist-icon">${lv.icon}</span><b>${lv.label}</b><em>${lv.desc}</em></div>
+    <div class="tr-dist-main"><b>${lv.label}</b><em>${lv.desc}</em></div>
     <div class="tr-dist-bar"><i style="width:${Math.round((1-dist)*100)}%"></i></div>
     <div class="tr-dist-sub">${esc(st)} · 方位：${esc(state.lastSenseDir||'附近')}</div>
   </div>`;
   // 图卡 2：连接频率（14 天）
-  const maxBar=Math.max(...freq.map(d=>d.bars));
   const freqCard=`<div class="tr-card">
-    <div class="tr-card-title">连接频率 · 近 14 天</div>
+    <div class="tr-card-title">这段日子 · 近 14 天</div>
     <div class="tr-freq">
       ${freq.map(d=>`<div class="tr-freq-col" title="${d.key} · ${d.cnt} 次"><span class="tr-freq-bars">${Array.from({length:d.bars},()=>'<i></i>').join('')}</span><span class="tr-freq-day">${d.key.slice(8)}</span></div>`).join('')}
     </div>
-    <div class="tr-dist-sub">格子越多 = 那天连接越频繁</div>
+    <div class="tr-dist-sub">这是你们这段日子的回响</div>
   </div>`;
-  // 图卡 3：双轨对比
-  const mkBar=(a,b)=>Math.round(a/Math.max(1,a+b)*100);
+  // 图卡 3：同频——v3.7.0 删去显式次数与并排比栏，改定性判断（不暴露「次」，避免攀比）
+  const tToday=dual.meToday+dual.taToday;
+  let qVerdict,qSub;
+  if(tToday===0){qVerdict='今天都很安静';qSub='各自在忙，频道一直开着';}
+  else if(tToday<=2){qVerdict='今天连得很近';qSub='话不多，但句句都接住了';}
+  else if(Math.abs(dual.meToday-dual.taToday)<=1){qVerdict='同频的节奏';qSub='你一句我一句，很自然';}
+  else{qVerdict='各有各的忙';qSub='安静是各自在忙，不是断了';}
   const dualCard=`<div class="tr-card">
-    <div class="tr-card-title">双轨对比 · 本周</div>
-    <div class="tr-dual">
-      <div class="tr-dual-row"><span style="color:${meC}">${esc(whoName.me)}</span><div class="tr-dual-track"><i style="width:${mkBar(dual.meWeek,dual.taWeek)}%;background:${meC}"></i></div><b>${dual.meWeek}</b></div>
-      <div class="tr-dual-row"><span style="color:${taC}">${esc(whoName.ta)}</span><div class="tr-dual-track"><i style="width:${mkBar(dual.taWeek,dual.meWeek)}%;background:${taC}"></i></div><b>${dual.taWeek}</b></div>
+    <div class="tr-card-title">同频 · 这段日子</div>
+    <div class="tr-dual-qual" style="display:flex;flex-direction:column;align-items:center;gap:6px;padding:14px 0">
+      <b style="font-size:16px">${qVerdict}</b>
+      <em style="font-style:normal;color:var(--hint);font-size:12px">${qSub}</em>
     </div>
-    <div class="tr-dist-sub">今天：${esc(whoName.me)} ${dual.meToday} 次 · ${esc(whoName.ta)} ${dual.taToday} 次</div>
   </div>`;
-  // v3.6.12 轨迹线：周视图 + 点线时间轴（左我蓝/右TA紫，按天查看，不含聊天内容）
+  // v3.6.12 轨迹线：周视图 + 点线时间轴（左我薄荷/右TA蜜桃，按天查看，不含聊天内容）
   const nodeHtml=(n)=>{
     const c=TRACE_NODE_COLORS[n.who]||TRACE_NODE_COLORS.sys;
     const t=new Date(n.time);
@@ -209,7 +212,7 @@ async function renderTrace(){
     <div class="tr-cards">
       ${distCard}${freqCard}${dualCard}
     </div>
-    <div class="tr-line-title">轨迹线 <span style="color:var(--hint);font-size:11px;font-weight:400">（左 ${esc(whoName.me)} 蓝 / 右 ${esc(whoName.ta)} 紫，按天查看，不含聊天内容）</span></div>
+    <div class="tr-line-title">轨迹线 <span style="color:var(--hint);font-size:11px;font-weight:400">（左 ${esc(whoName.me)} 薄荷 / 右 ${esc(whoName.ta)} 蜜桃，按天查看，不含聊天内容）</span></div>
     ${weekHtml}
     ${lineHtml}
   `;

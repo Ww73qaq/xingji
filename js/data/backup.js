@@ -145,10 +145,17 @@ async function importBackupText(){
     const sel=importMode==='overwrite'?[...importSel]:(importMode==='full'?STORES:Object.keys(stores));
     const dirty=sel.filter(s=>_storeHasPayload(stores[s]));
     if(!dirty.length){showToast('备份里没有可恢复的数据');return;}
-    showToast('正在恢复 '+dirty.length+' 类数据…');
-    for(const s of dirty)await _writeStoreData(s,stores[s],importMode);
-    if(dirty.includes('settings'))await loadSettings();
-    closeModal();showToast('恢复完成，正在刷新…');setTimeout(()=>location.reload(),700);
+    const doWrite=async()=>{
+      showToast('正在恢复 '+dirty.length+' 类数据…');
+      for(const s of dirty)await _writeStoreData(s,stores[s],importMode);
+      if(dirty.includes('settings'))await loadSettings();
+      closeModal();showToast('恢复完成，正在刷新…');setTimeout(()=>location.reload(),700);
+    };
+    if(importMode==='overwrite'||importMode==='full'){
+      appConfirm('覆盖导入','将用备份覆盖现有数据（<b>'+dirty.length+'</b> 个类别），此操作不可撤销。建议先导出当前备份。是否继续？',doWrite);
+    }else{
+      doWrite();
+    }
   }catch(e){showToast('备份文本无效或没有完整粘贴，请重新复制');}
 }
 function showImportOverwrite(){
@@ -172,13 +179,20 @@ function pickImportFile(mode){
       const sel=importMode==='overwrite'?[...importSel]:(importMode==='full'?STORES:Object.keys(stores));
       const dirty=sel.filter(s=>_storeHasPayload(stores[s]));
       if(!dirty.length){showToast('文件中没有所选类别的数据');return;}
-      showToast(`正在导入 ${dirty.length} 类…`);
-      for(const s of dirty){
-        await _writeStoreData(s,stores[s],importMode);
+      const doWrite=async()=>{
+        showToast(`正在导入 ${dirty.length} 类…`);
+        for(const s of dirty){
+          await _writeStoreData(s,stores[s],importMode);
+        }
+        if(dirty.includes('settings')){await loadSettings();}
+        showToast('导入完成');
+        setTimeout(()=>location.reload(),600);
+      };
+      if(importMode==='overwrite'||importMode==='full'){
+        appConfirm('覆盖导入','将用备份覆盖现有数据（<b>'+dirty.length+'</b> 个类别），此操作不可撤销。建议先导出当前备份。是否继续？',doWrite);
+      }else{
+        doWrite();
       }
-      if(dirty.includes('settings')){await loadSettings();}
-      showToast('导入完成');
-      setTimeout(()=>location.reload(),600);
     }catch(err){showToast('文件解析失败，请检查是否为导出的 JSON');}
   };
   input.click();

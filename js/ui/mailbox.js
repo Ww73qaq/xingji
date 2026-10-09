@@ -16,9 +16,9 @@ function renderWriteLetter(list){
 }
 function renderMailboxData(list){
   list.innerHTML=`<div class="cs-group" style="margin-top:6px">
-    <div class="cs-item" onclick="exportLetters()"><span class="cs-ico">&#128229;</span><span class="cs-label">导出信件数据</span><span class="cs-arrow">&#8250;</span></div>
-    <div class="cs-item" onclick="importLetters()"><span class="cs-ico">&#128228;</span><span class="cs-label">导入信件数据</span><span class="cs-arrow">&#8250;</span></div>
-    <div class="cs-item" style="color:#c0392b" onclick="clearLetters()"><span class="cs-ico">&#128465;</span><span class="cs-label">清空所有信件</span></div>
+    <div class="cs-item" onclick="exportLetters()"><span class="cs-ico">${ICO.mail}</span><span class="cs-label">导出信件数据</span><span class="cs-arrow">&#8250;</span></div>
+    <div class="cs-item" onclick="importLetters()"><span class="cs-ico">${ICO.mail}</span><span class="cs-label">导入信件数据</span><span class="cs-arrow">&#8250;</span></div>
+    <div class="cs-item" style="color:#c0392b" onclick="clearLetters()"><span class="cs-ico">${ICO_DEL}</span><span class="cs-label">清空所有信件</span></div>
   </div>
   <div style="font-size:11px;color:var(--hint);padding:14px 4px;line-height:1.8">信件数据仅保存在本机浏览器中，清除浏览器数据会丢失，请定期导出备份。</div>`;
 }
@@ -35,7 +35,7 @@ async function renderMailbox(){
     if(mailboxTab==='sent'&&l.sender!=='me')continue;
     const statusClass=l.status==='waiting'?'waiting':(l.sender==='other'&&!l.read)?'unread':(l.sender==='me'&&l.status==='replied')?'replied':'replied';
     const statusText=(l.sender==='me'&&l.status==='waiting')?'对方正在回信':(l.sender==='other'&&!l.read)?'新回信':(l.sender==='me')?'已回信':'已读';
-    list.innerHTML+=`<div class="letter-card" onclick="viewLetter(${l.id})"><div style="display:flex;align-items:center;gap:8px"><span class="letter-status ${statusClass}">${statusText}</span><span style="flex:1;font-size:11px;color:var(--hint)">${l.sender==='me'?'寄出':'收到'} · ${fmtTime(l.time)}</span><span style="cursor:pointer;font-size:15px;padding:2px 6px" onclick="event.stopPropagation();editLetter(${l.id})">&#9998;</span></div><div class="list-card-title" style="margin-top:6px">${l.sender==='me'?'寄出的信':'TA 的回信'}</div><div class="list-card-sub">${esc(l.content?.slice(0,60)||'')}${(l.content?.length||0)>60?'...':''}</div></div>`;
+    list.innerHTML+=`<div class="letter-card" onclick="viewLetter(${l.id})"><div style="display:flex;align-items:center;gap:8px"><span class="letter-status ${statusClass}">${statusText}</span><span style="flex:1;font-size:11px;color:var(--hint)">${l.sender==='me'?'寄出':'收到'} · ${fmtTime(l.time)}</span><span style="cursor:pointer;padding:4px 6px;color:var(--hint)" onclick="event.stopPropagation();editLetter(${l.id})">${ICO_EDIT}</span></div><div class="list-card-title" style="margin-top:6px">${l.sender==='me'?'寄出的信':'TA 的回信'}</div><div class="list-card-sub">${esc(l.content?.slice(0,60)||'')}${(l.content?.length||0)>60?'...':''}</div></div>`;
   }
   if(!list.innerHTML)list.innerHTML='<div class="empty">暂无信件</div>';
   updateTabBadge('chat',await countUnreadLetters());
