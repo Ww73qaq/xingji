@@ -190,6 +190,32 @@ function goToNotif(nid){
 }
 function isHiddenMoment(id){return (state.stats.hiddenMoments||[]).indexOf(Number(id))>=0;}
 /* TA 回评队列处理：挂在 5 秒心跳上，到期写入评论 + 提醒 */
+/* ===== TA 主动发朋友圈（v3.6.12）：独立低概率调度 =====
+   规则（频率比主动来信略高：冷却 4~10 小时）：
+   1) 开关 momentsAllowPost!==0（沿用既有朋友圈开关）关闭 → 不写；
+   2) 冷却：距上次主动发圈 4~10 小时随机；
+   3) 禁言期间（TA 在整理意识 / TA 不想理你）→ 不写；
+   4) 到点后按 momentProb（默认 25%）概率发一条，文案从 TA_MOMENT_LINES 抽。 */
+const TA_MOMENT_GAP_MIN=4*3600000;
+const TA_MOMENT_GAP_MAX=10*3600000;
+async function maybeTaMoment(){
+  if(state.stats.momentsAllowPost===0)return;
+  const last=Number(state.stats.taMomentLastAt)||0;
+  if(last&&Date.now()-last<TA_MOMENT_GAP_MIN+Math.random()*(TA_MOMENT_GAP_MAX-TA_MOMENT_GAP_MIN))return;
+  if(Date.now()<state.muteEndTime||Date.now()<state.taMuteMeEndTime)return;
+  if(Math.random()<((state.prob.momentProb??25)/100))return taPostMoment();
+  return false;
+}
+async function taPostMoment(){
+  const line=TA_MOMENT_LINES[Math.floor(Math.random()*TA_MOMENT_LINES.length)];
+  const rec=await dbPut('moments',{owner:'other',name:state.other.name,content:line,time:Date.now(),likes:0,comments:[],read:false});
+  state.stats.taMomentLastAt=Date.now();
+  saveKey('stats');
+  if(typeof pushNotif==='function')pushNotif({type:'newMoment',from:state.other.name,text:'发布了新动态',momentId:rec});
+  notifySystem(`${state.other.name} 发了新动态`,line.slice(0,50),()=>switchTab('moments'));
+  if(state.currentApp==='moments')renderMoments();
+  return true;
+}
 function processMomentReplies(){
   const q=state.stats.momentReplyQueue||[];
   if(!q.length)return;

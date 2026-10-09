@@ -12,6 +12,49 @@ function _buildLetterReply(l){
   const lead=(tier==='relate'&&l.content)?'你写“'+String(l.content).replace(/\s+/g,' ').slice(0,24)+(String(l.content).length>24?'…':'')+'”，我收到了。\n\n':'';
   return lead+p1+'\n\n'+p2;
 }
+/* ===== TA 主动来信（v3.6.12）：独立低概率 · 字卡承载表达 =====
+   规则（参照 maybeTaWriteNote）：
+   1) 开关 state.stats.taLetterEnabled（默认开）关闭 → 不写；
+   2) 冷却：距上次主动来信 12~36 小时随机（一天/几天/一周一封都正常）；
+   3) 禁言期间（TA 在整理意识 / TA 不想理你）→ 不写（不强行传达，符合设定）；
+   4) 到点后 70% 概率写一封。
+   主动信内容：从字卡库随机挑 1~4 张字卡（承载想说的意思）＋ 一段意识收束。 */
+const TA_LETTER_GAP_MIN=12*3600000;
+const TA_LETTER_GAP_MAX=36*3600000;
+const TA_LETTER_PROB=70;
+function taLetterEnabled(){return (state.stats.taLetterEnabled===undefined)?true:!!state.stats.taLetterEnabled;}
+async function maybeTaLetter(){
+  if(!taLetterEnabled())return;
+  const last=Number(state.stats.taLetterLastAt)||0;
+  if(last&&Date.now()-last<TA_LETTER_GAP_MIN+Math.random()*(TA_LETTER_GAP_MAX-TA_LETTER_GAP_MIN))return;
+  if(Date.now()<state.muteEndTime||Date.now()<state.taMuteMeEndTime)return;
+  if(!_roll(TA_LETTER_PROB))return;
+  return taSendLetter();
+}
+async function taSendLetter(){
+  const cards=await dbGetAll('cards').catch(()=>[]);
+  const enabled=cards.filter(c=>c.enabled!==false);
+  const n=1+Math.floor(Math.random()*4);          // 1~4 张字卡（用多少张由 TA 的「此刻想说的量」决定）
+  const picks=[];const pool=enabled.slice();
+  for(let i=0;i<n&&pool.length;i++){const t=pool.splice(Math.floor(Math.random()*pool.length),1)[0].text||'';if(t)picks.push(t);}
+  const lead=TA_LETTER_LEADS[Math.floor(Math.random()*TA_LETTER_LEADS.length)];
+  const tail=TA_LETTER_TAILS[Math.floor(Math.random()*TA_LETTER_TAILS.length)];
+  let content=(lead||'')+'\n\n';
+  if(picks.length)content+=picks.join('\n')+'\n\n';
+  content+=tail;
+  const rec=await dbPut('letters',{sender:'other',title:'',content,time:Date.now(),status:'received',read:false});
+  state.stats.taLetterLastAt=Date.now();
+  saveKey('stats');
+  updateTabBadge('chat',await countUnreadLetters());
+  if(typeof pushNotif==='function')pushNotif({type:'letter',from:state.other.name,text:'写了一封信给你',letterId:rec});
+  notifySystem(`${state.other.name} 写信给你`,content.slice(0,50),()=>openApp('mailbox'));
+  if(navStack.length||document.getElementById('app-pages').classList.contains('on')){
+    pushSys(state.other.name+' 给你写了一封信');
+  }
+  showToast(`${state.other.name} 给你写了一封信`);
+  return true;
+}
+
 async function processPendingReplies(){
   const now=Date.now();
   const letters=await dbGetAll('letters');

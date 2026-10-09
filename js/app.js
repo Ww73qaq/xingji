@@ -90,6 +90,8 @@ function startHeartbeat(){
     if(_tick%120===0){ renderHomeTraceWidget(); }        // v3.7.5.1：桌面轨迹组件 2 分钟低频刷新
     if(_tick%300===0){
       maybeTaWriteNote();            // TA 低频写便签（约 90~160 分钟一次机会，内部概率 30%）
+      if(typeof maybeTaLetter==='function')maybeTaLetter();   // v3.6.12 TA 主动来信（冷却 12~36h，字卡承载）
+      if(typeof maybeTaMoment==='function')maybeTaMoment();   // v3.6.12 TA 主动发朋友圈（冷却 4~10h，频率略高）
     }
     if(_tick%15===0){
       processPendingReplies().then(n=>{if(n&&navStack[navStack.length-1]==='mailbox')renderMailbox();refreshAllBadges();});
