@@ -19,9 +19,9 @@ function initChatEvents(){
   });
 }
 
-/* 状态栏时钟（主心跳每秒调用） */
+/* 状态栏时钟（主心跳每秒调用）：顶部左侧「我的时间」固定显示北京时间（UTC+8，用户手机时间） */
 function updateStatusClock(){
-  const now=new Date();
+  const now=new Date(Date.now()+(480+new Date().getTimezoneOffset())*60000);   // 任意设备时区 → 换算北京时间
   const t=String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0');
   const st=document.getElementById('status-time');if(st)st.textContent=t;
   const ct=document.getElementById('chat-status-time');if(ct)ct.textContent=t;
