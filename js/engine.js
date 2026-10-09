@@ -271,7 +271,7 @@ async function buildReply(context){
   }
 
   /* v3.6.8：TA 记得——12% 概率前置一条「引用」气泡（最近礼物/便签/话题/心情/感应/待办/信/朋友圈） */
-  if(_roll(12)){
+  if(_roll(12)&&Date.now()>=state.muteEndTime&&Date.now()>=state.taMuteMeEndTime){   // v3.6.14 禁言/收起声音时不前置记忆气泡（避免一边锁门一边安慰）
     try{
       const quote=await makeTaQuote();
       if(quote)bubbles.unshift({type:'text',content:quote,cardIds:[],intent:'quote',proactive:context.source==='proactive'});
@@ -449,6 +449,11 @@ async function executeReply(job){
     }
   }
 
+  // v3.6.14：生成后、发送前二次门控——若此刻禁言/TA收起声音已开始，整条放弃（含「TA记得」记忆气泡），不落库任何内容
+  if(Date.now()<state.muteEndTime||Date.now()<state.taMuteMeEndTime){
+    _scheduler.activeJob=null;
+    return;
+  }
   // 逐条发送（自然间隔 800~2400ms）
   let lastSent=null;
   for(let i=0;i<totalBubbles.length;i++){

@@ -434,7 +434,7 @@ function jumpToMsg(id,ev){
 /* ---- 发送 ---- */
 /* ---- 统一消息发送入口：文字/图片/语音/emoji/表情包/字卡/礼物/单选/多选/问卷 ---- */
 async function sendMessageObject(message){
-  if(Date.now()<state.taMuteMeEndTime){showToast('对方暂时不想理你，等 TA 缓一缓');return null;}
+  if(Date.now()<state.taMuteMeEndTime){showToast('TA 正在安静，等 TA 缓一缓');return null;}
   message.sender='me';message.time=message.time||Date.now();message.read=false;message.state='sending';
   if(typeof touchInteract==='function')touchInteract();   // v3.6.0：我方发消息 → 连接频率上升
   if(quoteTarget&&!message.quote){message.quote=quoteTarget;quoteTarget=null;document.getElementById('quote-input').classList.remove('show');}
@@ -460,7 +460,7 @@ async function sendMessageObject(message){
 async function sendMsgObj(obj,noReply){obj.noReply=noReply;return sendMessageObject(obj);}
 function sendMessage(){
   if(Date.now()<state.muteEndTime){showToast('对方已被禁言');return;}
-  if(Date.now()<state.taMuteMeEndTime){showToast('对方暂时不想理你，等 TA 缓一缓');return;}
+  if(Date.now()<state.taMuteMeEndTime){showToast('TA 正在安静，等 TA 缓一缓');return;}
   const input=document.getElementById('chat-input');const text=input.value.trim();if(!text)return;
   input.value='';autoGrow(input);
   syncInputBar();
@@ -502,7 +502,7 @@ function updateChatSubtitle(){
   // 唯一状态来源：在线 / 正在输入…（含 waiting+typing 全程） / 被禁言 / 通话中
   if(state.callActive){sub.textContent='通话中';}
   else if(Date.now()<state.muteEndTime){sub.textContent='被禁言';}
-  else if(Date.now()<state.taMuteMeEndTime){sub.textContent='对方暂时不想理你';}
+  else if(Date.now()<state.taMuteMeEndTime){sub.textContent='TA 正在安静';}
   else if(j&&(j.status==='waiting'||j.status==='typing'||j.status==='sending')){sub.textContent='正在输入…';}
   else{sub.textContent='在线';}
   /* 继续按钮：有进行中的任务时隐藏；无任务且已有过回复轮次时显示 */
@@ -939,7 +939,7 @@ function maybeTaMuteMe(){
     }
     state.taMuteCycleSkip=Math.random()<0.6;           // v3.6.0：下一周期 60% 跳过（TA 低频、不粘人）
     saveKey('taMuteMeEndTime');saveKey('taMuteCycleSkip');
-    pushSys('对方暂时不想理你…（'+state.taMuteReason+'）');
+    pushSys('对方暂时把声音收起来了…（'+state.taMuteReason+'）');
     showTaMuteBanner();
     updateChatSubtitle();
   }
@@ -952,7 +952,7 @@ function showTaMuteBanner(){
     const remain=Math.ceil((state.taMuteMeEndTime-Date.now())/1000);
     if(remain<=0){
       b.classList.remove('show');
-      if(state.taMuteReqAt){state.taMuteReqAt=0;saveKey('taMuteMeEndTime');pushSys('对方愿意理你了，禁言解除');}
+      if(state.taMuteReqAt){state.taMuteReqAt=0;saveKey('taMuteMeEndTime');pushSys('对方缓过来了，频道重新接通');}
       syncInputDisabled();
       updateChatSubtitle();
       return;
@@ -961,7 +961,7 @@ function showTaMuteBanner(){
     const act=document.getElementById('ta-mute-actions');
     // v3.5.1：验证码式 60 秒冷却——申请后按钮进入动态倒计时，归零才能再次申请
     const cool=Math.ceil(60-(Date.now()-(state.taMuteReqCoolAt||0))/1000);
-    txt.innerHTML=`对方暂时不想理你（${esc(state.taMuteReason||'TA 需要一点空间')}），剩余 <b>${remain}</b> 秒`;
+    txt.innerHTML=`${esc(state.taMuteReason||'TA 想安静一会儿')}，缓过来 TA 会主动找你`;   // v3.6.14 去掉精确秒数倒计时，减少焦虑
     if(cool>0){
       act.innerHTML=`<span class="mute-mini" style="opacity:.45;pointer-events:none">${cool} 秒后可再次申请</span>`;
     }else{
