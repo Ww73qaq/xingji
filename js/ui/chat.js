@@ -786,7 +786,7 @@ function sendGift(){
 }
 function doSendGift(name,icon){
   sendMessageObject({type:'gift',content:name,sub:icon||'🎁'});
-  showToast('礼物已送出');
+  showToast('你的心意已送达');
 }
 let _cgImg='';
 function addCustomGift(){

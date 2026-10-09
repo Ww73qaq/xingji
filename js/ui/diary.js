@@ -21,7 +21,9 @@ async function renderDiary(){
   if(diaryTab==='mine'){
     if(!mine.length){list.innerHTML='<div class="empty" style="padding:24px 0">还没有日记<br>写下第一篇吧</div>';}
     else for(const d of mine){
-      list.innerHTML+=`<div class="diary-entry locked"><div class="d-head"><span class="d-owner">${esc(state.me.name)}</span><span class="d-time">${fmtDiaryFull(d.time)}</span></div>
+      list.innerHTML+=`<div class="diary-entry locked"><div class="d-head"><span class="d-owner">${esc(state.me.name)}</span><span class="d-time">${fmtDiaryFull(d.time)}</span>
+        ${d.taAccess?'':'<span class="d-lock">&#128274; '+esc(state.other.name||'TA')+' 尚未解锁</span>'}
+        </div>
         <div class="d-text">${esc(d.content)}</div>
         ${d.taReply?`<div style="font-size:12px;color:var(--sub);margin-top:6px;border-top:1px dashed var(--input);padding-top:6px">${esc(state.other.name)}：「${esc(d.taReply)}」</div>`:''}
         <div class="d-btns"><span onclick="editDiary(${d.id})" title="编辑">${ICO_EDIT}</span><span style="color:#c0392b" onclick="delDiary(${d.id})" title="删除">${ICO_DEL}</span></div></div>`;
@@ -31,22 +33,40 @@ async function renderDiary(){
     if(!others.length){list.innerHTML='<div class="empty" style="padding:24px 0">TA 还没有写日记</div>';}
     else for(const d of others){
       const g=(state.stats.diaryGrants||{})[d.id];
+      const denied=(state.taDiaryDenied||{})[d.id];
       if(g){
         list.innerHTML+=`<div class="diary-entry"><div class="d-head"><span class="d-owner">${esc(state.other.name)}</span><span class="d-time">${fmtDiaryFull(d.time)}</span></div><div class="d-text">${esc(d.content)}</div></div>`;
+      }else if(denied){
+        list.innerHTML+=`<div class="diary-blur-wrap"><div class="diary-blur diary-entry" style="margin:0;filter:blur(5px);opacity:.45"><div class="d-head"><span class="d-owner">${esc(state.other.name)}</span><span class="d-time">${fmtDiaryFull(d.time)}</span></div><div class="d-text">${esc(d.content)}</div></div><div class="diary-lock-overlay"><div style="font-size:13px;color:var(--sub);margin-bottom:8px;padding:0 10px;text-align:center">这一篇，TA 暂时不想让人看<br>过段时间再试试</div></div></div>`;
       }else{
-        list.innerHTML+=`<div class="diary-blur-wrap"><div class="diary-blur diary-entry" style="margin:0"><div class="d-head"><span class="d-owner">${esc(state.other.name)}</span><span class="d-time">${fmtDiaryFull(d.time)}</span></div><div class="d-text">${esc(d.content)}</div></div><div class="diary-lock-overlay"><div style="font-size:13px;color:var(--sub);margin-bottom:8px;padding:0 10px;text-align:center">TA 的日记已加密模糊<br>申请后可查看这一篇</div><button class="btn-pill primary" onclick="requestDiaryAccess(${d.id})">申请查看</button></div></div>`;
+        list.innerHTML+=`<div class="diary-blur-wrap"><div class="diary-blur diary-entry" style="margin:0"><div class="d-head"><span class="d-owner">${esc(state.other.name)}</span><span class="d-time">${fmtDiaryFull(d.time)}</span></div><div class="d-text">${esc(d.content)}</div></div><div class="diary-lock-overlay"><div style="font-size:13px;color:var(--sub);margin-bottom:8px;padding:0 10px;text-align:center">TA 的日记已加密模糊<br>申请后可查看这一篇</div><button class="btn-pill primary" onclick="requestDiaryAccess(${d.id},this)">申请查看</button></div></div>`;
       }
     }
   }
   updateTabBadge('moments',0);
   refreshAllBadges();
 }
-function requestDiaryAccess(id){
-  state.stats.diaryGrants=state.stats.diaryGrants||{};
-  state.stats.diaryGrants[id]=Date.now();
-  saveKey('stats');
-  showToast(state.other.name+' 同意你查看这篇日记');
-  renderDiary();
+/* v3.6.8：我申请看 TA 的日记——TA 考虑 30~60 秒后同意（8% 概率拒绝，拒绝后该篇长冷却） */
+function requestDiaryAccess(id,btn){
+  if((state.taDiaryDenied||{})[id]){showToast('这一篇 TA 暂时不想让人看，过段时间再试试');return;}
+  if(btn){btn.disabled=true;btn.textContent='TA 正在考虑…';}
+  showToast('TA 正在考虑…');
+  const delay=30000+Math.random()*30000;   // 30~60 秒
+  setTimeout(()=>{
+    if(Math.random()<0.08){
+      state.taDiaryDenied=state.taDiaryDenied||{};
+      state.taDiaryDenied[id]=Date.now();
+      saveKey('taDiaryDenied');
+      showToast('这一篇，TA 暂时不想让人看');
+      renderDiary();
+    }else{
+      state.stats.diaryGrants=state.stats.diaryGrants||{};
+      state.stats.diaryGrants[id]=Date.now();
+      saveKey('stats');
+      showToast(state.other.name+' 同意你查看这篇日记');
+      renderDiary();
+    }
+  },delay);
 }
 function openWriteDiary(){
   showModal('写日记',`<textarea class="textarea-full diary-paper" id="diary-content" placeholder="写下今天的心情..."></textarea>
@@ -56,19 +76,46 @@ function openWriteDiary(){
 async function saveDiary(){
   const content=document.getElementById('diary-content').value.trim();
   if(!content){showToast('内容不能为空');return;}
-  const rec=await dbPut('diaries',{owner:'me',subtype:'record',content,time:Date.now()});
+  const rec=await dbPut('diaries',{owner:'me',subtype:'record',content,time:Date.now(),taAccess:0});
   closeModal();showToast('日记已保存（'+fmtDiaryFull(Date.now())+'）');
   if(state.currentApp==='diary')renderDiary();
-  if(Math.random()<0.78){
-    const reply=TA_DIARY_REPLIES[Math.floor(Math.random()*TA_DIARY_REPLIES.length)];
-    setTimeout(async()=>{
-      const row=await dbGet('diaries',rec);
-      if(row){row.taReply=reply;await dbPut('diaries',row);}
+  /* v3.6.8：TA 不再自动读日记——45% 概率发起申请，同意后才读+回复；拒绝冷却 2h；30 分钟未答复自动同意 */
+  maybeTaRequestDiary(rec);
+}
+/* TA 申请看我的日记 */
+function maybeTaRequestDiary(recId){
+  if(Date.now()<(state.myDiaryReqCoolAt||0))return;
+  if(Math.random()>0.45)return;
+  state.myDiaryReqCoolAt=Date.now()+200000+Math.random()*600000;   // 申请后 3~13 分钟冷却
+  saveKey('myDiaryReqCoolAt');
+  showModal((state.other.name||'TA')+' 想看看你的日记',
+    `<div style="font-size:13px;line-height:1.9">TA 在意识空间里感应到你今天写了日记，想读一读。<br><span style="color:var(--hint);font-size:12px">30 分钟未答复将自动同意。</span></div>`,
+    '<div class="modal-btn-row"><button class="modal-btn" onclick="closeModal();taDiaryDecide('+recId+',0)">拒绝</button><button class="modal-btn primary" onclick="closeModal();taDiaryDecide('+recId+',1)">同意</button></div>');
+  setTimeout(()=>taDiaryAutoGrant(recId),30*60000);   // 30 分钟自动同意
+}
+async function taDiaryDecide(id,ok){
+  if(!ok){state.myDiaryReqCoolAt=Date.now()+2*3600000;saveKey('myDiaryReqCoolAt');showToast('TA 收回了目光');return;}
+  await grantTaDiary(id);
+}
+async function grantTaDiary(id){
+  const d=await dbGet('diaries',id);if(!d||d.owner!=='me')return;
+  if(d.taAccess)return;
+  d.taAccess=1;await dbPut('diaries',d);
+  showToast('TA 读到了你的日记');
+  setTimeout(async()=>{
+    const row=await dbGet('diaries',id);
+    if(row&&row.taAccess&&!row.taReply){
+      const reply=TA_DIARY_REPLIES[Math.floor(Math.random()*TA_DIARY_REPLIES.length)];
+      row.taReply=reply;await dbPut('diaries',row);
       pushSys(state.other.name+' 读到了你的日记');
       pushReply(reply);
       if(state.currentApp==='diary')renderDiary();
-    },5000+Math.random()*12000);
-  }
+    }
+  },5000+Math.random()*12000);
+}
+async function taDiaryAutoGrant(id){
+  const d=await dbGet('diaries',id);if(!d)return;
+  if(!d.taAccess)await grantTaDiary(id);
 }
 async function editDiary(id){
   const diaries=await dbGetAll('diaries');const d=diaries.find(x=>x.id===id);if(!d||d.owner!=='me')return;

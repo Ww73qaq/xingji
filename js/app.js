@@ -57,6 +57,7 @@ function startHeartbeat(){
       maybeTaMuteMe();
       if(typeof maybeTaStatusChange==='function')maybeTaStatusChange();
       if(typeof maybeTaCall==='function')maybeTaCall();
+      if(typeof maybeTaSense==='function')maybeTaSense();       // v3.6.8 TA 主动感应
       if(typeof calMaybeSnap==='function')calMaybeSnap();   // v3.6.4 日历：跨天自动存档当天便签
       const badge=document.getElementById('mom-notif-badge');
       if(badge)badge.style.display=notifUnreadCount()>0?'block':'none';

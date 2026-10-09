@@ -753,6 +753,7 @@ body{-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;letter
 .cal-dots{display:flex;justify-content:center;gap:3px;align-items:center;min-height:6px}
 .cal-dot{display:inline-block;width:6px;height:6px;border-radius:50%}
 .cal-dot.todo{background:#8a9bb5}
+.cal-dot.tasched{background:#9b59b6}
 .cal-legend{display:flex;align-items:center;gap:14px;font-size:11px;color:var(--sub);padding:10px 4px 4px;flex-wrap:wrap}
 .cal-legend i{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:4px}
 .cal-daylist{display:flex;flex-direction:column;gap:8px;padding:4px 0 8px}
@@ -783,3 +784,41 @@ body{-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;letter
 /* v3.6.6 经期设置弹窗 */
 .pset-chip{display:inline-block;padding:6px 12px;border-radius:14px;background:var(--input);border:1px solid transparent;color:var(--text);font-size:12px;cursor:pointer}
 .pset-chip.on{background:rgba(226,96,96,.16);border-color:#e06060;color:#e06060}
+
+/* ===== TRACE（心念轨迹）v3.6.8 ===== */
+.tr-cards{display:flex;gap:10px;overflow-x:auto;padding:12px 4px 4px;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+.tr-cards::-webkit-scrollbar{display:none}
+.tr-card{flex:0 0 78%;scroll-snap-align:start;background:var(--input);border-radius:14px;padding:14px;box-sizing:border-box}
+.tr-card-title{font-size:13px;font-weight:600;color:var(--text);margin-bottom:10px}
+.tr-dist-main{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.tr-dist-icon{font-size:26px}
+.tr-dist-main b{font-size:15px;color:var(--text)}
+.tr-dist-main em{font-size:11px;color:var(--hint);font-style:normal}
+.tr-dist-bar{height:6px;border-radius:3px;background:rgba(0,0,0,.08);overflow:hidden;margin-bottom:8px}
+.tr-dist-bar i{display:block;height:100%;border-radius:3px;background:linear-gradient(90deg,#9b59b6,#4a7dcf)}
+.tr-dist-sub{font-size:11px;color:var(--hint)}
+.tr-freq{display:flex;gap:4px;align-items:flex-end;height:64px;overflow-x:auto;scrollbar-width:none}
+.tr-freq::-webkit-scrollbar{display:none}
+.tr-freq-col{flex:1 0 12px;display:flex;flex-direction:column;align-items:center;gap:3px}
+.tr-freq-bars{display:flex;flex-direction:column-reverse;gap:2px;height:52px;align-items:center}
+.tr-freq-bars i{width:8px;height:8px;border-radius:2px;background:#8a9bb5}
+.tr-freq-day{font-size:8.5px;color:var(--hint)}
+.tr-dual{display:flex;flex-direction:column;gap:10px;margin:4px 0 8px}
+.tr-dual-row{display:flex;align-items:center;gap:8px;font-size:12px}
+.tr-dual-row span{flex:0 0 48px;color:var(--text)}
+.tr-dual-track{flex:1;height:10px;border-radius:5px;background:rgba(0,0,0,.06);overflow:hidden}
+.tr-dual-track i{display:block;height:100%;border-radius:5px}
+.tr-dual-row b{flex:0 0 30px;text-align:right;color:var(--text)}
+.tr-line-title{font-size:13px;font-weight:600;color:var(--text);padding:14px 6px 6px}
+.tr-line{display:flex;flex-direction:column;gap:0;padding:0 6px 16px;position:relative}
+.tr-line::before{content:'';position:absolute;left:21px;top:8px;bottom:8px;width:2px;background:rgba(0,0,0,.07)}
+.tr-node{display:flex;gap:12px;padding:8px 2px;position:relative;align-items:flex-start}
+.tr-node-dot{flex:0 0 30px;width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;color:#fff;z-index:1}
+.tr-node-main{flex:1;min-width:0;background:var(--input);border-radius:10px;padding:8px 10px}
+.tr-node-head{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.tr-node-head b{font-size:12.5px}
+.tr-node-time{font-size:10.5px;color:var(--hint);flex-shrink:0}
+.tr-node-text{font-size:12.5px;color:var(--text);margin-top:3px;word-break:break-word}
+
+/* v3.6.8：日记「TA 尚未解锁」标记 */
+.d-lock{font-size:10.5px;color:var(--hint);border:1px solid var(--input);border-radius:6px;padding:1px 6px;margin-left:6px;font-weight:400}

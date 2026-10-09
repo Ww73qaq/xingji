@@ -92,6 +92,7 @@ async function renderCalendar(){
   if(!body)return;
   try{await dbReady;}catch(e){}                 // 等 IndexedDB 就绪再渲染（避免异步静默失败）
   await calMaybeSnap();
+  await ensureTaSchedule();                      // v3.6.8：TA 排班自动补
   const all=await dbGetAll('calendar');
   const byDate={};
   all.forEach(x=>{if(x&&x.date)(byDate[x.date]=byDate[x.date]||[]).push(x);});
@@ -116,6 +117,7 @@ async function renderCalendar(){
     const myMood=calMoodEmoji((items.find(x=>x.who==='me')||{}).mood);
     const taMood=calMoodEmoji((items.find(x=>x.who==='ta')||{}).mood);
     const todos=items.filter(x=>x.type==='todo'&&!x.done);
+    const tasched=items.filter(x=>x.type==='ta_sched');
     // v3.6.6：经期/排卵期 = 周期设置计算（无设置时兼容旧单天记录）
     const pset=byDate._periodSet;
     const pInfo=pset?calPeriodInfo(key,pset):{inPeriod:0,ovu:false};
@@ -133,6 +135,7 @@ async function renderCalendar(){
       </span>
       <span class="cal-dots">
         ${todos.length?`<i class="cal-dot todo" title="${todos.length} 项待办"></i>`:''}
+        ${tasched.length?`<i class="cal-dot tasched" title="${esc(tasched[0].text)}"></i>`:''}
         ${pdot?`<i class="cal-dot period" style="background:${pdot}" title="${pTitle}"></i>`:''}
       </span>
     </span>`;
@@ -149,13 +152,14 @@ async function renderCalendar(){
       <span><i style="background:var(--c-purple)"></i>我心情</span>
       <span><i style="background:var(--c-green)"></i>${esc(state.other.name||'TA')}心情</span>
       <span><i style="background:#8a9bb5"></i>待办</span>
+      <span><i style="background:${TA_SCHEDULE_COLOR}"></i>${esc(state.other.name||'TA')}日程</span>
       <span><i style="background:#f2a8c4"></i>经期·少</span>
       <span><i style="background:#e6c24a"></i>经期·中</span>
       <span><i style="background:#e06060"></i>经期·多</span>
       <span><i style="background:${CAL_OVU_C}"></i>排卵期</span>
     </div>
     <div class="empty" style="font-size:12px;line-height:1.9;text-align:left;padding:14px 6px">
-      点任意日期可查看当天的便签、待办与经期记录。桌面的两张便签会在每天 0 点后自动记录到这里。${state.calLastSnapDate?`<br><span style="color:var(--hint)">最近一次存档：${state.calLastSnapDate.replace(/-/g,'/')}</span>`:''}
+      点任意日期可查看当天的便签、待办、${esc(state.other.name||'TA')}日程与经期记录。桌面的两张便签会在每天 0 点后自动记录到这里。${state.calLastSnapDate?`<br><span style="color:var(--hint)">最近一次存档：${state.calLastSnapDate.replace(/-/g,'/')}</span>`:''}
     </div>`;
 }
 
@@ -166,6 +170,7 @@ function renderCalendarDay(body,items,pset){
   const whoColor={me:'var(--c-purple)',ta:'var(--c-green)'};
   const notes=items.filter(x=>!x.type||x.type==='note').sort((a,b)=>(a.at||0)-(b.at||0));
   const todos=items.filter(x=>x.type==='todo').sort((a,b)=>((a.done||0)-(b.done||0))||((a.at||0)-(b.at||0)));
+  const tasched=items.filter(x=>x.type==='ta_sched').sort((a,b)=>(a.at||0)-(b.at||0));
   const pInfo=pset?calPeriodInfo(calDaySel,pset):{inPeriod:0,ovu:false};
   const oldPeriod=items.find(x=>x.type==='period');
   const dayLevel=pInfo.inPeriod?pInfo.level:(oldPeriod?(oldPeriod.level||1):0);
@@ -180,8 +185,18 @@ function renderCalendarDay(body,items,pset){
     </div>
     <div class="cal-ops">
       <button class="cal-op-btn" onclick="calAddTodo('${calDaySel}')">＋ 待办</button>
+      <button class="cal-op-btn" onclick="calAddTaSched('${calDaySel}')">＋ ${esc(state.other.name||'TA')}日程</button>
       <button class="cal-op-btn" onclick="calSetPeriod('${calDaySel}')">${pset?'✎ 经期设置':'＋ 经期设置'}</button>
       ${dayTag?`<span class="cal-op-tag" style="color:${plv?plv.c:CAL_OVU_C};border-color:${plv?plv.c:CAL_OVU_C}">${dayTag}</span>`:''}
+    </div>
+    <div class="cal-section-title" style="color:${TA_SCHEDULE_COLOR}">${esc(state.other.name||'TA')}日程 <span style="color:var(--hint);font-size:11px;font-weight:400">（TA 的排班，可增删）</span></div>
+    <div class="cal-todolist">
+      ${tasched.length?tasched.map(it=>`
+        <div class="cal-todo-item" style="border-left:3px solid ${TA_SCHEDULE_COLOR}">
+          <span class="cal-todo-text" style="font-size:13px;color:${TA_SCHEDULE_COLOR}">${esc(it.text)}</span>
+          <span class="cal-todo-del" onclick="calDelTaSched(${it.id})">&#10005;</span>
+        </div>`).join('')
+      :'<div class="empty" style="padding:12px 0">这一天还没有排班，点上方「＋ '+esc(state.other.name||'TA')+'日程」手动添加，或等 TA 自己排上</div>'}
     </div>
     <div class="cal-section-title">便签</div>
     <div class="cal-daylist">
@@ -207,6 +222,26 @@ function renderCalendarDay(body,items,pset){
         </div>`).join('')
       :'<div class="empty" style="padding:12px 0">还没有待办，点上方「＋ 待办」添加</div>'}
     </div>`;
+}
+
+/* v3.6.8：TA 日历——医生排班模板自动排未来 3 天（每天 1~2 条，已有则跳过），心跳/渲染时调用 */
+async function ensureTaSchedule(){
+  try{await dbReady;}catch(e){}
+  const all=await dbGetAll('calendar');
+  for(let i=1;i<=3;i++){
+    const key=calDateKey(new Date(Date.now()+i*86400000));
+    if(all.some(x=>x.date===key&&x.type==='ta_sched'))continue;
+    if(Math.random()<0.85){
+      const n=1+Math.floor(Math.random()*2);
+      const pool=[...TA_SCHEDULE_TEMPLATE];
+      for(let k=0;k<n;k++){
+        if(!pool.length)break;
+        const idx=Math.floor(Math.random()*pool.length);
+        const text=pool.splice(idx,1)[0];
+        await dbPut('calendar',{date:key,type:'ta_sched',text,at:Date.now()+k});
+      }
+    }
+  }
 }
 
 /* ---------- 待办：增删改（v3.6.7 支持批量：一行一件） ---------- */
@@ -245,6 +280,27 @@ function calEditTodo(id){
 }
 function calDelTodo(id){
   appConfirm('删除待办','确定删除这条待办吗？',async()=>{
+    await dbDelete('calendar',id);renderCalendar();
+  });
+}
+/* v3.6.8：TA 日程 手动增删 */
+function calAddTaSched(date){
+  showModal('添加 TA 日程',
+    `<div style="font-size:12px;color:var(--hint);margin-bottom:4px">为 ${esc(state.other.name||'TA')} 安排一条日程</div>
+     <input class="textarea-full" id="ta-sched-input" style="min-height:0;padding:9px 10px" placeholder="如：上午 · 门诊" list="ta-sched-list">
+     <datalist id="ta-sched-list">${TA_SCHEDULE_TEMPLATE.map(t=>`<option value="${esc(t)}">`).join('')}</datalist>`,
+    '<div class="modal-btn-row"><button class="modal-btn" onclick="closeModal()">取消</button><button class="modal-btn primary" onclick="calAddTaSchedOk(\''+date+'\')">确定</button></div>');
+  setTimeout(()=>{const i=document.getElementById('ta-sched-input');if(i)i.focus();},80);
+}
+function calAddTaSchedOk(date){
+  const v=(document.getElementById('ta-sched-input')||{}).value||'';
+  if(!v.trim()){showToast('请填写日程内容');return;}
+  closeModal();
+  dbPut('calendar',{date,type:'ta_sched',text:v.trim(),at:Date.now()}).then(()=>renderCalendar());
+  showToast('已添加');
+}
+function calDelTaSched(id){
+  appConfirm('删除日程','确定删除这条 TA 日程吗？',async()=>{
     await dbDelete('calendar',id);renderCalendar();
   });
 }

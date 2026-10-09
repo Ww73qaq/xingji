@@ -82,7 +82,7 @@ function enterPage(id){
     probability:renderProbability,
     cards:renderCards, emoji:renderEmojis, memory:renderMemory,
     sense:initRoom, writing:renderWriting, calendar:renderCalendar,
-    profile:renderProfile, data:renderDataPage
+    trace:renderTrace, profile:renderProfile, data:renderDataPage
   };
   if(render[id])try{render[id]();}catch(e){console.error(e);}
 }

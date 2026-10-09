@@ -270,7 +270,57 @@ async function buildReply(context){
     extraInteractions++;
   }
 
+  /* v3.6.8：TA 记得——12% 概率前置一条「引用」气泡（最近礼物/便签/话题/心情/感应/待办/信/朋友圈） */
+  if(_roll(12)){
+    try{
+      const quote=await makeTaQuote();
+      if(quote)bubbles.unshift({type:'text',content:quote,cardIds:[],intent:'quote',proactive:context.source==='proactive'});
+    }catch(e){}
+  }
+
   return {bubbles,usage,intent};
+}
+
+/* v3.6.8：TA 记得——从最近互动里随机抽一条记忆，拼成「TA 记得」句（模块：礼物/便签/话题/心情/感应/待办/信/朋友圈） */
+async function makeTaQuote(){
+  const items=[];
+  try{
+    const msgs=await dbGetAll('messages');
+    const gifts=msgs.filter(m=>m.sender==='me'&&m.type==='gift');
+    if(gifts.length){const g=gifts[gifts.length-1];items.push({name:'你送来的'+g.content});}
+    const myTexts=msgs.filter(m=>m.sender==='me'&&m.type==='text'&&m.content&&m.content.trim());
+    if(myTexts.length){const t=myTexts[myTexts.length-1].content.trim();items.push({name:'你说过「'+t.slice(0,20)+'」'});}
+  }catch(e){}
+  try{
+    const notes=state.notes||[];
+    for(const n of notes){
+      if(n&&n.text&&n.text.trim())items.push({name:'你在便签里写「'+n.text.trim().slice(0,20)+'」'});
+      if(n&&n.mood)items.push({name:'你那天的心情是 '+n.mood});
+    }
+  }catch(e){}
+  try{
+    const evs=await dbGetAll('events');
+    const senses=evs.filter(e=>e.type==='sense'&&e.who==='ta');
+    if(senses.length){const s=senses[senses.length-1];items.push({name:'上次我从你'+s.dir+'靠近过你'});}
+  }catch(e){}
+  try{
+    const cals=await dbGetAll('calendar');
+    const todos=cals.filter(c=>c.type==='todo'&&!c.done);
+    if(todos.length){const t=todos[todos.length-1];items.push({name:'你待办里还写着「'+t.text.slice(0,20)+'」'});}
+  }catch(e){}
+  try{
+    const lets=await dbGetAll('letters');
+    if(lets.some(l=>l.sender==='me'))items.push({name:'你写给我的那封信'});
+  }catch(e){}
+  try{
+    const mms=await dbGetAll('moments');
+    const mine=mms.filter(m=>m.owner==='me'&&m.content);
+    if(mine.length){const t=mine[mine.length-1];items.push({name:'你朋友圈写「'+(t.content||'').slice(0,20)+'」'});}
+  }catch(e){}
+  if(!items.length)return null;
+  const it=items[Math.floor(Math.random()*items.length)];
+  const tpl=TA_QUOTE_TEMPLATES[Math.floor(Math.random()*TA_QUOTE_TEMPLATES.length)];
+  return tpl.replace('{item}',it.name);
 }
 
 /* ---- 题目回答生成（单选 / 多选 / 问卷）

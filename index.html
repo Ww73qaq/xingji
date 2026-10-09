@@ -101,6 +101,7 @@
     <div class="app-item" onclick="openApp('sense')"><div class="app-icon" style="background:#7a9a8c">感</div><div class="app-label">感应房间</div></div>
     <div class="app-item" onclick="openApp('writing')"><div class="app-icon" style="background:#a97a5c">拼</div><div class="app-label">拼写</div></div>
     <div class="app-item" onclick="openApp('calendar')"><div class="app-icon" style="background:#5c8aa9">历</div><div class="app-label">日历</div></div>
+    <div class="app-item" onclick="openApp('trace')"><div class="app-icon" style="background:#6b5c8a">迹</div><div class="app-label">轨迹</div></div>
   </div>
   <!-- 手机底部标签栏（4 个一级入口，与网格互斥） -->
   <div class="tabbar" id="tabbar">
@@ -229,6 +230,12 @@
 <div id="app-calendar" class="app-page">
   <div class="app-header"><div class="back" onclick="goBack()">&#8249;</div><h1>日历</h1><div class="act" style="opacity:.25">&#8942;</div></div>
   <div class="app-body" id="calendar-body"></div>
+</div>
+
+<!-- TRACE（心念轨迹：上图卡左右滑 + 下竖向轨迹线） -->
+<div id="app-trace" class="app-page">
+  <div class="app-header"><div class="back" onclick="goBack()">&#8249;</div><h1>心念轨迹</h1><div class="act" style="opacity:.25">&#8942;</div></div>
+  <div class="app-body" id="trace-body"></div>
 </div>
 
 <!-- SENSE ROOM -->
@@ -378,6 +385,7 @@
 <script src="js/features/decide.js"></script>
 <script src="js/features/group-chat.js"></script>
 <script src="js/ui/room.js"></script>
+<script src="js/ui/trace.js"></script>
 <script src="js/data/backup.js"></script>
 <script src="js/scheduler.js"></script>
 <script src="js/engine.js"></script>

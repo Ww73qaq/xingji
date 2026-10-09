@@ -49,11 +49,13 @@ let state = {
   // v3.5.9：状态池 / 心情池（自定义部分持久化；内置在 config.js fallback）/ TA 状态自动切换
   statusPool:[],moodPool:[],taStatusUntil:0,taStatusCoolAt:0,
   // v3.6.0：禁言/来电"跳过层"周期标记、禁言原因文案、手动改TA状态保持时长（默认10）
-  taMuteCycleSkip:false,taCallCycleSkip:false,taMuteReason:'',taStatusLockMin:10
+  taMuteCycleSkip:false,taCallCycleSkip:false,taMuteReason:'',taStatusLockMin:10,
+  // v3.6.8：TA 主动感应冷却；日记申请冷却（TA 申请看我的 / 我申请 TA 的）
+  taSenseCoolAt:0,myDiaryReqCoolAt:0,taDiaryDenied:{}
 };
 
 async function loadSettings(){
-  const keys=['me','other','skin','pin','prob','meetTime','quote','splashText','stats','chat','muteEndTime','muteRequest','surveySettings','notify','notes','taMuteMeEndTime','taMuteReqCoolAt','diaryReqAt','writings','taMuteLastEnd','taMuteReqAt','statusPool','moodPool','taStatusUntil','taStatusCoolAt','taMuteCycleSkip','taCallCycleSkip','taMuteReason','taStatusLockMin','calLastSnapDate','customGifts'];
+  const keys=['me','other','skin','pin','prob','meetTime','quote','splashText','stats','chat','muteEndTime','muteRequest','surveySettings','notify','notes','taMuteMeEndTime','taMuteReqCoolAt','diaryReqAt','writings','taMuteLastEnd','taMuteReqAt','statusPool','moodPool','taStatusUntil','taStatusCoolAt','taMuteCycleSkip','taCallCycleSkip','taMuteReason','taStatusLockMin','calLastSnapDate','customGifts','taSenseCoolAt','myDiaryReqCoolAt','taDiaryDenied'];
   for(const k of keys){const v=await dbGet('settings',k);if(v&&v.value!==undefined)state[k]=typeof v.value==='object'&&v.value!==null&&!Array.isArray(v.value)?{...state[k],...v.value}:v.value;}
 }
 async function saveKey(key){const v=await dbGet('settings',key);if(v){v.value=state[key];await dbPut('settings',v);}else{await dbPut('settings',{key,value:state[key]});}}

@@ -206,7 +206,21 @@ function deleteRoomPreset(){
   });
 }
 function doSense(){initRoom();}
-/* v3.5.9：感应 TA——点击后「正在感应…」，10~15 秒延迟才出结果（防连点/防瞬变） */
+/* v3.6.8：方位加权——按 TA 当前状态从 SENSE_DIR_WEIGHTS 挑候选，否则全池随机 */
+function pickSenseDir(){
+  const st=state.taStatus||state.other.status||'在线';
+  const fav=SENSE_DIR_WEIGHTS[st]||[];
+  let pool;
+  if(fav.length&&Math.random()<0.7)pool=fav.map(d=>SENSE_DIRS.find(x=>x.dir===d)).filter(Boolean);
+  else pool=[...SENSE_DIRS];
+  return pool[Math.floor(Math.random()*pool.length)];
+}
+/* 记录一次感应事件（供心念轨迹 / TA 记得） */
+async function pushSenseEvent(who,dir,text){
+  await dbPut('events',{who,type:'sense',dir,text,time:Date.now()});
+}
+/* v3.5.9：感应 TA——点击后「正在感应…」，10~15 秒延迟才出结果（防连点/防瞬变）
+   v3.6.8：结果带方位（状态加权）+ 记录事件 + 系统消息 */
 function senseTA(){
   if(_sensing){showToast('正在感应中，稍等一下…');return;}
   _sensing=true;
@@ -220,8 +234,25 @@ function senseTA(){
     const item=roomState.grid[idx];
     const actions=item?ROOM_ACTIONS[item]:['在房间的某个角落','正在房间里走动','好像刚进房间','在房间发呆','在房间的窗边站着'];
     const action=actions[Math.floor(Math.random()*actions.length)];
-    document.getElementById('room-info-sub').textContent='TA '+action;
+    const dir=pickSenseDir();
+    const text='TA 从'+dir.dir+'靠近，'+action;
+    document.getElementById('room-info-sub').textContent=text;
     saveRoom();renderRoom();showToast('感应完成');
+    pushSenseEvent('ta',dir.dir,text);
+    pushSys(text);
   },delay);
+}
+/* v3.6.8：TA 主动感应你——心跳每 5 秒调用；冷却 20~40 分钟；触发时全局通知 + 站内横幅 + 聊天记录 */
+function maybeTaSense(){
+  if(Date.now()<(state.taSenseCoolAt||0))return;
+  if(Math.random()>0.008)return;             // 每 5 秒 0.8% 机会；配合冷却实际约 20~40 分钟一次
+  state.taSenseCoolAt=Date.now()+1200000+Math.random()*1200000;   // 冷却 20~40 分钟
+  saveKey('taSenseCoolAt');
+  const dir=pickSenseDir();
+  const text=dir.text;
+  pushSenseEvent('ta',dir.dir,text);
+  pushSys(text);
+  notifySystem((state.other.name||'TA')+' 感应到你',text);
+  if(Math.random()<0.5)pushReply('感应到你在附近，就来看看你。');
 }
 function saveRoomLayout(){saveRoom();showToast('布局已保存');}
