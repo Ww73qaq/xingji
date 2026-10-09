@@ -75,7 +75,39 @@ function dbGet(store,key){
   });
 }
 
-function dbPut(store,data){return new Promise((res,rej)=>{const tx=DB.transaction(store,'readwrite');const st=tx.objectStore(store);const req=st.put(data);req.onsuccess=()=>res(req.result);req.onerror=()=>rej(req.error);});}
+function dbPut(store,data){
+  // v3.7.2 性能：写操作同步维护内存缓存（若有），读侧无需立刻回库
+  const memo=_dbMemo[store];
+  if(memo&&memo.v){
+    const arr=memo.v;
+    const kid=(data&&data.id!==undefined)?data.id:(data&&data.key!==undefined?data.key:null);
+    if(kid!==null){
+      const i=arr.findIndex(x=>String(x&&(x.id!==undefined?x.id:x.key))===String(kid));
+      if(i>=0)arr[i]=data;else arr.push(data);
+    }else if(data){arr.push(data);}
+  }
+  return new Promise((res,rej)=>{const tx=DB.transaction(store,'readwrite');const st=tx.objectStore(store);const req=st.put(data);req.onsuccess=()=>res(req.result);req.onerror=()=>rej(req.error);});
+}
 function dbGetAll(store){return new Promise((res,rej)=>{const tx=DB.transaction(store,'readonly');const req=tx.objectStore(store).getAll();req.onsuccess=()=>res(req.result||[]);req.onerror=()=>rej(req.error);});}
-function dbDelete(store,id){return new Promise((res,rej)=>{const tx=DB.transaction(store,'readwrite');const req=tx.objectStore(store).delete(id);req.onsuccess=res;req.onerror=rej;});}
+
+/* ---- v3.7.2 内存读缓存：dbGetAllM(store, ttl)
+   高频全表读（心跳轮询 / 回复引擎取池）改为走内存缓存：
+   - 首次或 TTL 过期才真正读库（校准漂移）；
+   - dbPut/dbDelete 同步维护缓存数组 → 写入即刻可见，不依赖 TTL；
+   - 单页纯前端场景安全；多 tab 共享库时由 TTL 兜底校准。 ---- */
+const _dbMemo={};
+function dbGetAllM(store,ttl){
+  const now=Date.now();
+  const hit=_dbMemo[store];
+  if(hit&&now-hit.t<(ttl||30000))return Promise.resolve(hit.v);
+  return dbGetAll(store).then(v=>{
+    _dbMemo[store]={t:Date.now(),v:v||[]};
+    return v||[];
+  });
+}
+function dbMemoInvalidate(store){delete _dbMemo[store];}
+function dbDelete(store,id){
+  const memo=_dbMemo[store];
+  if(memo&&memo.v){const i=memo.v.findIndex(x=>String(x&&x.id)===String(id));if(i>=0)memo.v.splice(i,1);}
+  return new Promise((res,rej)=>{const tx=DB.transaction(store,'readwrite');const req=tx.objectStore(store).delete(id);req.onsuccess=res;req.onerror=rej;});}
 function dbGetByKey(store,key){return dbGetAll(store).then(all=>all.find(x=>x.key===key)||null);}

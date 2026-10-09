@@ -61,8 +61,17 @@ let state = {
 };
 
 async function loadSettings(){
+  // v3.7.2 性能：原 43 次 dbGet 串行事务 → 一次 dbGetAll 全表读（settings 按 key 索引）
   const keys=['me','other','skin','pin','prob','meetTime','quote','splashText','stats','chat','muteEndTime','muteRequest','surveySettings','notify','notes','taMuteMeEndTime','taMuteReqCoolAt','diaryReqAt','writings','taMuteLastEnd','taMuteReqAt','statusPool','moodPool','taStatusUntil','taStatusCoolAt','taMuteCycleSkip','taCallCycleSkip','taMuteReason','taStatusLockMin','calLastSnapDate','customGifts','taSenseCoolAt','myDiaryReqCoolAt','taDiaryDenied','noteAlarmDone','taSchedSettings','todoAlarmDone','taTimeOffset'];
-  for(const k of keys){const v=await dbGet('settings',k);if(v&&v.value!==undefined)state[k]=typeof v.value==='object'&&v.value!==null&&!Array.isArray(v.value)?{...state[k],...v.value}:v.value;}
+  const map={};
+  try{
+    const all=await dbGetAll('settings');
+    for(const r of all){if(r&&r.key!==undefined)map[r.key]=r.value;}
+  }catch(e){}
+  for(const k of keys){
+    const v=map[k];
+    if(v!==undefined)state[k]=typeof v==='object'&&v!==null&&!Array.isArray(v)?{...state[k],...v}:v;
+  }
 }
 async function saveKey(key){const v=await dbGet('settings',key);if(v){v.value=state[key];await dbPut('settings',v);}else{await dbPut('settings',{key,value:state[key]});}}
 

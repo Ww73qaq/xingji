@@ -10,8 +10,8 @@
 
 /* ---- 字卡池：带 id 的对象（排除停用分组），禁止提前丢 id ---- */
 async function _getCardPool(){
-  const cards=await dbGetAll('cards');
-  const groups=await dbGetAll('cardGroups');
+  const cards=await dbGetAllM('cards',30000);
+  const groups=await dbGetAllM('cardGroups',30000);
   const dis=new Set(groups.filter(g=>g.enabled===false).map(g=>g.name));
   const pool=cards
     .filter(c=>c.enabled!==false&&!dis.has(c.group||'默认'))
@@ -31,7 +31,7 @@ async function _getReplySourcePool(){
 }
 /* 最近 n 条 TA 文本消息（重复排除） */
 async function _getRecentUsed(n){
-  const all=await dbGetAll('messages');
+  const all=await dbGetAllM('messages',8000);
   const texts=new Set();
   for(let i=all.length-1;i>=0&&texts.size<n;i--){
     const m=all[i];

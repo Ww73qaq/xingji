@@ -181,7 +181,7 @@ function isPollStale(m){
 async function refreshStalePolls(){
   if(state.currentApp!=='chat')return;
   const el=document.getElementById('chat-content');if(!el||!el.childElementCount)return;
-  let all=[];try{all=await dbGetAll('messages');}catch(e){return;}
+  let all=[];try{all=await dbGetAllM('messages',5000);}catch(e){return;}
   for(const m of all){
     if(m.type!=='poll'&&m.type!=='survey')continue;
     const row=el.querySelector(`.msg-row[data-mid="${m.id}"]`);
@@ -475,7 +475,7 @@ function markMeReadSoon(){
 /* 增量刷新我方消息的已读标记 */
 async function refreshReadTicks(){
   const el=document.getElementById('chat-content');if(!el)return;
-  let all=[];try{all=await dbGetAll('messages');}catch(e){return;}
+  let all=[];try{all=await dbGetAllM('messages',5000);}catch(e){return;}
   const map=new Map(all.map(m=>[String(m.id),m]));
   el.querySelectorAll('.msg-row.me').forEach(row=>{
     const m=map.get(row.dataset.mid);if(!m)return;
