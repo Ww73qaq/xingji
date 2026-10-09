@@ -45,6 +45,7 @@ function showVideoStage(){
   const av=document.getElementById('call-avatar'),nm=document.getElementById('call-name'),st=document.getElementById('call-status');
   if(av)av.style.display='none';if(nm)nm.style.display='none';if(st)st.style.display='none';
   if(camOn)startLocalCamera();
+  else{const ph=document.getElementById('cv-local-ph');if(ph)ph.style.display='flex';}   // v3.6.10：摄像头默认关→显示「摄像头已关闭」占位
 }
 
 /* ===== CALL（手机通话：来电 / 去电 / 通话中 / 通话记录） ===== */
@@ -87,7 +88,7 @@ function stopRing(){if(ringIv){clearInterval(ringIv);ringIv=null;}}
 /* 来电（TA 主动打来） */
 function simulateIncomingCall(kind){
   if(state.callActive){showToast('当前正在通话中');return;}
-  callMode='in';callKind=kind||'voice';state.callActive=true;callSec=0;callMuted=false;callSpeaker=false;camOn=(callKind==='video');callInitiator='ta';
+  callMode='in';callKind=kind||'voice';state.callActive=true;callSec=0;callMuted=false;callSpeaker=false;camOn=false;callInitiator='ta';   // v3.6.10：视频通话摄像头默认关，主动点开才开
   showCallOverlay();
   setCallBadge('星迹',true);
   setCallStatus(`${state.other.name} 正在呼叫…<br><span style="opacity:.6;font-size:12px">${CALL_BG[Math.floor(Math.random()*CALL_BG.length)]}</span>`);
@@ -128,7 +129,7 @@ function maybeTaCall(){
 /* 去电 */
 function callOutgoing(kind){
   if(state.callActive){showToast('当前正在通话中');return;}
-  callMode='out';callKind=kind||'voice';state.callActive=true;callSec=0;callMuted=false;callSpeaker=false;camOn=(kind==='video');callInitiator='me';
+  callMode='out';callKind=kind||'voice';state.callActive=true;callSec=0;callMuted=false;callSpeaker=false;camOn=false;callInitiator='me';   // v3.6.10：摄像头默认关
   showCallOverlay();
   setCallBadge(kind==='video'?'视频通话':'语音通话',false);
   setCallStatus('正在呼叫…');
