@@ -729,14 +729,18 @@ body{-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;letter
 .cal-today{font-size:12px;color:var(--accent,#4a7dcf);background:none;border:none;cursor:pointer;padding:4px 8px;flex-shrink:0}
 .cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:5px;padding:4px 0}
 .cal-dow{font-size:11px;color:var(--hint);text-align:center;padding:2px 0}
-.cal-cell{position:relative;min-height:46px;border-radius:10px;background:var(--input);display:flex;flex-direction:column;align-items:center;justify-content:flex-start;padding:4px 0 2px;cursor:pointer;gap:2px}
+.cal-cell{position:relative;min-height:72px;border-radius:10px;background:var(--input);display:flex;flex-direction:column;align-items:center;justify-content:space-between;padding:4px 2px;cursor:pointer;gap:1px}
 .cal-cell.empty{background:none;cursor:default}
 .cal-cell.today{outline:1.5px solid var(--accent,#4a7dcf);outline-offset:-1px}
 .cal-cell.has{background:var(--ov-chip,var(--input))}
 .cal-num{font-size:12px;font-weight:600;color:var(--text)}
 .cal-cell.today .cal-num{color:var(--accent,#4a7dcf)}
-.cal-emos{display:flex;flex-wrap:wrap;justify-content:center;gap:2px;max-width:100%}
-.cal-emos i{font-style:normal;font-size:13px;line-height:1}
+.cal-moods{display:flex;justify-content:space-between;width:100%;padding:0 3px}
+.cal-mood{font-style:normal;font-size:13px;line-height:1;min-width:14px;text-align:center}
+.cal-mood.none{visibility:hidden}
+.cal-dots{display:flex;justify-content:center;gap:3px;align-items:center;min-height:6px}
+.cal-dot{display:inline-block;width:6px;height:6px;border-radius:50%}
+.cal-dot.todo{background:#8a9bb5}
 .cal-legend{display:flex;align-items:center;gap:14px;font-size:11px;color:var(--sub);padding:10px 4px 4px;flex-wrap:wrap}
 .cal-legend i{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:4px}
 .cal-daylist{display:flex;flex-direction:column;gap:8px;padding:4px 0 8px}
@@ -748,3 +752,16 @@ body{-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;letter
 .cal-day-mood{font-size:17px;line-height:1}
 .cal-day-time{font-size:11px;color:var(--hint);margin-left:auto;flex-shrink:0}
 .cal-day-text{font-size:13px;color:var(--sub);margin-top:6px;line-height:1.6;white-space:pre-wrap;word-break:break-word}
+/* v3.6.5：日视图操作条 + 待办 + 经期 */
+.cal-ops{display:flex;align-items:center;gap:8px;padding:2px 0 10px;flex-wrap:wrap}
+.cal-op-btn{border:1px solid var(--input);background:var(--input);color:var(--text);border-radius:16px;padding:7px 14px;font-size:13px;cursor:pointer}
+.cal-op-btn:active{opacity:.8}
+.cal-op-tag{font-size:12px;border:1px solid;border-radius:16px;padding:5px 10px}
+.cal-section-title{font-size:13px;font-weight:600;color:var(--text);padding:10px 2px 6px}
+.cal-todolist{display:flex;flex-direction:column;gap:7px;padding:2px 0 12px}
+.cal-todo-item{display:flex;align-items:center;gap:10px;background:var(--input);border-radius:11px;padding:10px 12px}
+.cal-todo-item.done .cal-todo-text{text-decoration:line-through;opacity:.5}
+.cal-todo-check{width:22px;height:22px;border-radius:50%;border:1.5px solid var(--sub);display:flex;align-items:center;justify-content:center;font-size:12px;color:#fff;cursor:pointer;flex-shrink:0;transition:.15s}
+.cal-todo-check.on{background:var(--c-green,#2ecc71);border-color:var(--c-green,#2ecc71)}
+.cal-todo-text{flex:1;min-width:0;font-size:14px;color:var(--text);word-break:break-word;cursor:pointer}
+.cal-todo-del{width:24px;height:24px;border-radius:50%;background:rgba(192,57,43,.14);color:#c0392b;display:flex;align-items:center;justify-content:center;font-size:11px;cursor:pointer;flex-shrink:0}
