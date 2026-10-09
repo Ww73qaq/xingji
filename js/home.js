@@ -12,7 +12,7 @@ function updateHomeStatusOnly(){
   m.innerHTML='<i style="background:'+meC+'"></i>'+esc(meS);
   o.innerHTML='<i style="background:'+taC+'"></i>'+esc(taS);
 }
-function updateHome(){
+async function updateHome(){
   document.getElementById('home-name-me').textContent=state.me.name;
   document.getElementById('home-name-other').textContent=state.other.name;
   paintAvatar(document.getElementById('home-avatar-me'),state.me);
@@ -23,6 +23,38 @@ function updateHome(){
   renderNotes();
   updateTabBadge('chat',0);countUnreadLetters().then(n=>updateTabBadge('chat',n));
   updateTabBar();
+  renderHomeTraceWidget();   // v3.7.5：桌面 4×3 心念轨迹组件（当天两条轨迹线）
+}
+/* ===== 桌面心念轨迹组件：当天我/TA 活动按各自时间单位 → 迷你折线 ===== */
+async function renderHomeTraceWidget(){
+  const g=document.getElementById('tw-lines');if(!g)return;
+  try{await dbReady;}catch(e){}
+  const d=new Date();
+  const start=new Date(d.getFullYear(),d.getMonth(),d.getDate()).getTime();
+  const end=start+86400000;
+  const meB=new Array(24).fill(0),taB=new Array(24).fill(0);
+  const off=taOffsetNow();                      // TA 世界时间偏移（方案 B）
+  const msgs=await dbGetAllM('messages',8000).catch(()=>[]);
+  msgs.forEach(m=>{
+    if(!m.time||m.time<start||m.time>=end)return;
+    if(m.sender==='me')meB[new Date(m.time).getHours()]++;
+    else if(m.sender==='ta')taB[new Date(m.time+off).getHours()]++;   // TA 按 TA 世界时间归位
+  });
+  const evs=await dbGetAll('events').catch(()=>[]);
+  evs.forEach(e=>{
+    if(!e.time||e.time<start||e.time>=end)return;
+    if(e.who==='me')meB[new Date(e.time).getHours()]++;
+    else if(e.who==='ta')taB[new Date(e.time+off).getHours()]++;
+  });
+  const mkLine=(arr,color)=>{
+    const max=Math.max(1,...arr);
+    const pts=arr.map((v,i)=>((i/(23))*100).toFixed(1)+','+(38-Math.max(1.5,(v/max)*30)).toFixed(1));
+    return `<polyline points="${pts.join(' ')}" fill="none" stroke="${color}" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round" opacity=".85"/>`;
+  };
+  const total=meB.reduce((a,b)=>a+b,0)+taB.reduce((a,b)=>a+b,0);
+  g.innerHTML=(total>0)
+    ?mkLine(meB,'#5c8aa9')+mkLine(taB,'#8c7aa9')
+    :`<line x1="6" y1="20" x2="94" y2="20" stroke="var(--hint)" stroke-width="1" opacity=".4"/>`;
 }
 /* ===== 便签（两张：我的 / TA 的） =====
    owner:'me'   = 用户自己写的 → TA 绝不覆盖
@@ -310,9 +342,11 @@ function renderSignal(){
   _sigLevel=Math.max(1,Math.min(5,_sigLevel));
   const bars=el.children;
   for(let i=0;i<bars.length;i++){
-    // v3.7.4：点亮格从低到高颜色强度递增（第 1 格淡→第 5 格浓），空格保持淡
-    bars[i].style.opacity=i<_sigLevel?(0.42+0.58*((i+1)/5)):.22;
-    bars[i].style.transform=i<_sigLevel?'scaleY(1)':'scaleY(.6)';
+    // v3.7.5：黑白极简渐变——点亮格由浅灰(72%)逐格加深到墨黑(20%)，空格淡灰 90%，强度一目了然
+    const on=i<_sigLevel;
+    bars[i].style.background=on?'hsl(0,0%,'+(72-13*i)+'%)':'hsl(0,0%,90%)';
+    bars[i].style.opacity=on?1:.9;
+    bars[i].style.transform=on?'scaleY(1)':'scaleY(.6)';
   }
 }
 function paintTabIcons(){

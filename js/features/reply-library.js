@@ -264,13 +264,13 @@ async function manageCardGroups(){
   const groups=await dbGetAll('cardGroups');
   const builtin=name=>DEFAULT_CARD_GROUPS.includes(name);
   showModal('分组管理',
-    groups.map(g=>`<div class="modal-item" style="display:flex;align-items:center;gap:10px">
-      <span style="flex:1;text-align:left">${esc(g.name)}${builtin(g.name)?'<span style="font-size:10px;color:var(--hint);margin-left:6px">内置</span>':''}</span>
-      <span class="cs-switch${g.enabled!==false?' on':''}" style="transform:scale(.8)" onclick="toggleGroupEnabled('${esc(g.name)}')"></span>
-      <span style="font-size:12px;padding:4px 6px" onclick="closeModal();renameCardGroup('${esc(g.name)}')" title="重命名">${ICO_EDIT}</span>
-      ${builtin(g.name)?'':`<span style="color:#c0392b;font-size:12px;padding:4px 6px" onclick="closeModal();confirmDelGroup('${esc(g.name)}')" title="删除">${ICO_DEL}</span>`}
+    groups.map(g=>`<div class="modal-item">
+      <span class="g-name">${esc(g.name)}${builtin(g.name)?'<span style="font-size:10px;color:var(--hint);margin-left:6px">内置</span>':''}</span>
+      <span class="cs-switch${g.enabled!==false?' on':''}" onclick="toggleGroupEnabled('${esc(g.name)}')"></span>
+      <span class="g-act" onclick="closeModal();renameCardGroup('${esc(g.name)}')" title="重命名">${ICO_EDIT}</span>
+      ${builtin(g.name)?'':`<span class="g-act danger" onclick="closeModal();confirmDelGroup('${esc(g.name)}')" title="删除">${ICO_DEL}</span>`}
     </div>`).join('')
-    +'<div class="modal-item" style="color:var(--primary)" onclick="closeModal();addCardGroup()">＋ 新建分组</div>',
+    +'<div class="modal-item g-new" onclick="closeModal();addCardGroup()">＋ 新建分组</div>',
     '<div class="modal-btn-row"><button class="modal-btn" onclick="closeModal()">取消</button></div>');
 }
 async function renameCardGroup(name){

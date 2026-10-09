@@ -8,12 +8,10 @@ function renderWriteLetter(list){
   const taName=state.other.name||'TA',myName=state.me.name||'我';
   const today=fmtFull(Date.now());
   list.innerHTML=`<div class="write-letter">
-    <div class="wl-to">To ${esc(taName)}</div>
-    <div class="wl-line"></div>
+    <div class="wl-to">致 ${esc(taName)}</div>
     <div class="wl-hint">见字如面，展信舒颜。</div>
-    <textarea class="textarea-full" id="letter-content" placeholder="写下想说的话…" style="min-height:180px;background:transparent;line-height:1.9;font-size:14px"></textarea>
+    <textarea class="textarea-full" id="letter-content" placeholder="写下想说的话…" style="min-height:190px;background:transparent;line-height:2;font-size:15px"></textarea>
     <div class="wl-foot">此致<br>${esc(myName)} · ${today}</div>
-    <button class="btn-pill primary" style="width:100%;margin-top:14px" onclick="sendLetter()">&#9993; 寄出</button>
   </div>`;
 }
 function renderMailboxData(list){
@@ -54,14 +52,14 @@ async function sendLetter(){
 function writeLetterModal(){
   const list=document.createElement('div');
   renderWriteLetter(list);
-  showModal('写封信',list.innerHTML,'<div class="modal-btn-row"><button class="modal-btn" onclick="closeModal()">取消</button></div>');
+  showModal('写封信',list.innerHTML,'<div class="modal-btn-row"><button class="modal-btn" onclick="closeModal()">取消</button><button class="modal-btn primary" onclick="sendLetter()">寄出</button></div>');
 }
 function mailboxMore(){
   const list=document.createElement('div');
   renderMailboxData(list);
   showModal('信件数据',list.innerHTML,'<div class="modal-btn-row"><button class="modal-btn" onclick="closeModal()">取消</button></div>');
 }
-async function viewLetter(id){const letters=await dbGetAll('letters');const l=letters.find(x=>x.id===id);if(!l)return;const tid=l.threadId||('letter-'+(l.replyTo||l.id));const thread=letters.filter(x=>(x.threadId||('letter-'+(x.replyTo||x.id)))===tid).sort((a,b)=>a.time-b.time);for(const x of thread)if(x.sender==='other'&&!x.read){x.read=true;await dbPut('letters',x);}updateTabBadge('chat',await countUnreadLetters());const html=thread.map(x=>`<div style="padding:12px 13px;background:${x.sender==='me'?'#1a1a1a':'#fff'};color:${x.sender==='me'?'#fff':'var(--text)'};border-radius:12px;margin-bottom:10px"><div style="font-size:11px;opacity:.58;margin-bottom:6px">${esc(x.sender==='me'?state.me.name:state.other.name)} · ${fmtFull(x.time)}${x.status==='waiting'?' · 等待回信':''}</div><div style="font-size:14px;line-height:1.9;white-space:pre-wrap">${esc(x.content)}</div></div>`).join('');showModal('往来信件',html,(l.sender==='other'?'<div class="modal-btn-row"><button class="modal-btn" onclick="closeModal()">取消</button><button class="modal-btn primary" onclick="closeModal();replyLetter('+l.id+')">回复 TA</button></div>':'<div class="modal-btn-row"><button class="modal-btn" onclick="closeModal()">取消</button><button class="modal-btn primary" onclick="closeModal();editLetter('+l.id+')">修改这封信</button></div>'));}
+async function viewLetter(id){const letters=await dbGetAll('letters');const l=letters.find(x=>x.id===id);if(!l)return;const tid=l.threadId||('letter-'+(l.replyTo||l.id));const thread=letters.filter(x=>(x.threadId||('letter-'+(x.replyTo||x.id)))===tid).sort((a,b)=>a.time-b.time);for(const x of thread)if(x.sender==='other'&&!x.read){x.read=true;await dbPut('letters',x);}updateTabBadge('chat',await countUnreadLetters());const html=thread.map(x=>`<div class="letter-thread${x.sender==='me'?' mine':''}"><div class="lt-head">${esc(x.sender==='me'?state.me.name:state.other.name)}${x.status==='waiting'?' · 等待回信':''}</div><div class="lt-body">${esc(x.content)}</div><div class="lt-time">${fmtFull(x.time)}</div></div>`).join('');showModal('往来信件',html,(l.sender==='other'?'<div class="modal-btn-row"><button class="modal-btn" onclick="closeModal()">取消</button><button class="modal-btn primary" onclick="closeModal();replyLetter('+l.id+')">回复 TA</button></div>':'<div class="modal-btn-row"><button class="modal-btn" onclick="closeModal()">取消</button><button class="modal-btn primary" onclick="closeModal();editLetter('+l.id+')">修改这封信</button></div>'));}
 async function editLetter(id){
   const letters=await dbGetAll('letters');const l=letters.find(x=>x.id===id);if(!l||l.sender!=='me')return;
   showModal('编辑寄出的信',`<textarea class="textarea-full" id="letter-content" style="min-height:120px">${esc(l.content)}</textarea>`,'<div class="modal-btn-row"><button class="modal-btn" onclick="closeModal()">取消</button><button class="modal-btn primary" onclick="saveLetterEdit(${id})">保存修改</button></div>');
