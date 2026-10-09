@@ -5,7 +5,13 @@
 let emojiGroupTab=0;
 function updateChatHeader(){
   const t=document.getElementById('chat-title');
-  if(t){t.firstChild.nodeValue=state.other.name||'TA';const p=document.getElementById('chat-presence');if(p)p.textContent=state.other.status==='离线'?'离线':'在线';}
+  if(t){t.firstChild.nodeValue=state.other.name||'TA';
+    const st=document.getElementById('chat-ta-status');
+    if(st){const taS=state.taStatus||state.other.status||'在线';
+      if(taS==='离线')st.textContent=' · 离线';
+      else{const c=statusColor(taS)||'#4cd964';st.innerHTML='<i class="ts-dot" style="background:'+c+'"></i>'+esc(taS);}
+    }
+  }
   document.getElementById('chat-quote').textContent=state.quote;
   updateTaStatusBadge();
 }

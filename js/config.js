@@ -16,7 +16,7 @@ const LINE_ICONS={
 
 /* ===== 手机导航栈（push / pop + 系统返回键 + 边缘滑动手势） ===== */
 const TAB_PAGE={chat:'chat',moments:'moments',cards:'cards',me:'profile'};
-const PAGE_TITLES={chat:'聊天',chatinfo:'聊天信息',chatsearch:'聊天记录',mailbox:'信箱',diary:'日记',moments:'朋友圈',profile:'我的',sense:'感应房间',probability:'回复设置',cards:'字卡',emoji:'表情',memory:'回忆录',data:'数据',trace:'心念轨迹'};
+const PAGE_TITLES={chat:'聊天',chatinfo:'聊天信息',chatsearch:'聊天记录',mailbox:'信箱',diary:'日记',moments:'朋友圈',profile:'我的',sense:'感应房间',probability:'回复设置',cards:'字卡',emoji:'表情',memory:'回忆录',data:'数据',trace:'心跳轨迹'};
 
 
 /* ===== CHAT（微信风格） ===== */

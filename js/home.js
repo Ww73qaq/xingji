@@ -80,15 +80,16 @@ async function renderHomeTraceWidget(){
     const pts=arr.map((v,i)=>x(i).toFixed(1)+','+y(v).toFixed(1));
     return `<polyline class="tw-line" points="${pts.join(' ')}" fill="none" stroke="${color}" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" opacity=".85"/>`;
   };
-  // 红心（心里是我和他首字母），落在各自折线最后一个有值的点上，持续心跳
+  // 红心（心里是我和他首字母）：沿各自折线从原点「电流式」传输到最后一个有值点，到达后持续心跳
   const lastIdx=arr=>{for(let i=arr.length-1;i>=0;i--)if(arr[i]>0)return i;return -1;};
-  const heart=(px,py,ch)=>`<g class="tw-heart" transform="translate(${px.toFixed(1)},${py.toFixed(1)})"><path d="M0 2.2 C-2.8 -0.6 -5.4 -2.6 -5.4 -5 C-5.4 -6.9 -3.4 -7.8 -1.7 -7.1 C-0.8 -6.7 0 -5.8 0 -5.1 C0 -5.8 0.8 -6.7 1.7 -7.1 C3.4 -7.8 5.4 -6.9 5.4 -5 C5.4 -2.6 2.8 -0.6 0 2.2 Z" fill="#e05c5c" stroke="#fff" stroke-width="0.4"/><text x="0" y="1.4" text-anchor="middle" font-size="3.8" fill="#fff" font-weight="700">${esc(ch)}</text></g>`;
+  const subPath=(arr,last)=>{let s='M'+x(0).toFixed(1)+','+y(arr[0]).toFixed(1);for(let i=1;i<=last;i++)s+=' L'+x(i).toFixed(1)+','+y(arr[i]).toFixed(1);return s;};
+  const heart=(ch,pathStr)=>`<g class="tw-heart" style="offset-path:path('${pathStr}')"><path d="M0 2.2 C-2.8 -0.6 -5.4 -2.6 -5.4 -5 C-5.4 -6.9 -3.4 -7.8 -1.7 -7.1 C-0.8 -6.7 0 -5.8 0 -5.1 C0 -5.8 0.8 -6.7 1.7 -7.1 C3.4 -7.8 5.4 -6.9 5.4 -5 C5.4 -2.6 2.8 -0.6 0 2.2 Z" fill="#e05c5c" stroke="#fff" stroke-width="0.4"/><text x="0" y="1.4" text-anchor="middle" font-size="3.8" fill="#fff" font-weight="700">${esc(ch)}</text></g>`;
   const total=meB.reduce((a,b)=>a+b,0)+taB.reduce((a,b)=>a+b,0);
   if(total>0){
     out+=mkLine(meL,'#5c8aa9')+mkLine(taL,'#8c7aa9');
     const mi=lastIdx(meL),ti=lastIdx(taL);
-    if(mi>=0)out+=heart(x(mi),y(meL[mi]),(state.me.name||'我').slice(0,1));
-    if(ti>=0)out+=heart(x(ti),y(taL[ti]),(state.other.name||'TA').slice(0,1));
+    if(mi>=0)out+=heart((state.me.name||'我').slice(0,1),subPath(meL,mi));
+    if(ti>=0)out+=heart((state.other.name||'TA').slice(0,1),subPath(taL,ti));
   }
   else out+=`<line x1="${PADL}" y1="${(PADT+ih/2).toFixed(1)}" x2="${W-PADR}" y2="${(PADT+ih/2).toFixed(1)}" stroke="var(--hint)" stroke-width="1" opacity=".35"/>`;
   g.innerHTML=out;

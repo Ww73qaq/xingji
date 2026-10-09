@@ -927,7 +927,7 @@ body{-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;letter
 /* ===== 桌面轨迹组件动效（v3.7.5.4）：心电图描线 + 双心跳动 ===== */
 .tw-line{stroke-dasharray:900;stroke-dashoffset:900;animation:twDraw 1.8s cubic-bezier(.4,0,.2,1) forwards}
 @keyframes twDraw{to{stroke-dashoffset:0}}
-.tw-heart{animation:twHeart 1.15s ease-in-out infinite;transform-box:fill-box;transform-origin:center}
+.tw-heart{animation:twTravel 2.2s cubic-bezier(.45,0,.25,1) forwards,twHeart 1.15s ease-in-out 2.2s infinite;transform-box:fill-box;transform-origin:center}
 @keyframes twHeart{
   0%,100%{transform:scale(1)}
   12%{transform:scale(1.24)}
@@ -935,3 +935,5 @@ body{-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;letter
   42%{transform:scale(1.2)}
   60%{transform:scale(1)}
 }
+
+@keyframes twTravel{from{offset-distance:0%}to{offset-distance:100%}}

@@ -27,7 +27,7 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'%3E%3Crect width='180' height='180' rx='40' fill='%23f7f6f3'/%3E%3Ctext x='90' y='122' font-size='96' text-anchor='middle' fill='%231a1a1a' font-family='serif'%3E%E2%97%86%3C/text%3E%3C/svg%3E">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23f7f6f3'/%3E%3Ctext x='32' y='45' font-size='34' text-anchor='middle' fill='%231a1a1a' font-family='serif'%3E%E2%97%86%3C/text%3E%3C/svg%3E">
-<link rel="stylesheet" href="css/styles.css?v=3.7.5.4">
+<link rel="stylesheet" href="css/styles.css?v=3.7.5.5">
 </head>
 <body>
 <div id="phone">
@@ -99,9 +99,9 @@
     <div class="note-card" data-note="a" onclick="editNote('a')"><div class="note-head" id="note-head-a">我的便签</div><div class="note-body" id="note-a">${''}</div></div>
     <div class="note-card" data-note="b" onclick="editNote('b')"><div class="note-head" id="note-head-b">他的便签</div><div class="note-body" id="note-b">${''}</div></div>
   </div>
-  <!-- 桌面心念轨迹组件：当天我/TA 轨迹折线（按各自时间单位），点击进轨迹页 -->
+  <!-- 桌面心跳轨迹组件：当天我/TA 轨迹折线（按各自时间单位），点击进轨迹页 -->
   <div class="trace-card" id="trace-widget" onclick="openApp('trace')">
-    <div class="trace-card-head"><span class="trace-card-title">心念轨迹</span><span class="trace-card-date" id="tw-date"></span></div>
+    <div class="trace-card-head"><span class="trace-card-title">心跳轨迹</span><span class="trace-card-date" id="tw-date"></span></div>
     <svg class="tw-svg" viewBox="0 0 300 84" preserveAspectRatio="none" aria-hidden="true"><g id="tw-lines"></g></svg>
     <div class="trace-card-legend"><span><i style="background:#5c8aa9"></i>我</span><span><i style="background:#8c7aa9"></i><b id="tw-legend-ta" style="font-weight:normal">TA</b></span><span style="margin-left:auto">活跃密度 0-5</span></div>
   </div>
@@ -265,9 +265,9 @@
   <div class="app-body" id="calendar-body"></div>
 </div>
 
-<!-- TRACE（心念轨迹：上图卡左右滑 + 下竖向轨迹线） -->
+<!-- TRACE（心跳轨迹：上图卡左右滑 + 下竖向轨迹线） -->
 <div id="app-trace" class="app-page">
-  <div class="app-header"><div class="back" onclick="goBack()">&#8249;</div><h1>心念轨迹</h1><div class="act" style="opacity:.25">&#8942;</div></div>
+  <div class="app-header"><div class="back" onclick="goBack()">&#8249;</div><h1>心跳轨迹</h1><div class="act" style="opacity:.25">&#8942;</div></div>
   <div class="app-body" id="trace-body"></div>
 </div>
 
@@ -409,39 +409,39 @@
 
 </div>
 
-<script src="js/config.js?v=3.7.5.4"></script>
-<script src="js/utils.js?v=3.7.5.4"></script>
-<script src="js/db.js?v=3.7.5.4"></script>
-<script src="js/state.js?v=3.7.5.4"></script>
-<script src="js/modal.js?v=3.7.5.4"></script>
-<script src="js/nav.js?v=3.7.5.4"></script>
-<script src="js/features/theme-editor.js?v=3.7.5.4"></script>
-<script src="js/home.js?v=3.7.5.4"></script>
-<script src="js/ui/lock.js?v=3.7.5.4"></script>
-<script src="js/ui/version.js?v=3.7.5.4"></script>
-<script src="js/ui/action-bar.js?v=3.7.5.4"></script>
-<script src="js/ui/chat.js?v=3.7.5.4"></script>
-<script src="js/features/poll.js?v=3.7.5.4"></script>
-<script src="js/features/call.js?v=3.7.5.4"></script>
-<script src="js/ui/moments.js?v=3.7.5.4"></script>
-<script src="js/ui/mailbox.js?v=3.7.5.4"></script>
-<script src="js/features/envelope.js?v=3.7.5.4"></script>
-<script src="js/ui/diary.js?v=3.7.5.4"></script>
-<script src="js/ui/profile.js?v=3.7.5.4"></script>
-<script src="js/features/mood.js?v=3.7.5.4"></script>
-<script src="js/features/stickers.js?v=3.7.5.4"></script>
-<script src="js/ui/memory.js?v=3.7.5.4"></script>
-<script src="js/ui/writing.js?v=3.7.5.4"></script>
-<script src="js/ui/companion.js?v=3.7.5.4"></script>
-<script src="js/ui/probability.js?v=3.7.5.4"></script>
-<script src="js/features/reply-library.js?v=3.7.5.4"></script>
-<script src="js/features/calendar.js?v=3.7.5.4"></script>
-<script src="js/features/group-chat.js?v=3.7.5.4"></script>
-<script src="js/ui/room.js?v=3.7.5.4"></script>
-<script src="js/ui/trace.js?v=3.7.5.4"></script>
-<script src="js/data/backup.js?v=3.7.5.4"></script>
-<script src="js/scheduler.js?v=3.7.5.4"></script>
-<script src="js/engine.js?v=3.7.5.4"></script>
-<script src="js/app.js?v=3.7.5.4"></script>
+<script src="js/config.js?v=3.7.5.5"></script>
+<script src="js/utils.js?v=3.7.5.5"></script>
+<script src="js/db.js?v=3.7.5.5"></script>
+<script src="js/state.js?v=3.7.5.5"></script>
+<script src="js/modal.js?v=3.7.5.5"></script>
+<script src="js/nav.js?v=3.7.5.5"></script>
+<script src="js/features/theme-editor.js?v=3.7.5.5"></script>
+<script src="js/home.js?v=3.7.5.5"></script>
+<script src="js/ui/lock.js?v=3.7.5.5"></script>
+<script src="js/ui/version.js?v=3.7.5.5"></script>
+<script src="js/ui/action-bar.js?v=3.7.5.5"></script>
+<script src="js/ui/chat.js?v=3.7.5.5"></script>
+<script src="js/features/poll.js?v=3.7.5.5"></script>
+<script src="js/features/call.js?v=3.7.5.5"></script>
+<script src="js/ui/moments.js?v=3.7.5.5"></script>
+<script src="js/ui/mailbox.js?v=3.7.5.5"></script>
+<script src="js/features/envelope.js?v=3.7.5.5"></script>
+<script src="js/ui/diary.js?v=3.7.5.5"></script>
+<script src="js/ui/profile.js?v=3.7.5.5"></script>
+<script src="js/features/mood.js?v=3.7.5.5"></script>
+<script src="js/features/stickers.js?v=3.7.5.5"></script>
+<script src="js/ui/memory.js?v=3.7.5.5"></script>
+<script src="js/ui/writing.js?v=3.7.5.5"></script>
+<script src="js/ui/companion.js?v=3.7.5.5"></script>
+<script src="js/ui/probability.js?v=3.7.5.5"></script>
+<script src="js/features/reply-library.js?v=3.7.5.5"></script>
+<script src="js/features/calendar.js?v=3.7.5.5"></script>
+<script src="js/features/group-chat.js?v=3.7.5.5"></script>
+<script src="js/ui/room.js?v=3.7.5.5"></script>
+<script src="js/ui/trace.js?v=3.7.5.5"></script>
+<script src="js/data/backup.js?v=3.7.5.5"></script>
+<script src="js/scheduler.js?v=3.7.5.5"></script>
+<script src="js/engine.js?v=3.7.5.5"></script>
+<script src="js/app.js?v=3.7.5.5"></script>
 </body>
 </html>
