@@ -32,19 +32,24 @@ async function renderHomeTraceWidget(){
   const d=new Date();
   const start=new Date(d.getFullYear(),d.getMonth(),d.getDate()).getTime();
   const end=start+86400000;
-  const meB=new Array(24).fill(0),taB=new Array(24).fill(0);
+  const HOURS=18,NB=9;                          // 组件长度到 18 点（右侧留给小蝴蝶），2 小时一格共 9 格
+  const meB=new Array(NB).fill(0),taB=new Array(NB).fill(0);
   const off=taOffsetNow();                      // TA 世界时间偏移（方案 B）
   const msgs=await dbGetAllM('messages',8000).catch(()=>[]);
   msgs.forEach(m=>{
     if(!m.time||m.time<start||m.time>=end)return;
-    if(m.sender==='me')meB[new Date(m.time).getHours()]++;
-    else if(m.sender==='ta')taB[new Date(m.time+off).getHours()]++;   // TA 按 TA 世界时间归位
+    const h=m.sender==='me'?new Date(m.time).getHours():new Date(m.time+off).getHours();
+    if(h>=HOURS)return;
+    const bi=(h/2)|0;
+    if(m.sender==='me')meB[bi]++; else if(m.sender==='ta')taB[bi]++;
   });
   const evs=await dbGetAll('events').catch(()=>[]);
   evs.forEach(e=>{
     if(!e.time||e.time<start||e.time>=end)return;
-    if(e.who==='me')meB[new Date(e.time).getHours()]++;
-    else if(e.who==='ta')taB[new Date(e.time+off).getHours()]++;
+    const h=e.who==='me'?new Date(e.time).getHours():new Date(e.time+off).getHours();
+    if(h>=HOURS)return;
+    const bi=(h/2)|0;
+    if(e.who==='me')meB[bi]++; else if(e.who==='ta')taB[bi]++;
   });
   const el=document.getElementById('tw-date');
   if(el)el.textContent=(d.getMonth()+1)+'月'+d.getDate()+'日';
@@ -52,24 +57,32 @@ async function renderHomeTraceWidget(){
   if(lg)lg.textContent=state.other.name||'TA';
   const W=300,H=84,PADL=5,PADR=5,PADT=6,PADB=16;
   const iw=W-PADL-PADR,ih=H-PADT-PADB;
-  const x=i=>PADL+(i/23)*iw, y=v=>PADT+ih-(v/50)*ih;   // 50 为满量程（单小时最多 50 条），超出封顶
+  const x=i=>PADL+(i/(NB-1))*iw;
+  // Y：活跃密度 0-5 档（每 2h 段节点数相对归一化，封顶 5 档，与信号格 5 格同语言）
+  const toLevel=arr=>{
+    const max=Math.max(...arr);
+    if(max<=0)return arr.map(()=>0);
+    return arr.map(v=>v<=0?0:Math.max(1,Math.min(5,Math.round(v/max*5))));
+  };
+  const meL=toLevel(meB),taL=toLevel(taB);
+  const y=l=>PADT+ih-(l/5)*ih;
   let out='';
-  // 小时刻度线 + 单位标签（0/6/12/18/24）
-  for(const h of [0,6,12,18,24]){
-    const px=x(h===24?23:h);
-    out+=`<line x1="${px.toFixed(1)}" y1="${PADT}" x2="${px.toFixed(1)}" y2="${H-PADB+3}" stroke="var(--hint)" stroke-width="0.6" opacity=".5"/>`;
-    out+=`<text x="${px.toFixed(1)}" y="${H-2}" text-anchor="${h===0?'start':h===24?'end':'middle'}" font-size="8.5" fill="var(--hint)" opacity=".8">${h}</text>`;
+  // 2 小时一格：细分刻度线（9 格边界）+ 主刻度文字（0/6/12/18）
+  for(let i=0;i<=NB;i++){
+    const px=x(Math.min(i,NB-1)).toFixed(1);
+    out+=`<line x1="${px}" y1="${PADT}" x2="${px}" y2="${H-PADB+3}" stroke="var(--hint)" stroke-width="0.6" opacity="${i%3===0?'.55':'.28'}"/>`;
+    if(i%3===0)out+=`<text x="${px}" y="${H-2}" text-anchor="${i===0?'start':i===NB?'end':'middle'}" font-size="8.5" fill="var(--hint)" opacity=".8">${i*2}</text>`;
   }
-  // 网格横线（0 / 半程）
-  for(const r of [0,50]){
-    out+=`<line x1="${PADL}" y1="${y(r).toFixed(1)}" x2="${W-PADR}" y2="${y(r).toFixed(1)}" stroke="var(--hint)" stroke-width="0.5" opacity=".22" stroke-dasharray="2 3"/>`;
+  // Y 网格横线（0 / 3 / 5 档）
+  for(const lv of [0,3,5]){
+    out+=`<line x1="${PADL}" y1="${y(lv).toFixed(1)}" x2="${W-PADR}" y2="${y(lv).toFixed(1)}" stroke="var(--hint)" stroke-width="0.5" opacity="${lv===0?'.22':'.15'}" stroke-dasharray="2 3"/>`;
   }
   const mkLine=(arr,color)=>{
-    const pts=arr.map((v,i)=>x(i).toFixed(1)+','+y(Math.min(v,50)).toFixed(1));
+    const pts=arr.map((v,i)=>x(i).toFixed(1)+','+y(v).toFixed(1));
     return `<polyline points="${pts.join(' ')}" fill="none" stroke="${color}" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" opacity=".85"/>`;
   };
   const total=meB.reduce((a,b)=>a+b,0)+taB.reduce((a,b)=>a+b,0);
-  if(total>0)out+=mkLine(meB,'#5c8aa9')+mkLine(taB,'#8c7aa9');
+  if(total>0)out+=mkLine(meL,'#5c8aa9')+mkLine(taL,'#8c7aa9');
   else out+=`<line x1="${PADL}" y1="${(PADT+ih/2).toFixed(1)}" x2="${W-PADR}" y2="${(PADT+ih/2).toFixed(1)}" stroke="var(--hint)" stroke-width="1" opacity=".35"/>`;
   g.innerHTML=out;
 }
