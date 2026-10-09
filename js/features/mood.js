@@ -27,6 +27,7 @@ function setStatusLockMin(m){state.taStatusLockMin=m;saveKey('taStatusLockMin');
 function saveStatus(who_,s){
   if(who_==='me'){
     state.me.status=s;saveKey('me');
+    if(typeof pushSys==='function')pushSys(state.me.name+' 现在的状态：'+s);   // v3.7.6：我的状态变化同样记录到聊天页（和 TA 一致）
   }else{
     state.other.status=s;
     state.taStatus=s;
