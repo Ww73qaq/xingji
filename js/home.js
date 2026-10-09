@@ -32,22 +32,20 @@ async function renderHomeTraceWidget(){
   const d=new Date();
   const start=new Date(d.getFullYear(),d.getMonth(),d.getDate()).getTime();
   const end=start+86400000;
-  const HOURS=18,NB=9;                          // 组件长度到 18 点（右侧留给小蝴蝶），2 小时一格共 9 格
+  const HOURS=24,NB=12;                         // X 轴 0-24 小时，2 小时一格共 12 格（卡片宽度缩到 18:00 位置，右侧留给小蝴蝶）
   const meB=new Array(NB).fill(0),taB=new Array(NB).fill(0);
   const off=taOffsetNow();                      // TA 世界时间偏移（方案 B）
   const msgs=await dbGetAllM('messages',8000).catch(()=>[]);
   msgs.forEach(m=>{
     if(!m.time||m.time<start||m.time>=end)return;
     const h=m.sender==='me'?new Date(m.time).getHours():new Date(m.time+off).getHours();
-    if(h>=HOURS)return;
     const bi=(h/2)|0;
-    if(m.sender==='me')meB[bi]++; else if(m.sender==='ta')taB[bi]++;
+    if(m.sender==='me')meB[bi]++; else if(m.sender==='ta')taB[bi]++;   // TA 按 TA 世界时间归桶
   });
   const evs=await dbGetAll('events').catch(()=>[]);
   evs.forEach(e=>{
     if(!e.time||e.time<start||e.time>=end)return;
     const h=e.who==='me'?new Date(e.time).getHours():new Date(e.time+off).getHours();
-    if(h>=HOURS)return;
     const bi=(h/2)|0;
     if(e.who==='me')meB[bi]++; else if(e.who==='ta')taB[bi]++;
   });
@@ -67,7 +65,7 @@ async function renderHomeTraceWidget(){
   const meL=toLevel(meB),taL=toLevel(taB);
   const y=l=>PADT+ih-(l/5)*ih;
   let out='';
-  // 2 小时一格：细分刻度线（9 格边界）+ 主刻度文字（0/6/12/18）
+  // 2 小时一格：细分刻度线（12 格边界）+ 主刻度文字（0/6/12/18/24）
   for(let i=0;i<=NB;i++){
     const px=x(Math.min(i,NB-1)).toFixed(1);
     out+=`<line x1="${px}" y1="${PADT}" x2="${px}" y2="${H-PADB+3}" stroke="var(--hint)" stroke-width="0.6" opacity="${i%3===0?'.55':'.28'}"/>`;
