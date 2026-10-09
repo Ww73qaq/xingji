@@ -402,21 +402,25 @@ function reeditMessage(ref){
 }
 function jumpToMsg(id,ev){
   ev&&ev.stopPropagation();
-  let row=document.querySelector(`.msg-row[data-mid="${id}"]`);
-  const el=document.getElementById('chat-content');
-  if(!row){
-    // 消息在窗口外（历史消息）：扩窗到全量再定位（搜索定位 / 引用跳转）
-    chatPageSize=99999;
-    renderChat(false).then(()=>{
-      row=document.querySelector(`.msg-row[data-mid="${id}"]`);
-      if(!row){showToast('消息不存在');return;}
-      row.scrollIntoView({block:'center',inline:'nearest',behavior:'smooth'});
-      row.classList.add('flash');setTimeout(()=>row.classList.remove('flash'),1500);
-    });
-    return;
-  }
-  row.scrollIntoView({block:'center',inline:'nearest',behavior:'smooth'});
-  row.classList.add('flash');setTimeout(()=>row.classList.remove('flash'),1500);
+  const find=()=>document.querySelector(`.msg-row[data-mid="${id}"]`);
+  const jump=()=>{
+    let row=find();
+    if(!row){
+      // 消息在窗口外（历史消息）：扩窗到全量再定位（搜索定位 / 引用跳转）
+      chatPageSize=99999;
+      renderChat(false).then(()=>{if(find())jump();else showToast('消息不存在');});
+      return;
+    }
+    row.scrollIntoView({block:'center',inline:'nearest',behavior:'auto'});
+    // v3.6.14：先瞬时定位到大致位置，等渲染稳定（1s 缓冲区）后再精确重定位，
+    // 抵消固定顶栏 / 头像图片加载 / smooth 动画过冲造成的 UI 偏移
+    setTimeout(()=>{
+      const rr=find();if(!rr)return;
+      rr.scrollIntoView({block:'center',inline:'nearest',behavior:'auto'});
+      rr.classList.add('flash');setTimeout(()=>rr.classList.remove('flash'),1500);
+    },1000);
+  };
+  jump();
 }
 /* ---- 发送 ---- */
 /* ---- 统一消息发送入口：文字/图片/语音/emoji/表情包/字卡/礼物/单选/多选/问卷 ---- */

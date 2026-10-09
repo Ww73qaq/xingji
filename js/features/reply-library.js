@@ -57,12 +57,49 @@ async function renderCards(){
     <div class="card-toolbar" style="color:var(--hint);font-size:11px">默认按字母排序 · 用过的字卡排在前面</div>
     <div class="search-bar">&#128269;<input type="text" id="card-search" placeholder="搜索字卡" oninput="filterCards(this.value)"></div>
     <div id="card-list"></div>`;
+  bindCardScroll();
   renderCardList();
   filterCards('');
 }
 let cardGroupNames=[];
 function pickCardGroup(i){cardGroupFilter=cardGroupNames[i]||'全部';renderCards();}
-function renderCardList(){dbGetAll('cards').then(all=>{let list=all.filter(c=>cardGroupFilter==='全部'||(c.group||'默认')===cardGroupFilter);list.sort(cardCompare);const box=document.getElementById('card-list');if(!list.length){box.innerHTML='<div class="empty">这个分组还没有字卡<br>点击上方 ＋ 字卡 添加</div>';return;}box.innerHTML=list.map(c=>{const n=Number(c.useCount)||0;const meta=n?(' · '+n+' 次使用'+(c.lastUsedAt?(' · 最近 '+fmtChatDate(c.lastUsedAt)):'')):'';return `<div class="list-card" style="display:flex;align-items:center;gap:10px" data-t="${esc(c.text||'')}"><input class="card-select" type="checkbox" ${selectedCardIds.has(c.id)?'checked':''} onchange="toggleCardSelect(${c.id},this.checked)"><div style="flex:1;min-width:0;cursor:pointer" onclick="sendCardPoke('${esc(c.text)}')"><div class="list-card-title">${esc(c.text)}</div><div class="list-card-sub">${esc(c.group||'默认')}${meta}</div></div><button class="btn-pill ghost" style="padding:6px 10px" onclick="editCard(${c.id})">改</button><button class="btn-pill ghost" style="padding:6px 10px;color:${c.enabled===false?'#c0392b':'var(--sub)'}" onclick="toggleCardEnabled(${c.id})">${c.enabled===false?'启用':'停用'}</button><button class="btn-pill ghost" style="padding:6px 10px" onclick="delCard(${c.id})">删</button></div>`;}).join('');});}
+/* v3.6.14 字卡性能：分批渲染（每批 60 条），滚动到底部再追加，避免字卡上千时一次性渲染卡顿 */
+let _cardList=[],_cardRenderN=60,_cardSearchQ='';
+function cardHtml(c){
+  const n=Number(c.useCount)||0;
+  const meta=n?(' · '+n+' 次使用'+(c.lastUsedAt?(' · 最近 '+fmtChatDate(c.lastUsedAt)):'')):'';
+  return `<div class="list-card" style="display:flex;align-items:center;gap:10px" data-t="${esc(c.text||'')}"><input class="card-select" type="checkbox" ${selectedCardIds.has(c.id)?'checked':''} onchange="toggleCardSelect(${c.id},this.checked)"><div style="flex:1;min-width:0;cursor:pointer" onclick="sendCardPoke('${esc(c.text)}')"><div class="list-card-title">${esc(c.text)}</div><div class="list-card-sub">${esc(c.group||'默认')}${meta}</div></div><button class="btn-pill ghost" style="padding:6px 10px" onclick="editCard(${c.id})">改</button><button class="btn-pill ghost" style="padding:6px 10px;color:${c.enabled===false?'#c0392b':'var(--sub)'}" onclick="toggleCardEnabled(${c.id})">${c.enabled===false?'启用':'停用'}</button><button class="btn-pill ghost" style="padding:6px 10px" onclick="delCard(${c.id})">删</button></div>`;
+}
+function renderCardList(reset){
+  dbGetAll('cards').then(all=>{
+    let list=all.filter(c=>cardGroupFilter==='全部'||(c.group||'默认')===cardGroupFilter);
+    if(_cardSearchQ)list=list.filter(c=>(c.text||'').toLowerCase().includes(_cardSearchQ));
+    list.sort(cardCompare);
+    _cardList=list;
+    if(reset)_cardRenderN=60;
+    const box=document.getElementById('card-list');
+    if(!list.length){box.innerHTML='<div class="empty">这个分组还没有字卡<br>点击上方 ＋ 字卡 添加</div>';return;}
+    _cardRenderN=Math.min(list.length,_cardRenderN);
+    box.innerHTML=list.slice(0,_cardRenderN).map(cardHtml).join('');
+    maybeCardLoadMore();
+  });
+}
+function maybeCardLoadMore(){
+  if(!_cardList.length||_cardRenderN>=_cardList.length)return;
+  const box=document.getElementById('card-list');
+  if(!box)return;
+  const r=box.getBoundingClientRect();
+  if(r.bottom<innerHeight+160){
+    _cardRenderN=Math.min(_cardList.length,_cardRenderN+60);
+    box.innerHTML=_cardList.slice(0,_cardRenderN).map(cardHtml).join('');
+  }
+}
+window.addEventListener('scroll',()=>{if(document.getElementById('app-cards')&&document.getElementById('app-cards').classList.contains('on'))maybeCardLoadMore();},{passive:true});
+/* v3.6.14：字卡页滚动容器是 .app-body（#cards-body 自己），监听其滚动触发追加 */
+function bindCardScroll(){
+  const c=document.getElementById('cards-body')||document.getElementById('app-cards');
+  if(c&&!c.dataset.bs){c.dataset.bs=1;c.addEventListener('scroll',()=>maybeCardLoadMore(),{passive:true});}
+}
 function toggleCardSelect(id,on){if(on)selectedCardIds.add(id);else selectedCardIds.delete(id);}
 async function toggleCardEnabled(id){
   const all=await dbGetAll('cards');const c=all.find(x=>x.id===id);if(!c)return;
@@ -84,9 +121,18 @@ async function deleteSelectedCards(){const ids=[...selectedCardIds];if(!ids.leng
 async function optimizeCards(){const all=await dbGetAll('cards');const seen=new Set(),dupIds=[],changes=[];for(const c of all){const t=(c.text||'').replace(/\s+/g,' ').trim();if(!t){dupIds.push(c.id);continue;}if(seen.has(t)){dupIds.push(c.id);continue;}seen.add(t);if(c.text!==t)changes.push([c,t]);}const apply=async()=>{for(const id of dupIds)await dbDelete('cards',id);for(const [c,t] of changes){c.text=t;await dbPut('cards',c);}selectedCardIds.clear();renderCards();showToast(`清理重复完成${dupIds.length?'，删除重复/空卡 '+dupIds.length+' 张':''}`);};if(dupIds.length){appConfirm('检测到重复字卡',`发现 ${dupIds.length} 张重复或空白字卡。是否自动删除？`,apply);}else{await apply();}}
 function filterCards(q){
   q=(q||'').trim().toLowerCase();
-  document.querySelectorAll('#card-list .list-card').forEach(el=>{
-    el.style.display=!q||(el.dataset.t||'').toLowerCase().includes(q)?'':'none';
-  });
+  _cardSearchQ=q;
+  // v3.6.14：搜索时重建已渲染批次（不一次性渲染全部）
+  const box=document.getElementById('card-list');
+  if(!box)return;
+  if(!q){renderCardList(false);return;}
+  const hit=_cardList.filter(c=>(c.text||'').toLowerCase().includes(q));
+  _cardRenderN=Math.min(hit.length,60);
+  box.innerHTML=hit.slice(0,_cardRenderN).map(cardHtml).join('');
+  if(hit.length>_cardRenderN){
+    _cardList=hit;
+    setTimeout(maybeCardLoadMore,80);
+  }
 }
 async function addCard(){
   showModal('添加字卡','',
