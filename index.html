@@ -110,6 +110,27 @@
     <div class="tab-item" data-tab="cards" onclick="switchTab('cards')"><span class="tab-ico" data-ico="book"></span><span class="tab-name">字卡</span><span class="badge" id="tab-badge-cards" style="display:none">0</span></div>
     <div class="tab-item" data-tab="me" onclick="switchTab('me')"><span class="tab-ico" data-ico="me"></span><span class="tab-name">我的</span></div>
   </div>
+  <!-- v3.6.13：贴边小蝴蝶刷新按钮（手机添加到主屏幕不方便刷新，点它重连 TA 的世界） -->
+  <div id="refresh-butterfly" class="refresh-butterfly" onclick="refreshSite()" title="刷新" aria-label="刷新">
+    <svg viewBox="0 0 64 64" width="30" height="30">
+      <defs>
+        <linearGradient id="bflyG" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stop-color="#aee8ff"/><stop offset=".55" stop-color="#4aa8ff"/><stop offset="1" stop-color="#2f6bff"/>
+        </linearGradient>
+      </defs>
+      <g class="bfly-wl">
+        <path d="M32 30 C25 17 11 10 8 21 C6 29 17 34 32 30 Z" fill="url(#bflyG)"/>
+        <path d="M32 32 C23 23 9 21 8 28 C7 34 20 37 32 32 Z" fill="rgba(255,255,255,.28)"/>
+      </g>
+      <g class="bfly-wr">
+        <path d="M32 30 C39 17 53 10 56 21 C58 29 47 34 32 30 Z" fill="url(#bflyG)"/>
+        <path d="M32 32 C41 23 55 21 56 28 C57 34 44 37 32 32 Z" fill="rgba(255,255,255,.28)"/>
+      </g>
+      <ellipse cx="32" cy="35" rx="2.6" ry="10.5" fill="#1e3a8a"/>
+      <path d="M30 27 Q25 16 19 13" stroke="#1e3a8a" stroke-width="1.6" fill="none" stroke-linecap="round"/>
+      <path d="M34 27 Q39 16 45 13" stroke="#1e3a8a" stroke-width="1.6" fill="none" stroke-linecap="round"/>
+    </svg>
+  </div>
 </div>
 
 <!-- ===== APP PAGES（导航栈：push / pop 均有动画） ===== -->

@@ -55,11 +55,13 @@ let state = {
   // v3.6.9：便签闹钟已触发标记（once/daily/weekly 去重）
   noteAlarmDone:{},
   // v3.6.11：TA 排班偏好（意识自动排班概率/休息日概率）+ 待办闹钟已触发标记
-  taSchedSettings:{prob:85,restProb:20},todoAlarmDone:{}
+  taSchedSettings:{prob:85,restProb:20},todoAlarmDone:{},
+  // v3.6.13：TA 世界时间时差偏移（持久化——断开连接也不重置，两个世界时间连续）
+  taTimeOffset:0
 };
 
 async function loadSettings(){
-  const keys=['me','other','skin','pin','prob','meetTime','quote','splashText','stats','chat','muteEndTime','muteRequest','surveySettings','notify','notes','taMuteMeEndTime','taMuteReqCoolAt','diaryReqAt','writings','taMuteLastEnd','taMuteReqAt','statusPool','moodPool','taStatusUntil','taStatusCoolAt','taMuteCycleSkip','taCallCycleSkip','taMuteReason','taStatusLockMin','calLastSnapDate','customGifts','taSenseCoolAt','myDiaryReqCoolAt','taDiaryDenied','noteAlarmDone','taSchedSettings','todoAlarmDone'];
+  const keys=['me','other','skin','pin','prob','meetTime','quote','splashText','stats','chat','muteEndTime','muteRequest','surveySettings','notify','notes','taMuteMeEndTime','taMuteReqCoolAt','diaryReqAt','writings','taMuteLastEnd','taMuteReqAt','statusPool','moodPool','taStatusUntil','taStatusCoolAt','taMuteCycleSkip','taCallCycleSkip','taMuteReason','taStatusLockMin','calLastSnapDate','customGifts','taSenseCoolAt','myDiaryReqCoolAt','taDiaryDenied','noteAlarmDone','taSchedSettings','todoAlarmDone','taTimeOffset'];
   for(const k of keys){const v=await dbGet('settings',k);if(v&&v.value!==undefined)state[k]=typeof v.value==='object'&&v.value!==null&&!Array.isArray(v.value)?{...state[k],...v.value}:v.value;}
 }
 async function saveKey(key){const v=await dbGet('settings',key);if(v){v.value=state[key];await dbPut('settings',v);}else{await dbPut('settings',{key,value:state[key]});}}

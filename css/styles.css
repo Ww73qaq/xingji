@@ -864,3 +864,13 @@ body{-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;letter
 /* v3.6.11 日视图：今天灰标 + 日期切换 */
 .cal-today-tag{display:inline-block;font-size:10px;font-style:normal;color:#a5b0c0;background:var(--input);border-radius:6px;padding:1px 5px;margin-left:5px;vertical-align:middle;font-weight:400}
 .cal-head .cal-nav{min-width:34px}
+
+/* v3.6.13：贴边小蝴蝶刷新按钮（蓝色渐变，翅膀轻扇；点击快速扇动后刷新） */
+.refresh-butterfly{position:absolute;right:-5px;top:50%;transform:translateY(-50%);z-index:60;width:46px;height:46px;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,rgba(190,225,255,.94),rgba(110,165,255,.94));backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);border-radius:14px 0 0 14px;box-shadow:0 4px 16px rgba(60,120,255,.3);cursor:pointer;-webkit-tap-highlight-color:transparent;transition:box-shadow .2s}
+.refresh-butterfly:active{box-shadow:0 2px 8px rgba(60,120,255,.45)}
+.refresh-butterfly svg{filter:drop-shadow(0 1px 2px rgba(30,60,140,.25))}
+.bfly-wl{transform-origin:33px 32px;animation:bflyFlap 2.6s ease-in-out infinite}
+.bfly-wr{transform-origin:31px 32px;animation:bflyFlap 2.6s ease-in-out infinite .2s}
+@keyframes bflyFlap{0%,100%{transform:scaleX(1)}50%{transform:scaleX(.5)}}
+.refresh-butterfly.flap .bfly-wl,.refresh-butterfly.flap .bfly-wr{animation:bflyFlapFast .4s ease-in-out infinite}
+@keyframes bflyFlapFast{0%,100%{transform:scaleX(1)}50%{transform:scaleX(.35)}}

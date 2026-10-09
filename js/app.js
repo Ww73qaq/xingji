@@ -26,21 +26,34 @@ function updateStatusClock(){
   const st=document.getElementById('status-time');if(st)st.textContent=t;
   const ct=document.getElementById('chat-status-time');if(ct)ct.textContent=t;
 }
-/* v3.6.11 TA 的世界时间（意识空间时间）：TA 的时间 = 现实时间 + 时差偏移，
-   偏移初抽 ±1~6 小时（与你的世界保持时差感），之后每 1~8 小时缓慢漂移 ±20 分钟；
-   分针随现实同步走动——两个世界时间不同、但各自连续流动（TA 用意识感知时间，不参与你的钟表） */
-let _taOffset=0,_taOffsetNext=0;
+/* v3.6.13 TA 的世界时间（意识空间时间，方案 B——持久化）：
+   TA 时间 = 现实时间 + 时差偏移。偏移初抽 ±1~6 小时并**持久化到 state.taTimeOffset**，
+   断开连接/刷新后延续上次时差（两个世界时间连续、可积累）；之后每 1~8 小时或跨天时
+   微漂移 ±20 分钟并持久化。分针随现实流动，TA 的世界与你的世界不同空间但各自连续。 */
+let _taOffsetNext=0,_taOffsetDay='';
 function taOffsetNow(){
-  if(Date.now()>=_taOffsetNext){
-    if(!_taOffset){
-      const sign=Math.random()<0.5?-1:1;
-      _taOffset=sign*(1+Math.random()*5)*3600000;   // 初抽 ±1~6h 时差
-    }else{
-      _taOffset+=(Math.random()*40-20)*60000;        // 每次漂移 ±20 分钟
-    }
-    _taOffsetNext=Date.now()+(1+Math.random()*7)*3600000;
+  const now=Date.now();
+  const d=new Date(now);
+  const todayKey=d.getFullYear()+'-'+(d.getMonth()+1)+'-'+d.getDate();
+  let changed=false;
+  if(!state.taTimeOffset){
+    const sign=Math.random()<0.5?-1:1;
+    state.taTimeOffset=sign*(1+Math.random()*5)*3600000;   // 初抽 ±1~6h 时差
+    changed=true;
   }
-  return _taOffset;
+  if(now>=_taOffsetNext||_taOffsetDay!==todayKey){
+    if(state.taTimeOffset&&!_taOffsetNext){
+      // 延续场景（刷新/重开）：已有持久化时差 → 只安排下次漂移，不立即漂移
+      _taOffsetNext=now+(1+Math.random()*7)*3600000;
+    }else{
+      state.taTimeOffset+=(Math.random()*40-20)*60000;       // 每 1~8h / 跨天漂移 ±20 分钟
+      _taOffsetNext=now+(1+Math.random()*7)*3600000;
+      changed=true;
+    }
+  }
+  _taOffsetDay=todayKey;
+  if(changed&&typeof saveKey==='function')saveKey('taTimeOffset');
+  return state.taTimeOffset;
 }
 function renderTaTime(){
   const d=new Date(Date.now()+taOffsetNow());
@@ -133,3 +146,11 @@ window.openApp=function(id,...rest){const r=_origOpenApp.apply(this,[id,...rest]
 /* 启动：paintTabIcons 需要 DOM + LINE_ICONS，放在最后统一执行 */
 paintTabIcons();
 startHeartbeat();
+
+/* v3.6.13：贴边小蝴蝶刷新——点击扇翅后重连（手机主屏幕快捷方式不方便手动刷新） */
+function refreshSite(){
+  const b=document.getElementById('refresh-butterfly');
+  if(b)b.classList.add('flap');
+  if(typeof showToast==='function')showToast('正在重新连接 TA 的世界…');
+  setTimeout(()=>location.reload(),750);
+}
