@@ -227,7 +227,14 @@ function minimizeCall(){
   if(callMode!=='talk')return;
   hideCallOverlay();                 // 修复旧 bug：之前 remove('show') 不生效，全屏一直盖着浮条
   initCallFloat();
-  const f=document.getElementById('call-float');if(f)f.classList.add('show');
+  const f=document.getElementById('call-float');if(!f)return;
+  _floatMini=true;
+  f.classList.add('show','mini','edge');   // v3.6.9：小窗直接进迷你头像贴边态（漏半头像），不显示「头像+名字+时间」卡片
+  const ph=document.getElementById('phone');
+  const p=ph.getBoundingClientRect();
+  f.style.right='auto';
+  f.style.left=(p.width-f.offsetWidth/2)+'px';
+  f.style.top=Math.min(Math.max(Number(f.style.top)||(p.height*0.3),0),p.height-f.offsetHeight)+'px';
   updateCallFloat();
 }
 /* 右上角四角按钮：正常 ⇄ 迷你（更小、靠边漏半、半透明） */
