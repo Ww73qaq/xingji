@@ -25,7 +25,7 @@ async function updateHome(){
   updateTabBar();
   renderHomeTraceWidget();   // v3.7.5：桌面 4×3 心念轨迹组件（当天两条轨迹线）
 }
-/* ===== 桌面心念轨迹组件：当天我/TA 活动按各自时间单位 → 迷你折线 ===== */
+/* ===== 桌面心念轨迹组件（v3.7.5.1）：当天我/TA 活动按各自时间单位 → 折线，带小时刻度 ===== */
 async function renderHomeTraceWidget(){
   const g=document.getElementById('tw-lines');if(!g)return;
   try{await dbReady;}catch(e){}
@@ -46,15 +46,32 @@ async function renderHomeTraceWidget(){
     if(e.who==='me')meB[new Date(e.time).getHours()]++;
     else if(e.who==='ta')taB[new Date(e.time+off).getHours()]++;
   });
+  const el=document.getElementById('tw-date');
+  if(el)el.textContent=(d.getMonth()+1)+'月'+d.getDate()+'日';
+  const lg=document.getElementById('tw-legend-ta');
+  if(lg)lg.textContent=state.other.name||'TA';
+  const W=300,H=84,PADL=5,PADR=5,PADT=6,PADB=16;
+  const iw=W-PADL-PADR,ih=H-PADT-PADB;
+  const x=i=>PADL+(i/23)*iw, y=v=>PADT+ih-(v/50)*ih;   // 50 为满量程（单小时最多 50 条），超出封顶
+  let out='';
+  // 小时刻度线 + 单位标签（0/6/12/18/24）
+  for(const h of [0,6,12,18,24]){
+    const px=x(h===24?23:h);
+    out+=`<line x1="${px.toFixed(1)}" y1="${PADT}" x2="${px.toFixed(1)}" y2="${H-PADB+3}" stroke="var(--hint)" stroke-width="0.6" opacity=".5"/>`;
+    out+=`<text x="${px.toFixed(1)}" y="${H-2}" text-anchor="${h===0?'start':h===24?'end':'middle'}" font-size="8.5" fill="var(--hint)" opacity=".8">${h}</text>`;
+  }
+  // 网格横线（0 / 半程）
+  for(const r of [0,50]){
+    out+=`<line x1="${PADL}" y1="${y(r).toFixed(1)}" x2="${W-PADR}" y2="${y(r).toFixed(1)}" stroke="var(--hint)" stroke-width="0.5" opacity=".22" stroke-dasharray="2 3"/>`;
+  }
   const mkLine=(arr,color)=>{
-    const max=Math.max(1,...arr);
-    const pts=arr.map((v,i)=>((i/(23))*100).toFixed(1)+','+(38-Math.max(1.5,(v/max)*30)).toFixed(1));
-    return `<polyline points="${pts.join(' ')}" fill="none" stroke="${color}" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round" opacity=".85"/>`;
+    const pts=arr.map((v,i)=>x(i).toFixed(1)+','+y(Math.min(v,50)).toFixed(1));
+    return `<polyline points="${pts.join(' ')}" fill="none" stroke="${color}" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" opacity=".85"/>`;
   };
   const total=meB.reduce((a,b)=>a+b,0)+taB.reduce((a,b)=>a+b,0);
-  g.innerHTML=(total>0)
-    ?mkLine(meB,'#5c8aa9')+mkLine(taB,'#8c7aa9')
-    :`<line x1="6" y1="20" x2="94" y2="20" stroke="var(--hint)" stroke-width="1" opacity=".4"/>`;
+  if(total>0)out+=mkLine(meB,'#5c8aa9')+mkLine(taB,'#8c7aa9');
+  else out+=`<line x1="${PADL}" y1="${(PADT+ih/2).toFixed(1)}" x2="${W-PADR}" y2="${(PADT+ih/2).toFixed(1)}" stroke="var(--hint)" stroke-width="1" opacity=".35"/>`;
+  g.innerHTML=out;
 }
 /* ===== 便签（两张：我的 / TA 的） =====
    owner:'me'   = 用户自己写的 → TA 绝不覆盖

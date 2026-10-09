@@ -8,7 +8,7 @@ function renderWriteLetter(list){
   const taName=state.other.name||'TA',myName=state.me.name||'我';
   const today=fmtFull(Date.now());
   list.innerHTML=`<div class="write-letter">
-    <div class="wl-to">致 ${esc(taName)}</div>
+    <div class="wl-to">To ${esc(taName)}</div>
     <div class="wl-hint">见字如面，展信舒颜。</div>
     <textarea class="textarea-full" id="letter-content" placeholder="写下想说的话…" style="min-height:190px;background:transparent;line-height:2;font-size:15px"></textarea>
     <div class="wl-foot">此致<br>${esc(myName)} · ${today}</div>

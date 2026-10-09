@@ -87,6 +87,7 @@ function startHeartbeat(){
       // v3.6.10：按用户要求去掉朋友圈红点（提醒中心仍在，不再显示角标）
       refreshStalePolls();          // 题目「等太久」的文案翻转（只刷那几条气泡）
     }
+    if(_tick%120===0){ renderHomeTraceWidget(); }        // v3.7.5.1：桌面轨迹组件 2 分钟低频刷新
     if(_tick%300===0){
       maybeTaWriteNote();            // TA 低频写便签（约 90~160 分钟一次机会，内部概率 30%）
     }

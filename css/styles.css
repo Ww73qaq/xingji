@@ -630,7 +630,7 @@ body{-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;letter
 .write-letter{background:var(--card);border:1px solid var(--input);border-radius:16px;padding:20px 18px;box-shadow:0 2px 14px rgba(0,0,0,.04)}
 .wl-to{text-align:left;font-size:13px;color:var(--text);letter-spacing:1px;padding-bottom:4px;font-weight:500}
 
-.wl-hint{font-size:14px;color:var(--text);text-align:center;letter-spacing:4px;line-height:1.9;margin:12px 0 10px;border-bottom:1px solid var(--input);padding-bottom:14px}
+.wl-hint{font-size:13px;color:var(--hint);line-height:1.9;margin:2px 0 10px}
 .wl-foot{text-align:right;font-size:12px;color:var(--hint);margin-top:14px;line-height:1.8;letter-spacing:1px}
 .diary-paper{background:linear-gradient(transparent 23px,#e9e5dd 24px);background-size:100% 24px;border:1px solid var(--input);border-radius:14px;padding:18px 16px;min-height:130px;line-height:24px;font-size:14px;font-family:inherit}
 .diary-entry{background:var(--card);border:1px solid var(--input);border-radius:14px;padding:13px 14px;margin-bottom:10px}
@@ -914,6 +914,12 @@ body{-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;letter
 .modal-item .g-act.danger{color:#c0392b}
 .modal-item .g-new{color:var(--primary);font-weight:600}
 
-/* ===== 桌面心念轨迹组件（v3.7.5，4×3 布局第 9 格） ===== */
-.trace-widget{gap:4px}
-.tw-svg{width:62px;height:38px;margin-top:5px;overflow:visible}
+/* ===== 桌面心念轨迹组件（v3.7.5.1，独立卡片：长×高、带小时单位、只显示当天） ===== */
+.trace-card{display:flex;flex-direction:column;gap:4px;margin:14px calc(var(--sal) + 10px) 0;padding:12px 14px 8px;background:var(--card);border:1px solid var(--input);border-radius:16px;flex-shrink:0;cursor:pointer;transition:background .15s}
+.trace-card:active{background:var(--input)}
+.trace-card-head{display:flex;align-items:baseline;gap:8px}
+.trace-card-title{font-size:12px;color:var(--text);letter-spacing:1px;font-weight:500}
+.trace-card-date{font-size:11px;color:var(--hint)}
+.tw-svg{width:100%;height:84px;display:block;overflow:visible}
+.trace-card-legend{display:flex;gap:14px;font-size:10px;color:var(--hint);padding:2px 2px 4px}
+.trace-card-legend i{display:inline-block;width:14px;height:2px;border-radius:2px;vertical-align:middle;margin-right:4px}
