@@ -55,7 +55,7 @@ async function renderCards(){
     </div>
     <div class="tabs" style="overflow-x:auto;flex-wrap:nowrap">${names.map((n,i)=>`<button class="tab${cardGroupFilter===n?' active':''}" style="flex:0 0 auto;padding:8px 14px" onclick="pickCardGroup(${i})">${esc(n)}</button>`).join('')}</div>
     <div class="card-toolbar" style="color:var(--hint);font-size:11px">默认按字母排序 · 用过的字卡排在前面</div>
-    <div class="search-bar">&#128269;<input type="text" id="card-search" placeholder="搜索字卡" oninput="filterCards(this.value)"></div>
+    <div class="search-bar"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg><input type="text" id="card-search" placeholder="搜索字卡" oninput="filterCards(this.value)"></div>
     <div id="card-list"></div>`;
   bindCardScroll();
   renderCardList();

@@ -27,7 +27,7 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'%3E%3Crect width='180' height='180' rx='40' fill='%23f7f6f3'/%3E%3Ctext x='90' y='122' font-size='96' text-anchor='middle' fill='%231a1a1a' font-family='serif'%3E%E2%97%86%3C/text%3E%3C/svg%3E">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23f7f6f3'/%3E%3Ctext x='32' y='45' font-size='34' text-anchor='middle' fill='%231a1a1a' font-family='serif'%3E%E2%97%86%3C/text%3E%3C/svg%3E">
-<link rel="stylesheet" href="css/styles.css?v=3.6.10">
+<link rel="stylesheet" href="css/styles.css?v=3.6.11">
 </head>
 <body>
 <div id="phone">
@@ -103,18 +103,18 @@
   <div class="trace-card" id="trace-widget" onclick="openApp('trace')">
     <div class="trace-card-head"><span class="trace-card-title">心跳轨迹</span><span class="trace-card-date" id="tw-date"></span></div>
     <svg class="tw-svg" viewBox="0 0 300 84" preserveAspectRatio="none" aria-hidden="true"><g id="tw-lines"></g></svg>
-    <div class="trace-card-legend"><span><i style="background:#5c8aa9"></i>我</span><span><i style="background:#8c7aa9"></i><b id="tw-legend-ta" style="font-weight:normal">TA</b></span><span style="margin-left:auto">活跃密度 0-5</span></div>
+    <div class="trace-card-legend"><span><i style="background:#54c0a6"></i>我</span><span><i style="background:#f0a485"></i><b id="tw-legend-ta" style="font-weight:normal">TA</b></span><span style="margin-left:auto">活跃密度 0-5</span></div>
   </div>
   <!-- 应用网格：桌面只放「信箱/日记/数据与回忆/表情/感应房间/拼写」，四个 Tab 不重复 -->
   <div class="app-grid" id="app-grid">
     <div class="app-item" onclick="openApp('mailbox')"><div class="app-icon" style="background:var(--c-purple)">信</div><div class="app-label">信箱</div></div>
-    <div class="app-item" onclick="openApp('diary')"><div class="app-icon" style="background:#8c7aa9">记</div><div class="app-label">日记</div></div>
+    <div class="app-item" onclick="openApp('diary')"><div class="app-icon" style="background:#f0a485">记</div><div class="app-label">日记</div></div>
     <div class="app-item" onclick="openApp('memory')"><div class="app-icon" style="background:#8c8c8c">忆</div><div class="app-label">数据与回忆</div></div>
     <div class="app-item" onclick="openApp('emoji')"><div class="app-icon" style="background:var(--c-green)">表</div><div class="app-label">表情</div></div>
     <div class="app-item" onclick="openApp('sense')"><div class="app-icon" style="background:#7a9a8c">感</div><div class="app-label">感应房间</div></div>
     <div class="app-item" onclick="openApp('writing')"><div class="app-icon" style="background:#a97a5c">拼</div><div class="app-label">拼写</div></div>
-    <div class="app-item" onclick="openApp('calendar')"><div class="app-icon" style="background:#5c8aa9">历</div><div class="app-label">日历</div></div>
-    <div class="app-item" onclick="openApp('trace')"><div class="app-icon" style="background:#6b5c8a">迹</div><div class="app-label">轨迹</div></div>
+    <div class="app-item" onclick="openApp('calendar')"><div class="app-icon" style="background:#54c0a6">历</div><div class="app-label">日历</div></div>
+    <div class="app-item" onclick="openApp('trace')"><div class="app-icon" style="background:#54c0a6">迹</div><div class="app-label">轨迹</div></div>
   </div>
   <!-- 手机底部标签栏（4 个一级入口，与网格互斥） -->
   <div class="tabbar" id="tabbar">
@@ -212,7 +212,7 @@
 <div id="app-chatsearch" class="app-page">
   <div class="app-header"><div class="back" onclick="goBack()">&#8249;</div><h1>聊天记录</h1><div class="act" style="opacity:.25">&#8942;</div></div>
   <div class="app-body">
-    <div class="search-bar">&#128269;<input type="text" id="chat-search-input" placeholder="搜索聊天记录" oninput="onChatSearch(this.value)"></div>
+    <div class="search-bar"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg><input type="text" id="chat-search-input" placeholder="搜索聊天记录" oninput="onChatSearch(this.value)"></div>
     <div id="chat-search-result"></div>
   </div>
 </div>
@@ -290,7 +290,7 @@
     <div class="room-info-sub" id="room-info-sub">感应 TA 在哪里，看看 TA 此刻在干嘛</div>
     <div class="room-actions">
       <button class="btn-pill primary" onclick="saveRoomLayout()">保存布局</button>
-      <button class="btn-pill ghost" onclick="senseTA()">&#128269; 感应 TA 在哪里</button>
+      <button class="btn-pill ghost" onclick="senseTA()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg> 感应 TA 在哪里</button>
     </div>
   </div>
 </div>
@@ -409,39 +409,39 @@
 
 </div>
 
-<script src="js/config.js?v=3.6.10"></script>
-<script src="js/utils.js?v=3.6.10"></script>
-<script src="js/db.js?v=3.6.10"></script>
-<script src="js/state.js?v=3.6.10"></script>
-<script src="js/modal.js?v=3.6.10"></script>
-<script src="js/nav.js?v=3.6.10"></script>
-<script src="js/features/theme-editor.js?v=3.6.10"></script>
-<script src="js/home.js?v=3.6.10"></script>
-<script src="js/ui/lock.js?v=3.6.10"></script>
-<script src="js/ui/version.js?v=3.6.10"></script>
-<script src="js/ui/action-bar.js?v=3.6.10"></script>
-<script src="js/ui/chat.js?v=3.6.10"></script>
-<script src="js/features/poll.js?v=3.6.10"></script>
-<script src="js/features/call.js?v=3.6.10"></script>
-<script src="js/ui/moments.js?v=3.6.10"></script>
-<script src="js/ui/mailbox.js?v=3.6.10"></script>
-<script src="js/features/envelope.js?v=3.6.10"></script>
-<script src="js/ui/diary.js?v=3.6.10"></script>
-<script src="js/ui/profile.js?v=3.6.10"></script>
-<script src="js/features/mood.js?v=3.6.10"></script>
-<script src="js/features/stickers.js?v=3.6.10"></script>
-<script src="js/ui/memory.js?v=3.6.10"></script>
-<script src="js/ui/writing.js?v=3.6.10"></script>
-<script src="js/ui/companion.js?v=3.6.10"></script>
-<script src="js/ui/probability.js?v=3.6.10"></script>
-<script src="js/features/reply-library.js?v=3.6.10"></script>
-<script src="js/features/calendar.js?v=3.6.10"></script>
-<script src="js/features/group-chat.js?v=3.6.10"></script>
-<script src="js/ui/room.js?v=3.6.10"></script>
-<script src="js/ui/trace.js?v=3.6.10"></script>
-<script src="js/data/backup.js?v=3.6.10"></script>
-<script src="js/scheduler.js?v=3.6.10"></script>
-<script src="js/engine.js?v=3.6.10"></script>
-<script src="js/app.js?v=3.6.10"></script>
+<script src="js/config.js?v=3.6.11"></script>
+<script src="js/utils.js?v=3.6.11"></script>
+<script src="js/db.js?v=3.6.11"></script>
+<script src="js/state.js?v=3.6.11"></script>
+<script src="js/modal.js?v=3.6.11"></script>
+<script src="js/nav.js?v=3.6.11"></script>
+<script src="js/features/theme-editor.js?v=3.6.11"></script>
+<script src="js/home.js?v=3.6.11"></script>
+<script src="js/ui/lock.js?v=3.6.11"></script>
+<script src="js/ui/version.js?v=3.6.11"></script>
+<script src="js/ui/action-bar.js?v=3.6.11"></script>
+<script src="js/ui/chat.js?v=3.6.11"></script>
+<script src="js/features/poll.js?v=3.6.11"></script>
+<script src="js/features/call.js?v=3.6.11"></script>
+<script src="js/ui/moments.js?v=3.6.11"></script>
+<script src="js/ui/mailbox.js?v=3.6.11"></script>
+<script src="js/features/envelope.js?v=3.6.11"></script>
+<script src="js/ui/diary.js?v=3.6.11"></script>
+<script src="js/ui/profile.js?v=3.6.11"></script>
+<script src="js/features/mood.js?v=3.6.11"></script>
+<script src="js/features/stickers.js?v=3.6.11"></script>
+<script src="js/ui/memory.js?v=3.6.11"></script>
+<script src="js/ui/writing.js?v=3.6.11"></script>
+<script src="js/ui/companion.js?v=3.6.11"></script>
+<script src="js/ui/probability.js?v=3.6.11"></script>
+<script src="js/features/reply-library.js?v=3.6.11"></script>
+<script src="js/features/calendar.js?v=3.6.11"></script>
+<script src="js/features/group-chat.js?v=3.6.11"></script>
+<script src="js/ui/room.js?v=3.6.11"></script>
+<script src="js/ui/trace.js?v=3.6.11"></script>
+<script src="js/data/backup.js?v=3.6.11"></script>
+<script src="js/scheduler.js?v=3.6.11"></script>
+<script src="js/engine.js?v=3.6.11"></script>
+<script src="js/app.js?v=3.6.11"></script>
 </body>
 </html>

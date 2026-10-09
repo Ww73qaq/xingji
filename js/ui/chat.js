@@ -1030,7 +1030,7 @@ function renderChatInfo(){
       </div>
     </div>
     <div class="cs-group">
-      <div class="cs-item" onclick="openApp('chatsearch')"><span class="cs-ico">&#128269;</span><span class="cs-label">聊天记录</span><span class="cs-arrow">&#8250;</span></div>
+      <div class="cs-item" onclick="openApp('chatsearch')"><span class="cs-ico"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg></span><span class="cs-label">聊天记录</span><span class="cs-arrow">&#8250;</span></div>
     </div>
     <div class="cs-group">
       <div class="cs-item" onclick="toggleChatQuote()"><span class="cs-ico">&#128172;</span><span class="cs-label">允许引用</span><span class="cs-switch${state.chat.showQuote!==0?' on':''}" onclick="event.stopPropagation();toggleChatQuote()"></span></div>
@@ -1105,7 +1105,7 @@ function onChatSearch(q){
     // 搜索结果只来自 TA（§56）
     const list=all.filter(m=>m.sender==='other'&&!m.recalled&&msgPreviewText(m).toLowerCase().includes(q.toLowerCase())).sort((a,b)=>b.time-a.time);
     if(!list.length){box.innerHTML='<div class="empty">没有找到 TA 的相关消息</div>';return;}
-    box.innerHTML=`<div class="cs-group"><div class="cs-item" style="cursor:default"><span class="cs-ico">&#128269;</span><span class="cs-label">${list.length} 条结果</span></div></div>`
+    box.innerHTML=`<div class="cs-group"><div class="cs-item" style="cursor:default"><span class="cs-ico"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg></span><span class="cs-label">${list.length} 条结果</span></div></div>`
       +list.map(m=>{
         const t=msgPreviewText(m);
         const i=t.toLowerCase().indexOf(q.toLowerCase());

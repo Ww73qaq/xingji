@@ -801,13 +801,13 @@ body{-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;letter
 .tr-dist-main b{font-size:15px;color:var(--text)}
 .tr-dist-main em{font-size:11px;color:var(--hint);font-style:normal}
 .tr-dist-bar{height:6px;border-radius:3px;background:rgba(0,0,0,.08);overflow:hidden;margin-bottom:8px}
-.tr-dist-bar i{display:block;height:100%;border-radius:3px;background:linear-gradient(90deg,#9b59b6,#4a7dcf)}
+.tr-dist-bar i{display:block;height:100%;border-radius:3px;background:linear-gradient(90deg,#54c0a6,#f0a485)}
 .tr-dist-sub{font-size:11px;color:var(--hint)}
 .tr-freq{display:flex;gap:4px;align-items:flex-end;height:64px;overflow-x:auto;scrollbar-width:none}
 .tr-freq::-webkit-scrollbar{display:none}
 .tr-freq-col{flex:1 0 12px;display:flex;flex-direction:column;align-items:center;gap:3px}
 .tr-freq-bars{display:flex;flex-direction:column-reverse;gap:2px;height:52px;align-items:center}
-.tr-freq-bars i{width:8px;height:8px;border-radius:2px;background:#8a9bb5}
+.tr-freq-bars i{width:8px;height:8px;border-radius:2px;background:#a8dcc7}
 .tr-freq-day{font-size:8.5px;color:var(--hint)}
 .tr-dual{display:flex;flex-direction:column;gap:10px;margin:4px 0 8px}
 .tr-dual-row{display:flex;align-items:center;gap:8px;font-size:12px}
@@ -856,11 +856,11 @@ body{-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;letter
 .trw-day{flex:1;text-align:center;padding:5px 0;border-radius:10px;cursor:pointer}
 .trw-day em{display:block;font-style:normal;font-size:10px;color:var(--hint);line-height:1.2}
 .trw-day b{display:block;font-size:13px;color:var(--text);line-height:1.4}
-.trw-day i{display:block;font-style:normal;font-size:9px;color:#e06060;line-height:1}
-.trw-day.today b{color:#e06060}
-.trw-day.sel{background:linear-gradient(135deg,#6a5cff,var(--c-purple));box-shadow:0 2px 6px rgba(106,92,255,.35)}
-.trw-day.sel em,.trw-day.sel b{color:#fff}
-.trw-day.sel i{color:#ffe3e3}
+.trw-day i{display:block;font-style:normal;font-size:9px;color:#f0a485;line-height:1}
+.trw-day.today b{color:#f0a485}
+.trw-day.sel{background:linear-gradient(135deg,#d6f3e7,#eefaf4);box-shadow:0 2px 6px rgba(84,192,166,.28)}
+.trw-day.sel em,.trw-day.sel b{color:#2f9b7f}
+.trw-day.sel i{color:#f0a485}
 .trw-label{font-size:11px;color:var(--hint);text-align:center;margin:0 0 10px}
 
 /* v3.6.11 日视图：今天灰标 + 日期切换 */

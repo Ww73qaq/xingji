@@ -3,7 +3,7 @@
    上半区：轨迹图卡（左右滑动）——意识距离 / 连接频率 / 双轨对比
    下半区：竖向轨迹线——TA 与我的意识动作节点（时间倒序，TA 色/我色）
    ========================================================= */
-const TRACE_NODE_COLORS={ta:'#9b59b6',me:'#4a7dcf',sys:'#95a5a6'};
+const TRACE_NODE_COLORS={ta:'#f0a485',me:'#54c0a6',sys:'#95a5a6'};
 const TRACE_ICONS={sense:'⟡',status:'◍',msg:'✉',gift:'♥',note:'❝',todo:'✓',sched:'▧',call:'☏',diary:'✎',mood:'☺'};
 const TRACE_DIST_LEVELS=[
   {min:0,max:0.25,label:'咫尺',desc:'近在咫尺，触手可及',icon:'✦'},

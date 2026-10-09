@@ -86,7 +86,7 @@ async function renderHomeTraceWidget(){
   const heart=(ch,pathStr)=>`<g class="tw-heart" style="offset-path:path('${pathStr}')"><path d="M0 2.2 C-2.8 -0.6 -5.4 -2.6 -5.4 -5 C-5.4 -6.9 -3.4 -7.8 -1.7 -7.1 C-0.8 -6.7 0 -5.8 0 -5.1 C0 -5.8 0.8 -6.7 1.7 -7.1 C3.4 -7.8 5.4 -6.9 5.4 -5 C5.4 -2.6 2.8 -0.6 0 2.2 Z" fill="#e05c5c" stroke="#fff" stroke-width="0.4"/><text x="0" y="1.4" text-anchor="middle" font-size="3.8" fill="#fff" font-weight="700">${esc(ch)}</text></g>`;
   const total=meB.reduce((a,b)=>a+b,0)+taB.reduce((a,b)=>a+b,0);
   if(total>0){
-    out+=mkLine(meL,'#5c8aa9')+mkLine(taL,'#8c7aa9');
+    out+=mkLine(meL,'#54c0a6')+mkLine(taL,'#f0a485');
     const mi=lastIdx(meL),ti=lastIdx(taL);
     if(mi>=0)out+=heart((state.me.name||'我').slice(0,1),subPath(meL,mi));
     if(ti>=0)out+=heart((state.other.name||'TA').slice(0,1),subPath(taL,ti));
