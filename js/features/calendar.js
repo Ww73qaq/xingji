@@ -209,13 +209,23 @@ function renderCalendarDay(body,items,pset){
     </div>`;
 }
 
-/* ---------- 待办：增删改 ---------- */
+/* ---------- 待办：增删改（v3.6.7 支持批量：一行一件） ---------- */
 function calAddTodo(date){
-  appPrompt('新增待办','写一件要做的事（当天有效）：',v=>{
-    v=(v||'').trim();if(!v)return false;
-    dbPut('calendar',{date,type:'todo',text:v,done:0,at:Date.now()}).then(()=>renderCalendar());
-    return true;
-  });
+  showModal('新增待办',
+    `<div style="font-size:12px;color:var(--hint);margin-bottom:4px">写一件要做的事（当天有效）</div>
+     <textarea class="textarea-full" id="cal-todo-input" style="min-height:110px" placeholder="一行一件，可一次添加多件，如：&#10;给 TA 回信&#10;买牛奶&#10;预约挂号"></textarea>
+     <div style="font-size:11px;color:var(--hint);margin-top:6px">每行一件，多行 = 批量添加；完成项会自动变灰。</div>`,
+    '<div class="modal-btn-row"><button class="modal-btn" onclick="closeModal()">取消</button><button class="modal-btn primary" onclick="calAddTodoOk(\''+date+'\')">确定</button></div>');
+  setTimeout(()=>{const i=document.getElementById('cal-todo-input');if(i)i.focus();},80);
+}
+function calAddTodoOk(date){
+  const v=(document.getElementById('cal-todo-input')||{}).value||'';
+  const lines=v.split(/\n+/).map(s=>s.trim()).filter(Boolean);
+  if(!lines.length){showToast('请先输入待办内容');return;}
+  closeModal();
+  const now=Date.now();
+  Promise.all(lines.map((text,i)=>dbPut('calendar',{date,type:'todo',text,done:0,at:now+i}))).then(()=>renderCalendar());
+  showToast('已添加 '+lines.length+' 件待办');
 }
 function calToggleTodo(id){
   dbGetAll('calendar').then(all=>{
@@ -247,9 +257,10 @@ function calSetPeriod(date){
     const daysOpts=[1,2,3,4,5,6,7,8,9,10].map(n=>`<span class="pset-chip${n===_calPsetTmp.days?' on':''}" onclick="calPsetDays(${n})">${n}天</span>`).join('');
     const cycleOpts=[21,23,25,28,30,33,35,40].map(n=>`<span class="pset-chip${n===_calPsetTmp.cycle?' on':''}" onclick="calPsetCycle(${n})">${n}天</span>`).join('');
     showModal('经期设置',
-      `<div style="font-size:12px;color:var(--hint);margin-bottom:4px">开始日期（最近一次月经第 1 天）</div>
-       <div style="display:flex;gap:6px;align-items:center">
-         <input class="textarea-full" id="pset-start" style="min-height:0;padding:9px 10px" value="${old?old.start:date}" placeholder="YYYY-MM-DD">
+      `<div style="font-size:12px;color:var(--hint);margin-bottom:4px">开始日期（最近一次月经第 1 天，点击可上下滑动选择）</div>
+       <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+         <input type="date" class="textarea-full" id="pset-start" style="min-height:0;padding:9px 10px;flex:1" value="${old?old.start:date}">
+         <button class="modal-btn" style="flex-shrink:0" onclick="calPsetQuick(-1)">昨天</button>
          <button class="modal-btn" style="flex-shrink:0" onclick="calPsetQuick(0)">今天</button>
          <button class="modal-btn" style="flex-shrink:0" onclick="calPsetQuick(1)">明天</button>
        </div>
@@ -270,7 +281,7 @@ function calPsetQuick(off){
 }
 function calPsetSave(){
   const start=document.getElementById('pset-start')?document.getElementById('pset-start').value.trim():'';
-  if(!/^\d{4}-\d{2}-\d{2}$/.test(start)||isNaN(new Date(start+'T00:00:00').getTime())){showToast('日期格式应为 YYYY-MM-DD');return;}
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(start)||isNaN(new Date(start+'T00:00:00').getTime())){showToast('请选择有效的日期');return;}
   const days=Math.max(1,Math.min(10,Number(_calPsetTmp.days)||5));
   const cycle=Math.max(21,Math.min(40,Number(_calPsetTmp.cycle)||28));
   dbGetAll('calendar').then(all=>{

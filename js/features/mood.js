@@ -67,7 +67,8 @@ function maybeTaStatusChange(){
   if(state.taStatus&&state.taStatus!=='在线'){           // 到期回在线
     state.taStatus='在线';state.other.status='在线';state.taStatusCoolAt=Date.now();
     saveKey('other');saveKey('taStatusUntil');saveKey('taStatusCoolAt');
-    updateTaStatusBadge();return;
+    updateTaStatusBadge();try{if(typeof updateHomeStatusOnly==='function')updateHomeStatusOnly();}catch(e){}
+    return;
   }
   if(Date.now()-(state.taStatusCoolAt||0)<45000)return;
   if(Math.random()<0.05){                                // v3.6.1：5% 概率主动换状态（原 3%）
@@ -77,7 +78,7 @@ function maybeTaStatusChange(){
     state.taStatus=st.s;state.other.status=st.s;
     state.taStatusUntil=Date.now()+30000+Math.random()*570000;  // 保持 30s~10min
     saveKey('other');saveKey('taStatusUntil');
-    updateTaStatusBadge();
+    updateTaStatusBadge();try{if(typeof updateHomeStatusOnly==='function')updateHomeStatusOnly();}catch(e){}
     if(Math.random()<0.6)pushSys(state.other.name+' 现在的状态：'+st.s);   // v3.6.1：60% 提示你（原 40%）
   }
 }

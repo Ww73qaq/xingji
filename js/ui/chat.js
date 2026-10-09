@@ -542,10 +542,13 @@ async function finishVoiceRecord(talk){
   const vsec=Math.max(1,Math.min(60,Math.round(sec)));
   const audio=await stopRealRecord();
   pendingVoiceAudio=audio;
-  showModal('发送语音',`<div style="text-align:center;padding:6px 0 0"><div style="font-size:40px">&#127908;</div><div style="font-size:15px;font-weight:600;margin-top:8px">${vsec} 秒${audio?' · 真实录音':' · 模拟音'}</div><div style="font-size:12px;color:var(--hint);margin-top:4px">${fmtTime(recordStart)}</div>
-    <button class="pill-oval" onclick="playPendingVoice()">&#9654; 先试听</button></div>`,
-    '<div class="modal-item" style="font-weight:600;color:var(--text)" onclick="closeModal();doSendVoice('+vsec+')">发送</div>'
-    +'<div class="modal-item" style="color:var(--hint)" onclick="closeModal();pendingVoiceAudio=null">取消</div>');
+  showModal('发送语音',`<div style="text-align:center;padding:10px 0 2px">
+    <div style="width:84px;height:84px;border-radius:50%;background:var(--input);display:flex;align-items:center;justify-content:center;margin:0 auto;font-size:38px">&#127908;</div>
+    <div style="font-size:26px;font-weight:700;color:var(--text);margin-top:10px">${vsec} 秒</div>
+    <div style="font-size:12px;color:var(--hint);margin-top:4px">${audio?'· 真实录音':'· 模拟音'} · ${fmtTime(recordStart)}</div>
+    <button class="pill-oval" style="margin-top:14px" onclick="playPendingVoice()">&#9654; 先试听</button>
+  </div>`,
+    '<div class="modal-btn-row"><button class="modal-btn" onclick="closeModal();pendingVoiceAudio=null">取消</button><button class="modal-btn primary" onclick="closeModal();doSendVoice('+vsec+')">发送</button></div>');
   const mc=document.getElementById('modal-close');if(mc)mc.style.display='';
 }
 function playPendingVoice(){
@@ -757,12 +760,66 @@ function chatPickPhoto(){
   };
   input.click();
 }
-function sendGift(){
-  showModal('送礼物',`<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;padding:8px 2px">${GIFTS.map((g,i)=>`<div class="plus-item" style="padding:14px 0" onclick="closeModal();doSendGift(${i})"><div style="width:46px;height:46px;border-radius:14px;background:var(--input);display:flex;align-items:center;justify-content:center;font-size:26px">${g}</div><div class="plus-label">${GIFT_NAMES[i]}</div></div>`).join('')}</div>`,'<div class="modal-btn-row"><button class="modal-btn" onclick="closeModal()">取消</button></div>');
+/* v3.6.7 礼物：内置 21 个 + 自定义（名称+图标，emoji 或压缩图片，可保存/删除） */
+function giftPool(){
+  const custom=Array.isArray(state.customGifts)?state.customGifts:[];
+  return GIFTS.map((icon,i)=>({name:GIFT_NAMES[i],icon,builtin:true})).concat(custom.map(g=>({name:g.name,icon:g.icon||'🎁',builtin:false,id:g.id})));
 }
-async function doSendGift(i){
-  await sendMessageObject({type:'gift',content:GIFT_NAMES[i],sub:GIFTS[i]});
+function giftIconHtml(icon){
+  if(!icon)return '🎁';
+  if(icon.indexOf('<svg')===0||icon.indexOf('<img')===0)return icon;
+  if(icon.indexOf('data:')===0||icon.indexOf('http')===0)return '<img src="'+icon+'" style="width:100%;height:100%;object-fit:cover">';
+  return icon;
+}
+function sendGift(){
+  const pool=giftPool();
+  const cell=(g)=>`<div class="plus-item" style="padding:14px 0;position:relative" onclick="closeModal();doSendGift('${esc(g.name).replace(/'/g,"\\'")}','${esc(g.icon).replace(/'/g,"\\'")}')">
+    ${!g.builtin?'<span style="position:absolute;top:2px;right:8px;font-size:11px;color:#c0392b;cursor:pointer" onclick="event.stopPropagation();delCustomGift('+g.id+')">&#10005;</span>':''}
+    <div style="width:46px;height:46px;border-radius:14px;background:var(--input);display:flex;align-items:center;justify-content:center;font-size:26px;overflow:hidden">${giftIconHtml(g.icon)}</div>
+    <div class="plus-label">${esc(g.name)}</div>
+  </div>`;
+  const grid='<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;padding:8px 2px">'
+    +pool.map(g=>cell(g)).join('')
+    +'<div class="plus-item" style="padding:14px 0" onclick="addCustomGift()"><div style="width:46px;height:46px;border-radius:14px;background:var(--input);display:flex;align-items:center;justify-content:center;font-size:22px;color:var(--accent,#4a7dcf)">＋</div><div class="plus-label">自定义</div></div>'
+    +'</div>';
+  showModal('送礼物',grid,'<div class="modal-btn-row"><button class="modal-btn" onclick="closeModal()">取消</button></div>');
+}
+function doSendGift(name,icon){
+  sendMessageObject({type:'gift',content:name,sub:icon||'🎁'});
   showToast('礼物已送出');
+}
+let _cgImg='';
+function addCustomGift(){
+  showModal('自定义礼物',
+    `<div style="font-size:12px;color:var(--hint);margin-bottom:4px">名称</div>
+     <input class="textarea-full" id="cg-name" style="min-height:0;padding:9px 10px" placeholder="如：手写信">
+     <div style="font-size:12px;color:var(--hint);margin:10px 0 4px">图标</div>
+     <input class="textarea-full" id="cg-emoji" style="min-height:0;padding:9px 10px" placeholder="输入一个 emoji，如：🎁">
+     <button class="modal-btn" style="width:100%;margin-top:8px" onclick="cgPickImage()">上传图片作为图标（自动压缩适配）</button>
+     <div style="font-size:11px;color:var(--hint);margin-top:8px">自定义礼物保存在本地，重启不丢；删除：在礼物弹窗里点右上角 ×。</div>`,
+    '<div class="modal-btn-row"><button class="modal-btn" onclick="closeModal()">取消</button><button class="modal-btn primary" onclick="cgSave()">保存</button></div>');
+}
+function cgPickImage(){
+  const input=document.createElement('input');input.type='file';input.accept='image/*';
+  input.onchange=async e=>{
+    const f=e.target.files&&e.target.files[0];if(!f)return;
+    try{_cgImg=await compressImage(f);showToast('图片已压缩处理，可保存');}catch(err){showToast('图片处理失败');}
+  };
+  input.click();
+}
+function cgSave(){
+  const name=(document.getElementById('cg-name')||{}).value||'';
+  const emoji=(document.getElementById('cg-emoji')||{}).value||'';
+  if(!name.trim()){showToast('请填写名称');return;}
+  state.customGifts=state.customGifts||[];
+  if(state.customGifts.length>=30){showToast('自定义礼物最多 30 个');return;}
+  state.customGifts.push({id:Date.now(),name:name.trim(),icon:_cgImg||emoji.trim()||'🎁'});
+  saveKey('customGifts');
+  _cgImg='';closeModal();sendGift();showToast('自定义礼物已保存');
+}
+function delCustomGift(id){
+  state.customGifts=(state.customGifts||[]).filter(g=>g.id!==id);
+  saveKey('customGifts');sendGift();
 }
 
 /* 拍一拍：独立字库 / 分组 / 批量管理 / 随机触发 */

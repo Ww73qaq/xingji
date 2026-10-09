@@ -3,11 +3,21 @@
    ========================================================= */
 
 /* ===== HOME ===== */
+/* v3.6.7：桌面状态行（颜色小点 + 状态名），可单独刷新（TA 状态自动切换时同步） */
+function updateHomeStatusOnly(){
+  const m=document.getElementById('home-status-me'),o=document.getElementById('home-status-other');
+  if(!m||!o)return;
+  const meS=state.me.status||'在线',meC=statusColor(meS)||'#4cd964';
+  const taS=state.taStatus||state.other.status||'在线',taC=statusColor(taS)||'#4cd964';
+  m.innerHTML='<i style="background:'+meC+'"></i>'+esc(meS);
+  o.innerHTML='<i style="background:'+taC+'"></i>'+esc(taS);
+}
 function updateHome(){
   document.getElementById('home-name-me').textContent=state.me.name;
   document.getElementById('home-name-other').textContent=state.other.name;
   paintAvatar(document.getElementById('home-avatar-me'),state.me);
   paintAvatar(document.getElementById('home-avatar-other'),state.other);
+  updateHomeStatusOnly();
   if(state.meetTime){const d=Math.floor((Date.now()-state.meetTime)/86400000);document.getElementById('home-sign').textContent=`已相伴 ${d} 天`;}
   else{document.getElementById('home-sign').textContent='你在左边 我紧靠右';}
   renderNotes();

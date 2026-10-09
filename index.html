@@ -79,7 +79,12 @@
       <div class="ava me" id="home-avatar-me"></div>
       <div class="ava other" id="home-avatar-other"></div>
     </div>
-    <div class="widget-name"><span id="home-name-me">我</span> &amp; <span id="home-name-other">TA</span></div>
+    <!-- v3.6.7：两个名字各带状态（颜色小点 + 状态名），与聊天页同步 -->
+    <div class="widget-names">
+      <div class="wn-item"><span class="wn-name" id="home-name-me">我</span><span class="wn-status" id="home-status-me"></span></div>
+      <span class="wn-amp">&amp;</span>
+      <div class="wn-item"><span class="wn-name" id="home-name-other">TA</span><span class="wn-status" id="home-status-other"></span></div>
+    </div>
     <div class="widget-sign" id="home-sign">你在左边 我紧靠右</div>
   </div>
   <!-- 便签两张（A=我的 / B=TA 的；点击编辑，长按出菜单；TA 可低频留言，开关在「我的」） -->
