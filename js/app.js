@@ -56,9 +56,11 @@ function taOffsetNow(){
   return state.taTimeOffset;
 }
 function renderTaTime(){
+  // v3.7.3：「TA」改用全局昵称（state.other.name），全站状态栏统一
   const d=new Date(Date.now()+taOffsetNow());
   const el=document.getElementById('sb-ta-time');
-  if(el)el.textContent='TA '+String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');
+  const name=state.other.name||'TA';
+  if(el){el.textContent=name+' '+String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');el.title=name+' 的世界时间，与现实有偏差';}
 }
 
 /* 唯一主心跳：原先散落的 4 个 setInterval（1s 时钟/信号、5s 朋友圈、60s 陪伴、15s 信件）

@@ -31,23 +31,23 @@ body{position:fixed;inset:0;width:100%}
 .screen{position:absolute;inset:0;display:none;flex-direction:column;overflow:hidden}
 .screen.active{display:flex}
 
-/* ===== LOCK ===== */
-.lock-screen{background:radial-gradient(circle at 30% 22%,#2b2b2b 0%,#3f3f3f 32%,#dcdad4 68%,#f4f3ef 100%);align-items:center;justify-content:center;gap:28px;padding:40px 32px;text-align:center}
-.lock-icon{width:72px;height:72px;border-radius:50%;background:rgba(255,255,255,.92);display:flex;align-items:center;justify-content:center;font-size:32px;box-shadow:0 4px 20px rgba(0,0,0,.18);margin-bottom:8px;filter:grayscale(1)}
-.lock-title{font-size:22px;font-weight:600;color:#fff;letter-spacing:8px;text-shadow:0 2px 8px rgba(0,0,0,.35)}
-.lock-sub{font-size:13px;color:rgba(255,255,255,.75);margin-top:4px;letter-spacing:1px}
+/* ===== LOCK（v3.7.3 改开屏同款浅米色：米色渐变+黑色元素，与 splash 统一皮肤） ===== */
+.lock-screen{background:radial-gradient(ellipse at 50% 38%,#fbfaf8 0%,#f1f0ec 70%,#e4e3de 100%);align-items:center;justify-content:center;gap:28px;padding:40px 32px;text-align:center}
+.lock-icon{width:72px;height:72px;border-radius:50%;background:rgba(255,255,255,.75);display:flex;align-items:center;justify-content:center;font-size:32px;box-shadow:0 2px 14px rgba(0,0,0,.08);margin-bottom:8px;filter:grayscale(1)}
+.lock-title{font-size:22px;font-weight:600;color:#1a1a1a;letter-spacing:8px}
+.lock-sub{font-size:13px;color:rgba(0,0,0,.55);margin-top:4px;letter-spacing:1px}
 .pin-dots{display:flex;gap:14px;margin:24px 0 8px}
-.pin-dot{width:14px;height:14px;border-radius:50%;border:2px solid rgba(255,255,255,.6);transition:.2s}
-.pin-dot.filled{background:#fff;border-color:#fff}
-.pin-error{color:#e8c3b8;font-size:12px;height:18px;opacity:0;transition:.2s}
+.pin-dot{width:14px;height:14px;border-radius:50%;border:2px solid rgba(0,0,0,.28);transition:.2s}
+.pin-dot.filled{background:#1a1a1a;border-color:#1a1a1a}
+.pin-error{color:#c0392b;font-size:12px;height:18px;opacity:0;transition:.2s}
 .pin-error.show{opacity:1}
 .pin-pad{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;width:100%;max-width:280px}
-.pin-btn{height:56px;border-radius:50%;border:1px solid rgba(255,255,255,.28);background:rgba(255,255,255,.1);font-size:22px;font-weight:500;color:#fff;cursor:pointer;backdrop-filter:blur(8px);transition:.15s}
-.pin-btn:active{transform:scale(.92);background:rgba(255,255,255,.24)}
+.pin-btn{height:56px;border-radius:50%;border:1px solid #e0e0dd;background:#f2f2f0;font-size:22px;font-weight:500;color:#1a1a1a;cursor:pointer;transition:.15s}
+.pin-btn:active{transform:scale(.92);background:#e4e4e1}
 .pin-btn.wide{grid-column:span 2;border-radius:28px}
 .pin-btn.pin-del{display:flex;align-items:center;justify-content:center;font-size:0}
 #modal .pin-btn.pin-del svg{color:var(--text)}
-.lock-hint{font-size:11px;color:rgba(255,255,255,.5);margin-top:16px}
+.lock-hint{font-size:11px;color:rgba(0,0,0,.45);margin-top:16px}
 
 /* ===== SPLASH SCREEN ===== */
 .splash-screen{background:radial-gradient(ellipse at 50% 38%,#fbfaf8 0%,#f1f0ec 70%,#e4e3de 100%);align-items:center;justify-content:center;text-align:center;padding:0 44px;overflow-y:auto}

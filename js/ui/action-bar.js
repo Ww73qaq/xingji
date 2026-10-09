@@ -29,7 +29,8 @@ function showActionBar(items,opt){
   menu.classList.add('show');
   _abOpen=true;
   menu.onclick=e=>{if(e.target===menu)closeActionBar();};
-  positionActionBar(bar,opt&&opt.anchor?opt.anchor:null,opt&&opt.point?opt.point:null);
+  // v3.7.3 修复：漏传 opt 导致 prefer:'below' 不生效（长按菜单错误弹到消息上方）
+  positionActionBar(bar,opt&&opt.anchor?opt.anchor:null,opt&&opt.point?opt.point:null,opt);
   // 滚动 / 缩放自动关闭，避免悬浮错位
   const scroller=(opt&&opt.scroller)||null;
   const onScroll=()=>closeActionBar();

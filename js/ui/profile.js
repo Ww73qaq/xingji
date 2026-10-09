@@ -24,11 +24,6 @@ function renderProfile(){
       <div class="cs-item" onclick="pickAvatar('other')"><span class="cs-ico">${ICO.cam}</span><span class="cs-label">TA 的头像</span><span class="cs-thumb">${avatarHtml('other')}</span><span class="cs-arrow">&#8250;</span></div>
       <div class="cs-item" onclick="editStatus('other')"><span class="cs-ico">${ICO.chat}</span><span class="cs-label">TA 的状态</span><span class="cs-val">${esc(state.other.status||'在线')}</span><span class="cs-arrow">&#8250;</span></div>
     </div>
-    <div class="cs-group-title">传讯</div>
-    <div class="cs-group">
-      <div class="cs-item" onclick="openApp('mailbox')"><span class="cs-ico">${ICO.mail}</span><span class="cs-label">信箱</span><span class="cs-arrow">&#8250;</span></div>
-      <div class="cs-item" onclick="openApp('sense')"><span class="cs-ico">${ICO.room}</span><span class="cs-label">感应房间</span><span class="cs-arrow">&#8250;</span></div>
-    </div>
     <div class="cs-group-title">内容</div>
     <div class="cs-group">
       <div class="cs-item" onclick="openApp('cards')"><span class="cs-ico">${ICO.card}</span><span class="cs-label">字卡管理</span><span class="cs-arrow">&#8250;</span></div>
@@ -37,11 +32,6 @@ function renderProfile(){
       <div class="cs-item" onclick="editMyPoke()"><span class="cs-ico">${ICO.poke}</span><span class="cs-label">我的拍一拍</span><span class="cs-val">${esc(state.stats.myPoke||'拍了拍TA的肩膀')}</span><span class="cs-arrow">&#8250;</span></div>
       <div class="cs-item" onclick="managePokes()"><span class="cs-ico">${ICO.poke}</span><span class="cs-label">TA 拍我</span><span class="cs-val">${(allPokeTexts()||[]).length} 条动作</span><span class="cs-arrow">&#8250;</span></div>
       <div class="cs-item" onclick="openTaNoteSettings()"><span class="cs-ico">${ICO.star}</span><span class="cs-label">TA 写便签</span><span class="cs-val">${taNoteEnabled()?'已开启':'已关闭'}</span><span class="cs-switch${taNoteEnabled()?' on':''}" onclick="event.stopPropagation();toggleTaNote()"></span></div>
-    </div>
-    <div class="cs-group-title">记录</div>
-    <div class="cs-group">
-      <div class="cs-item" onclick="openApp('diary')"><span class="cs-ico">${ICO.book}</span><span class="cs-label">日记</span><span class="cs-arrow">&#8250;</span></div>
-      <div class="cs-item" onclick="openApp('memory')"><span class="cs-ico">${ICO.chart}</span><span class="cs-label">数据与回忆</span><span class="cs-arrow">&#8250;</span></div>
     </div>
     <div class="cs-group-title">安全</div>
     <div class="cs-group">
