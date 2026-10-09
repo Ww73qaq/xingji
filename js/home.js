@@ -310,7 +310,8 @@ function renderSignal(){
   _sigLevel=Math.max(1,Math.min(5,_sigLevel));
   const bars=el.children;
   for(let i=0;i<bars.length;i++){
-    bars[i].style.opacity=i<_sigLevel?1:.25;
+    // v3.7.4：点亮格从低到高颜色强度递增（第 1 格淡→第 5 格浓），空格保持淡
+    bars[i].style.opacity=i<_sigLevel?(0.42+0.58*((i+1)/5)):.22;
     bars[i].style.transform=i<_sigLevel?'scaleY(1)':'scaleY(.6)';
   }
 }

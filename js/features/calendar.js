@@ -135,7 +135,8 @@ async function renderCalendar(){
   byDate._periodSet=all.find(x=>x.type==='period_set');   // v3.6.6 周期设置（全局一条）
 
   if(calView==='day'&&calDaySel){
-    renderCalendarDay(body,byDate[calDaySel]||[],byDate._periodSet);
+    // v3.7.4：传入全量记录，周期待办模板才能在任意日期展开（只靠当天数据则「每天/每周」跨天失效）
+    renderCalendarDay(body,byDate[calDaySel]||[],byDate._periodSet,all);
     return;
   }
   // 月视图：加高格子，日期 + 心情(我/TA 分开) + 待办点 + 月经点
@@ -205,13 +206,13 @@ function calDayShift(delta){
   calDaySel=calDateKey(d);
   renderCalendar();
 }
-function renderCalendarDay(body,items,pset){
+function renderCalendarDay(body,items,pset,allItems){
   const dsel=new Date(calDaySel);
   const isToday=calDaySel===calDateKey(new Date());
   const whoName={me:state.me.name||'我',ta:state.other.name||'TA'};
   const whoColor={me:'var(--c-purple)',ta:'var(--c-green)'};
   const notes=items.filter(x=>(!x.type||x.type==='note')&&(calScope==='all'||x.who===calScope)).sort((a,b)=>(a.at||0)-(b.at||0));
-  const todos=(calScope==='ta')?[]:items.filter(x=>x.type==='todo').sort((a,b)=>((a.done||0)-(b.done||0))||((a.at||0)-(b.at||0)));
+  const todos=(calScope==='ta')?[]:calTodosFor(allItems||items,calDaySel);
   const tasched=(calScope==='me')?[]:items.filter(x=>x.type==='ta_sched').sort((a,b)=>(a.at||0)-(b.at||0));
   const scopedPset=(calScope==='ta')?null:pset;
   const pInfo=scopedPset?calPeriodInfo(calDaySel,scopedPset):{inPeriod:0,ovu:false};
@@ -263,7 +264,7 @@ function renderCalendarDay(body,items,pset){
       ${todos.length?todos.map(it=>`
         <div class="cal-todo-item${it.done?' done':''}">
           <span class="cal-todo-check${it.done?' on':''}" onclick="calToggleTodo(${it.id})">${it.done?'✓':''}</span>
-          <span class="cal-todo-text" onclick="calEditTodo(${it.id})">${esc(it.text)}</span>
+          <span class="cal-todo-text" onclick="calEditTodo(${it.id})">${esc(it.text)}${(it.alarmFreq||(it.alarm&&it.alarm.freq))?` <i style="font-style:normal;font-size:10px;color:var(--hint)">${calTodoFreqTag(it.alarmFreq||it.alarm.freq)}</i>`:''}</span>
           <span class="cal-todo-del" onclick="calDelTodo(${it.id})">&#10005;</span>
         </div>`).join('')
       :'<div class="empty" style="padding:12px 0">还没有待办，点上方「＋ 待办」添加</div>'}
@@ -301,6 +302,7 @@ async function ensureTaSchedule(){
   for(let i=1;i<=3;i++){
     const key=calDateKey(new Date(Date.now()+i*86400000));
     if(all.some(x=>x.date===key&&x.type==='ta_sched'))continue;
+    // v3.7.4：prob 未命中时保底 1 条——灵性医生每天都有排班（概率只影响丰富度/休息日）
     if(Math.random()<s.prob/100){
       const n=1+Math.floor(Math.random()*2);
       const pool=[...TA_SCHEDULE_TEMPLATE];
@@ -314,12 +316,37 @@ async function ensureTaSchedule(){
         const text=pool.splice(idx,1)[0];
         await dbPut('calendar',{date:key,type:'ta_sched',text,at:Date.now()+k});
       }
+    }else{
+      const pool=[...TA_SCHEDULE_TEMPLATE].filter(t=>t!=='休息日');
+      const text=pool[Math.floor(Math.random()*pool.length)]||'门诊';
+      await dbPut('calendar',{date:key,type:'ta_sched',text,at:Date.now()});
     }
   }
 }
 
 /* v3.6.11：待办闹钟式提醒心跳（和便签闹钟一致：仅一次/每天/每周到点通知） */
 let _todoAlarmCheck=0;
+/* v3.7.4：周期待办模板展开——「每天/每周」待办在对应日期自动出现（实体按天存储，模板按频率展开）
+   - daily：添加日及以后每天都出现；weekly：与添加日同星期的日子出现
+   - 展开实例 id=`tpl:<源id>:<日期>`，勾选状态存 state.todoDoneByDay[<源id>:<日期>]
+   - 待办列表/轨迹/提醒统一走 calTodosFor */
+function calTodosFor(items,dateKey){
+  const out=items.filter(x=>x.type==='todo'&&x.date===dateKey);
+  const dw=new Date(dateKey+'T00:00:00').getDay();
+  const doneByDay=state.todoDoneByDay||{};
+  items.forEach(x=>{
+    if(x.type!=='todo'||x.date===dateKey)return;
+    const a=x.alarm;if(!a||(a.freq!=='daily'&&a.freq!=='weekly'))return;
+    let hit=false;
+    if(a.freq==='daily')hit=dateKey>=x.date;
+    else if(a.freq==='weekly')hit=(new Date(x.date+'T00:00:00').getDay()===dw)&&dateKey>=x.date;
+    if(!hit)return;
+    const dkey=x.id+':'+dateKey;
+    out.push(Object.assign({},x,{id:'tpl:'+dkey,_tpl:true,_srcId:x.id,date:dateKey,alarmFreq:a.freq,done:doneByDay[dkey]?1:0}));
+  });
+  return out.sort((a,b)=>((a.done||0)-(b.done||0))||((a.at||0)-(b.at||0)));
+}
+function calTodoFreqTag(f){return f==='daily'?'每天':f==='weekly'?'每周':'';}
 function maybeTodoAlarm(){
   if(Date.now()-_todoAlarmCheck<5000)return;
   _todoAlarmCheck=Date.now();
@@ -329,9 +356,26 @@ function maybeTodoAlarm(){
     const hm=String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0');
     const done=state.todoAlarmDone||{};
     let changed=false;
+    const dw=new Date().getDay();
+    const todayTpl=all.filter(it=>it.type==='todo'&&it.alarm&&(it.alarm.freq==='daily'||it.alarm.freq==='weekly')&&it.date!==key&&
+      (it.alarm.freq==='daily'||new Date(it.date+'T00:00:00').getDay()===dw));
     all.forEach(it=>{
-      if(it.date!==key||it.type!=='todo'||it.done||!it.alarm)return;
+      if(it.type!=='todo'||!it.alarm)return;
       if(it.alarm.time!==hm)return;
+      if(it.date===key){
+        if(it.done)return;
+        const k=it.id+'_'+key+'_'+it.alarm.freq+'_'+it.alarm.time;
+        if(done[k])return;
+        done[k]=1;changed=true;
+        showToast('⏰ 待办提醒：'+it.text);
+        if(typeof pushSys==='function')pushSys('待办提醒：'+it.text);
+        if(typeof notifySystem==='function')notifySystem('待办提醒',it.text,()=>{openApp('calendar');});
+      }
+    });
+    todayTpl.forEach(it=>{
+      const dkey=it.id+':'+key;
+      const instDone=(state.todoDoneByDay||{})[dkey];
+      if(instDone)return;
       const k=it.id+'_'+key+'_'+it.alarm.freq+'_'+it.alarm.time;
       if(done[k])return;
       done[k]=1;changed=true;
@@ -357,8 +401,7 @@ function calTodoAlarmTime(){
 function calAddTodo(date){
   _calTodoAlarm={freq:'off',time:'09:00'};
   showModal('新增待办',
-    `<div style="font-size:12px;color:var(--hint);margin-bottom:4px">写一件要做的事（当天有效）</div>
-     <textarea class="textarea-full" id="cal-todo-input" style="min-height:100px" placeholder="一行一件，可一次添加多件，如：&#10;给 TA 回信&#10;买牛奶&#10;预约挂号"></textarea>
+    `<textarea class="textarea-full" id="cal-todo-input" style="min-height:100px" placeholder="写一件要做的事，一行一件可批量，如：&#10;给 TA 回信&#10;买牛奶&#10;预约挂号"></textarea>
      <div style="font-size:11px;color:var(--hint);margin-top:6px">每行一件，多行 = 批量添加；完成项会自动变灰。</div>
      <div style="font-size:12px;color:var(--hint);margin:10px 0 4px">提醒（可选，闹钟式，和便签一样）：</div>
      <div class="alarm-row" style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
@@ -384,6 +427,12 @@ function calAddTodoOk(date){
   showToast('已添加 '+lines.length+' 件待办'+(alarm?'，已设提醒':''));
 }
 function calToggleTodo(id){
+  if(String(id).indexOf('tpl:')===0){
+    const dkey=String(id).slice(4);
+    const m={};Object.assign(m,state.todoDoneByDay||{});
+    m[dkey]=m[dkey]?0:1;state.todoDoneByDay=m;saveKey('todoDoneByDay');
+    renderCalendar();return;
+  }
   dbGetAll('calendar').then(all=>{
     const it=all.find(x=>x.id===id);if(!it)return;
     it.done=it.done?0:1;dbPut('calendar',it).then(()=>renderCalendar());
@@ -391,7 +440,9 @@ function calToggleTodo(id){
 }
 function calEditTodo(id){
   dbGetAll('calendar').then(all=>{
-    const it=all.find(x=>x.id===id);if(!it)return;
+    let it=all.find(x=>x.id===id);if(!it)return;
+    if(String(id).indexOf('tpl:')===0)it=all.find(x=>x.id===String(id).slice(4).split(':')[0]);
+    if(!it)return;
     appPrompt('编辑待办','修改内容：',v=>{
       v=(v||'').trim();if(!v)return false;
       it.text=v;dbPut('calendar',it).then(()=>renderCalendar());
@@ -400,6 +451,17 @@ function calEditTodo(id){
   });
 }
 function calDelTodo(id){
+  if(String(id).indexOf('tpl:')===0){
+    appConfirm('删除周期待办','这是「每天/每周」自动出现的待办，删除后对应的周期待办也会一起删除，确定吗？',async()=>{
+      const srcId=String(id).slice(4).split(':')[0];
+      await dbDelete('calendar',srcId);
+      const m={};Object.assign(m,state.todoDoneByDay||{});
+      Object.keys(m).forEach(k=>{if(String(k).indexOf(srcId+':')===0)delete m[k];});
+      state.todoDoneByDay=m;saveKey('todoDoneByDay');
+      renderCalendar();
+    });
+    return;
+  }
   appConfirm('删除待办','确定删除这条待办吗？',async()=>{
     await dbDelete('calendar',id);renderCalendar();
   });

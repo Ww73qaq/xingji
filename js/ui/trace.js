@@ -39,11 +39,30 @@ async function collectTraceNodes(){
     }
   });
   const cals=await dbGetAll('calendar').catch(()=>[]);
+  // v3.7.4：周期待办（每天/每周）联动展开到最近 14 天——明天/本周的待办也能出现在轨迹里
+  const _tplDay=new Date();_tplDay.setHours(0,0,0,0);
+  const calDateK=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+  const tplExt=[];
+  for(let i=0;i<14;i++){
+    const dk=new Date(_tplDay.getTime()+i*86400000);
+    const dkKey=calDateK(dk);
+    const dw=dk.getDay();
+    cals.forEach(x=>{
+      if(x.type!=='todo'||x.date===dkKey)return;
+      const a=x.alarm;if(!a||(a.freq!=='daily'&&a.freq!=='weekly'))return;
+      const hit=(a.freq==='daily')||(new Date(x.date+'T00:00:00').getDay()===dw);
+      if(!hit)return;
+      const dup=cals.some(y=>y.type==='todo'&&y.date===dkKey&&y.text===x.text);
+      if(dup)return;
+      tplExt.push({time:new Date(dkKey+'T09:00:00').getTime(),who:'me',type:'todo',text:'待办：'+(x.text||'').slice(0,30)});
+    });
+  }
   cals.forEach(c=>{
     if(c.type==='todo')nodes.push({time:c.at||Date.now(),who:'me',type:'todo',text:'待办：'+(c.text||'').slice(0,30)});
-    else if(c.type==='ta_sched')nodes.push({time:c.at||Date.now(),who:'ta',type:'sched',text:'日程：'+(c.text||'').slice(0,30)});
+    else if(c.type==='ta_sched')nodes.push({time:(function(){var d=new Date(c.date+'T09:00:00');return isNaN(d.getTime())?(c.at||Date.now()):d.getTime();})(),who:'ta',type:'sched',text:'日程：'+(c.text||'').slice(0,30)});
     else if(c.type==='note')nodes.push({time:c.at||Date.now(),who:c.who==='ta'?'ta':'me',type:'note',text:'便签'+(c.text?('：'+(c.text||'').slice(0,30)):'')});
   });
+  nodes.push(...tplExt);
   const dias=await dbGetAll('diaries').catch(()=>[]);
   dias.forEach(d=>nodes.push({time:d.time,who:d.owner==='other'?'ta':'me',type:'diary',text:'日记：'+(d.content||'').slice(0,30)}));
   // 状态轨迹（TA 手动/自动切状态也入列——从 mood 的 events 或简化为最近一次）
