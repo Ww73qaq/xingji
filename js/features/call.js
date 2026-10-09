@@ -221,12 +221,33 @@ function updateCallFloat(){
   if(t)t.textContent=String(Math.floor(callSec/60)).padStart(2,'0')+':'+String(callSec%60).padStart(2,'0');
 }
 /* v3.6.3 微信式通话小窗：全局悬浮、可拖动、松手自动靠边 */
+/* v3.6.10：正方形小窗；右上角四角钮 → 迷你态（漏半+半透明）；靠边漏半头像；
+   移除浮窗上的挂断钮（防误触，挂断一律进全屏界面）；摄像头默认关、主动开才开 */
 function minimizeCall(){
   if(callMode!=='talk')return;
   hideCallOverlay();                 // 修复旧 bug：之前 remove('show') 不生效，全屏一直盖着浮条
   initCallFloat();
   const f=document.getElementById('call-float');if(f)f.classList.add('show');
   updateCallFloat();
+}
+/* 右上角四角按钮：正常 ⇄ 迷你（更小、靠边漏半、半透明） */
+let _floatMini=false;
+function miniCallMini(){
+  if(callMode!=='talk')return;
+  _floatMini=!_floatMini;
+  const f=document.getElementById('call-float');if(!f)return;
+  const ph=document.getElementById('phone');
+  const p=ph.getBoundingClientRect();
+  f.classList.toggle('mini',_floatMini);
+  f.classList.add('edge');
+  if(_floatMini){
+    f.style.left=(p.width-f.offsetWidth/2)+'px';
+  }else{
+    const r=f.getBoundingClientRect();
+    f.style.left=(p.width-r.width/2)+'px';
+  }
+  f.style.top=Math.min(Math.max(Number(f.style.top)||(p.height*0.3),0),p.height-f.offsetHeight)+'px';
+  f.style.right='auto';
 }
 /* 拖动监听只初始化一次；默认落点：右侧中上（像微信视频小窗） */
 let _floatDragInit=false;
@@ -238,7 +259,7 @@ function initCallFloat(){
   f.style.right='auto';f.style.left=(pw-f.offsetWidth-14)+'px';f.style.top=(ph.getBoundingClientRect().height*0.3)+'px';
   let dragging=false,dx=0,dy=0,sx=0,sy=0,moved=false;
   f.addEventListener('pointerdown',e=>{
-    if(e.target.closest('.cf-x'))return;
+    if(e.target.closest('.cf-mini'))return;
     dragging=true;moved=false;
     const r=f.getBoundingClientRect();
     dx=e.clientX-r.left;dy=e.clientY-r.top;sx=e.clientX;sy=e.clientY;
@@ -252,17 +273,19 @@ function initCallFloat(){
     x=Math.max(0,Math.min(p.width-f.offsetWidth,x));
     y=Math.max(0,Math.min(p.height-f.offsetHeight,y));
     f.style.left=x+'px';f.style.top=y+'px';f.style.right='auto';
+    f.classList.remove('edge');
   });
   f.addEventListener('pointerup',e=>{
     if(!dragging)return;dragging=false;
     const p=document.getElementById('phone').getBoundingClientRect();
     const r=f.getBoundingClientRect();
-    if(moved){  // 拖动过 → 松手自动靠边（吸附左/右边缘，保留当前高度）
+    if(moved){  // 拖动过 → 松手自动靠边（漏一半头像 + 半透明）
       const left=r.left-p.left;
       const snapLeft=(left+r.width/2)<p.width/2;
-      f.style.left=(snapLeft?0:p.width-r.width)+'px';
+      f.style.left=(snapLeft? -r.width/2 : p.width-r.width/2)+'px';
       f.style.top=(r.top-p.top)+'px';
       f.style.right='auto';
+      f.classList.add('edge');
     }else{      // 未拖动 = 点击 → 恢复全屏
       expandCall();
     }
@@ -308,7 +331,8 @@ function expandCall(){
   const ov=document.getElementById('call-overlay');
   if(ov)ov.classList.add('active');
   const f=document.getElementById('call-float');
-  if(f)f.classList.remove('show');
+  if(f){f.classList.remove('show');f.classList.remove('mini');f.classList.remove('edge');}
+  _floatMini=false;
   if(callMode==='talk'){setCallStatus(callDurationText());renderCallActions(callActionsHtml());}
 }
 

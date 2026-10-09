@@ -492,17 +492,21 @@ mark{background:#ffe58f;color:inherit;border-radius:2px;padding:0 1px}
 .call-btn.on{background:#fff;color:#1a1a1a}
 .call-btn-label{font-size:11px;opacity:.75}
 /* v3.6.6 通话小窗：微信式大卡片（头像 + 类型/时长 + 挂断），全局拖动 */
-.call-float{position:absolute;z-index:350;display:none;flex-direction:column;align-items:center;gap:8px;width:150px;background:rgba(22,22,26,.96);color:#fff;padding:14px 12px 12px;border-radius:18px;backdrop-filter:blur(12px);box-shadow:0 10px 30px rgba(0,0,0,.45);touch-action:none;user-select:none;-webkit-user-select:none;cursor:grab;border:1px solid rgba(255,255,255,.16)}
+/* v3.6.10 通话小窗：正方形、右上角四角缩小钮、靠边漏半+半透明、迷你态（无挂断钮防误触） */
+.call-float{position:absolute;z-index:350;display:none;flex-direction:column;align-items:center;justify-content:center;gap:6px;width:104px;height:104px;background:rgba(22,22,26,.92);color:#fff;padding:8px;border-radius:16px;backdrop-filter:blur(12px);box-shadow:0 10px 30px rgba(0,0,0,.45);touch-action:none;user-select:none;-webkit-user-select:none;cursor:grab;border:1px solid rgba(255,255,255,.16);transition:width .22s,height .22s,opacity .22s,left .18s,right .18s}
 .call-float.show{display:flex}
-.call-float .cf-av{width:64px;height:64px;border-radius:50%;background:linear-gradient(135deg,#5b7db1,#3a4f74);display:flex;align-items:center;justify-content:center;font-size:26px;font-weight:600;overflow:hidden;border:2px solid rgba(255,255,255,.22)}
+.call-float.edge{opacity:.62}
+.call-float.mini{width:54px;height:54px;gap:0;padding:3px;border-radius:14px;opacity:.55}
+.call-float.mini .cf-info,.call-float.mini .cf-mini{display:none}
+.call-float.mini .cf-av{width:46px;height:46px;font-size:19px;border-width:1.5px}
+.call-float .cf-av{width:64px;height:64px;border-radius:50%;background:linear-gradient(135deg,#5b7db1,#3a4f74);display:flex;align-items:center;justify-content:center;font-size:26px;font-weight:600;overflow:hidden;border:2px solid rgba(255,255,255,.22);flex-shrink:0}
 .call-float .cf-av img{width:100%;height:100%;object-fit:cover}
-.call-float .cf-info{display:flex;flex-direction:column;align-items:center;gap:2px}
-.call-float .cf-name{max-width:126px;overflow:hidden;text-overflow:ellipsis;font-size:14px;font-weight:600}
-.call-float .cf-kind{font-size:11px;opacity:.65}
-.call-float .cf-text{font-variant-numeric:tabular-nums;font-size:13px;color:#2ecc71;font-weight:600}
-.call-float .cf-x{width:46px;height:46px;border-radius:50%;background:#e74c3c;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;box-shadow:0 4px 12px rgba(231,76,60,.4)}
-.call-float .cf-x svg{width:20px;height:20px}
-.call-float .cf-x:active{transform:scale(.92)}
+.call-float .cf-info{display:flex;flex-direction:column;align-items:center;gap:2px;min-width:0}
+.call-float .cf-name{max-width:88px;overflow:hidden;text-overflow:ellipsis;font-size:12px;font-weight:600;white-space:nowrap}
+.call-float .cf-text{font-variant-numeric:tabular-nums;font-size:11.5px;color:#2ecc71;font-weight:600}
+.call-float .cf-mini{position:absolute;top:3px;right:3px;width:24px;height:24px;border-radius:8px;background:rgba(255,255,255,.14);display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;z-index:2}
+.call-float .cf-mini svg{width:14px;height:14px;color:#fff}
+.call-float .cf-mini:active{transform:scale(.9);background:rgba(255,255,255,.3)}
 .call-video{position:absolute;inset:0;display:flex;flex-direction:column;background:#111}
 .call-video .cv-remote{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;background:radial-gradient(circle at 50% 30%,#3a3a3a,#141414);color:#888;font-size:15px}
 .call-video .cv-remote-ph{font-size:64px;opacity:.55;animation:recPulse 2s infinite}
@@ -827,3 +831,9 @@ body{-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;letter
 .diary-blur-wrap.open .diary-blur{filter:none;opacity:1}
 .diary-blur-wrap.open .diary-lock-overlay{display:none}
 .diary-blur-wrap.open .diary-blur{pointer-events:auto}
+
+/* v3.6.10 日历滑动嵌入 tab（胶囊滑块，明文的） */
+.cal-tabs{position:relative;display:flex;background:var(--input);border-radius:999px;padding:3px;margin:2px 0 10px;box-shadow:inset 0 1px 2px rgba(0,0,0,.05)}
+.cal-tab{flex:1;text-align:center;padding:7px 0;font-size:13px;color:var(--sub);z-index:1;cursor:pointer;transition:color .2s;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cal-tab.on{color:var(--text);font-weight:600}
+.cal-tab-slider{position:absolute;top:3px;bottom:3px;width:calc((100% - 6px)/3);border-radius:999px;background:#fff;box-shadow:0 2px 6px rgba(0,0,0,.12);transition:left .25s ease}

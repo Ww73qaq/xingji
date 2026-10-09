@@ -9,6 +9,17 @@
 let calView='month';          // 'month' | 'day'
 let calCursor=new Date();      // 月视图所在月
 let calDaySel=null;            // 选中的日期 'YYYY-MM-DD'
+let calScope='all';            // v3.6.10 日历 tab：'all' 全部 | 'me' 我的 | 'ta' TA 的
+/* 滑动嵌入式 tab（胶囊滑块，明文的） */
+function calSetScope(s){calScope=s;renderCalendar();}
+function calTabsHtml(){
+  const esc2=typeof esc==='function'?esc:(x=>x);
+  const idx=calScope==='all'?0:calScope==='me'?1:2;
+  return `<div class="cal-tabs"><span class="cal-tab-slider" style="left:calc(${idx*(100/3)}% + 3px)"></span>
+    <span class="cal-tab${calScope==='all'?' on':''}" onclick="calSetScope('all')">全部</span>
+    <span class="cal-tab${calScope==='me'?' on':''}" onclick="calSetScope('me')">${esc2(state.me.name||'我的')}</span>
+    <span class="cal-tab${calScope==='ta'?' on':''}" onclick="calSetScope('ta')">${esc2(state.other.name||'TA')}的</span></div>`;
+}
 
 /* ---------- 工具 ---------- */
 function calDateKey(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
@@ -118,12 +129,12 @@ async function renderCalendar(){
   for(let d=1;d<=days;d++){
     const key=calDateKey(new Date(y,m,d));
     const items=byDate[key]||[];
-    const myMood=calMoodEmoji((items.find(x=>x.who==='me')||{}).mood);
-    const taMood=calMoodEmoji((items.find(x=>x.who==='ta')||{}).mood);
-    const todos=items.filter(x=>x.type==='todo'&&!x.done);
-    const tasched=items.filter(x=>x.type==='ta_sched');
+    const myMood=(calScope==='ta')?'':calMoodEmoji((items.find(x=>x.who==='me')||{}).mood);
+    const taMood=(calScope==='me')?'':calMoodEmoji((items.find(x=>x.who==='ta')||{}).mood);
+    const todos=(calScope==='ta')?[]:items.filter(x=>x.type==='todo'&&!x.done);
+    const tasched=(calScope==='me')?[]:items.filter(x=>x.type==='ta_sched');
     // v3.6.6：经期/排卵期 = 周期设置计算（无设置时兼容旧单天记录）
-    const pset=byDate._periodSet;
+    const pset=calScope==='ta'?null:byDate._periodSet;
     const pInfo=pset?calPeriodInfo(key,pset):{inPeriod:0,ovu:false};
     const oldPeriod=items.find(x=>x.type==='period');
     const period=pInfo.inPeriod?pInfo:(oldPeriod?oldPeriod.level:0);
@@ -145,6 +156,7 @@ async function renderCalendar(){
     </span>`;
   }
   body.innerHTML=`
+    ${calTabsHtml()}
     <div class="cal-head">
       <button class="cal-nav" onclick="calShift(-1)">&#8249;</button>
       <span class="cal-title" onclick="calBackToToday()">${y} 年 ${m+1} 月</span>
@@ -153,14 +165,11 @@ async function renderCalendar(){
     </div>
     <div class="cal-grid">${head}${cells}</div>
     <div class="cal-legend">
-      <span><i style="background:var(--c-purple)"></i>我心情</span>
-      <span><i style="background:var(--c-green)"></i>${esc(state.other.name||'TA')}心情</span>
-      <span><i style="background:#8a9bb5"></i>待办</span>
-      <span><i style="background:${TA_SCHEDULE_COLOR}"></i>${esc(state.other.name||'TA')}日程</span>
-      <span><i style="background:#f2a8c4"></i>经期·少</span>
-      <span><i style="background:#e6c24a"></i>经期·中</span>
-      <span><i style="background:#e06060"></i>经期·多</span>
-      <span><i style="background:${CAL_OVU_C}"></i>排卵期</span>
+      ${calScope!=='ta'?`<span><i style="background:var(--c-purple)"></i>${esc(state.me.name||'我')}心情</span>`:''}
+      ${calScope!=='me'?`<span><i style="background:var(--c-green)"></i>${esc(state.other.name||'TA')}心情</span>`:''}
+      ${calScope!=='ta'?`<span><i style="background:#8a9bb5"></i>待办</span>`:''}
+      ${calScope!=='me'?`<span><i style="background:${TA_SCHEDULE_COLOR}"></i>${esc(state.other.name||'TA')}日程</span>`:''}
+      ${calScope!=='ta'?`<span><i style="background:#f2a8c4"></i>经期·少</span><span><i style="background:#e6c24a"></i>经期·中</span><span><i style="background:#e06060"></i>经期·多</span><span><i style="background:${CAL_OVU_C}"></i>排卵期</span>`:''}
     </div>
     <div class="empty" style="font-size:12px;line-height:1.9;text-align:left;padding:14px 6px">
       点任意日期可查看当天的便签、待办、${esc(state.other.name||'TA')}日程与经期记录。桌面的两张便签会在每天 0 点后自动记录到这里。${state.calLastSnapDate?`<br><span style="color:var(--hint)">最近一次存档：${state.calLastSnapDate.replace(/-/g,'/')}</span>`:''}
@@ -172,15 +181,17 @@ function renderCalendarDay(body,items,pset){
   const dsel=new Date(calDaySel);
   const whoName={me:state.me.name||'我',ta:state.other.name||'TA'};
   const whoColor={me:'var(--c-purple)',ta:'var(--c-green)'};
-  const notes=items.filter(x=>!x.type||x.type==='note').sort((a,b)=>(a.at||0)-(b.at||0));
-  const todos=items.filter(x=>x.type==='todo').sort((a,b)=>((a.done||0)-(b.done||0))||((a.at||0)-(b.at||0)));
-  const tasched=items.filter(x=>x.type==='ta_sched').sort((a,b)=>(a.at||0)-(b.at||0));
-  const pInfo=pset?calPeriodInfo(calDaySel,pset):{inPeriod:0,ovu:false};
+  const notes=items.filter(x=>(!x.type||x.type==='note')&&(calScope==='all'||x.who===calScope)).sort((a,b)=>(a.at||0)-(b.at||0));
+  const todos=(calScope==='ta')?[]:items.filter(x=>x.type==='todo').sort((a,b)=>((a.done||0)-(b.done||0))||((a.at||0)-(b.at||0)));
+  const tasched=(calScope==='me')?[]:items.filter(x=>x.type==='ta_sched').sort((a,b)=>(a.at||0)-(b.at||0));
+  const scopedPset=(calScope==='ta')?null:pset;
+  const pInfo=scopedPset?calPeriodInfo(calDaySel,scopedPset):{inPeriod:0,ovu:false};
   const oldPeriod=items.find(x=>x.type==='period');
   const dayLevel=pInfo.inPeriod?pInfo.level:(oldPeriod?(oldPeriod.level||1):0);
   const plv=dayLevel?CAL_PERIOD[dayLevel]:null;
   const dayTag=pInfo.inPeriod?('经期 · 第 '+pInfo.inPeriod+' 天'):(pInfo.ovu?'排卵期':'');
   body.innerHTML=`
+    ${calTabsHtml()}
     <div class="cal-head">
       <button class="cal-nav" onclick="calBackToMonth()">&#8249;</button>
       <span class="cal-title">${dsel.getMonth()+1} 月 ${dsel.getDate()} 日</span>
@@ -188,12 +199,12 @@ function renderCalendarDay(body,items,pset){
       <button class="cal-today" onclick="calBackToToday()">今天</button>
     </div>
     <div class="cal-ops">
-      <button class="cal-op-btn" onclick="calAddTodo('${calDaySel}')">＋ 待办</button>
-      <button class="cal-op-btn" onclick="calAddTaSched('${calDaySel}')">＋ ${esc(state.other.name||'TA')}日程</button>
-      <button class="cal-op-btn" onclick="calSetPeriod('${calDaySel}')">${pset?'✎ 经期设置':'＋ 经期设置'}</button>
-      ${dayTag?`<span class="cal-op-tag" style="color:${plv?plv.c:CAL_OVU_C};border-color:${plv?plv.c:CAL_OVU_C}">${dayTag}</span>`:''}
+      ${calScope!=='ta'?`<button class="cal-op-btn" onclick="calAddTodo('${calDaySel}')">＋ 待办</button>`:''}
+      ${calScope!=='me'?`<button class="cal-op-btn" onclick="calAddTaSched('${calDaySel}')">＋ ${esc(state.other.name||'TA')}日程</button>`:''}
+      ${calScope!=='ta'?`<button class="cal-op-btn" onclick="calSetPeriod('${calDaySel}')">${pset?'✎ 经期设置':'＋ 经期设置'}</button>`:''}
+      ${calScope!=='ta'&&dayTag?`<span class="cal-op-tag" style="color:${plv?plv.c:CAL_OVU_C};border-color:${plv?plv.c:CAL_OVU_C}">${dayTag}</span>`:''}
     </div>
-    <div class="cal-section-title" style="color:${TA_SCHEDULE_COLOR}">${esc(state.other.name||'TA')}日程 <span style="color:var(--hint);font-size:11px;font-weight:400">（TA 的排班，可增删）</span></div>
+    ${calScope!=='me'?`<div class="cal-section-title" style="color:${TA_SCHEDULE_COLOR}">${esc(state.other.name||'TA')}日程 <span style="color:var(--hint);font-size:11px;font-weight:400">（灵性医生的排班会自动浮现，也可以手动调整——兜底）</span></div>
     <div class="cal-todolist">
       ${tasched.length?tasched.map(it=>`
         <div class="cal-todo-item" style="border-left:3px solid ${TA_SCHEDULE_COLOR}">
@@ -201,7 +212,7 @@ function renderCalendarDay(body,items,pset){
           <span class="cal-todo-del" onclick="calDelTaSched(${it.id})">&#10005;</span>
         </div>`).join('')
       :'<div class="empty" style="padding:12px 0">这一天还没有排班，点上方「＋ '+esc(state.other.name||'TA')+'日程」手动添加，或等 TA 自己排上</div>'}
-    </div>
+    </div>`:''}
     <div class="cal-section-title">便签</div>
     <div class="cal-daylist">
       ${notes.length?notes.map(it=>`
@@ -216,7 +227,7 @@ function renderCalendarDay(body,items,pset){
         </div>`).join('')
       :'<div class="empty" style="padding:16px 0">这一天还没有留下便签</div>'}
     </div>
-    <div class="cal-section-title">待办 <span style="color:var(--hint);font-size:11px;font-weight:400">（点击勾选完成，可编辑/删除）</span></div>
+    ${calScope!=='ta'?`<div class="cal-section-title">待办 <span style="color:var(--hint);font-size:11px;font-weight:400">（点击勾选完成，可编辑/删除）</span></div>
     <div class="cal-todolist">
       ${todos.length?todos.map(it=>`
         <div class="cal-todo-item${it.done?' done':''}">
@@ -225,7 +236,8 @@ function renderCalendarDay(body,items,pset){
           <span class="cal-todo-del" onclick="calDelTodo(${it.id})">&#10005;</span>
         </div>`).join('')
       :'<div class="empty" style="padding:12px 0">还没有待办，点上方「＋ 待办」添加</div>'}
-    </div>`;
+    </div>`:''}
+  `;
 }
 
 /* v3.6.8：TA 日历——医生排班模板自动排未来 3 天（每天 1~2 条，已有则跳过），心跳/渲染时调用 */

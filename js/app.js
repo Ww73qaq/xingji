@@ -60,8 +60,7 @@ function startHeartbeat(){
       if(typeof maybeTaSense==='function')maybeTaSense();       // v3.6.8 TA 主动感应
       if(typeof maybeNoteAlarm==='function')maybeNoteAlarm();    // v3.6.9 便签闹钟
       if(typeof calMaybeSnap==='function')calMaybeSnap();   // v3.6.4 日历：跨天自动存档当天便签
-      const badge=document.getElementById('mom-notif-badge');
-      if(badge)badge.style.display=notifUnreadCount()>0?'block':'none';
+      // v3.6.10：按用户要求去掉朋友圈红点（提醒中心仍在，不再显示角标）
       refreshStalePolls();          // 题目「等太久」的文案翻转（只刷那几条气泡）
     }
     if(_tick%300===0){
