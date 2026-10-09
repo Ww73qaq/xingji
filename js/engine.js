@@ -239,9 +239,9 @@ async function buildReply(context){
 
     if(i===0&&mustAnswer){
       // 必答气泡直接用答案，不再抽字卡（避免「抽了却被丢弃」的字卡统计污染）
-      const ans=_buildPollAnswer(latest);
+      const ans=await _buildPollAnswer(latest);
       content=ans.text;
-      answerOf={id:latest.id,sel:ans.sel,text:ans.text};
+      answerOf={id:latest.id,sel:ans.sel,text:ans.text,card:ans.card};
     }else{
       const base=await _buildBaseBubbleText(src,roundUsed,usage,bubbleUsed,markUsed,intent);
       content=base?base.text:SYSTEM_TEXT_POOL()[0];
@@ -329,7 +329,7 @@ async function makeTaQuote(){
      · 多选   sel = [i,j,…]
      · 单选   sel = [i]
    多选数量上下限优先取「消息自带」（发送弹窗里设置），回退全局默认。 ---- */
-function _buildPollAnswer(m){
+async function _buildPollAnswer(m){
   const poll=(m&&(m.poll||m.survey))||{};
   const ss=state.surveySettings||{};
   const defMin=_clamp(Number(ss.multiMin)||1,1,10);
@@ -375,7 +375,17 @@ function _buildPollAnswer(m){
     return {text:ids.length?'我选：'+ids.map(k=>opts[k]).join('、'):'嗯，我选好了。',sel:ids};
   }
   const k=Math.floor(Math.random()*opts.length);
-  return {text:'我选：'+opts[k],sel:[k]};
+  const base={text:'我选：'+opts[k],sel:[k]};
+  // v3.7.1「让 TA 帮我决定」：选完选项后再从字卡库抽一张卡，作为 TA 的「意思/补充说明」
+  // 抽卡复用 TA 平时发字卡的低频平衡随机（_pickBalanced）；字卡库为空时退回纯选项
+  if(poll.decide){
+    try{
+      const pool=await _getCardPool();
+      const card=_pickBalanced(pool,null);
+      if(card)base.card={text:card.text,group:card.group};
+    }catch(e){}
+  }
+  return base;
 }
 /* 兼容旧调用：只要文本 */
 function _buildPollAnswerText(m){return _buildPollAnswer(m).text;}
@@ -385,6 +395,7 @@ async function _applyPollAnswer(answerOf){
   if(!m)return;
   const usedSec=Math.max(0,Math.round((Date.now()-(m.time||Date.now()))/1000));
   m.answer={sel:answerOf.sel,usedSec,at:Date.now()};
+  if(answerOf.card)m.answer.card=answerOf.card;
   m.answerText=answerOf.text;
   await dbPut('messages',m);
   if(state.currentApp==='chat'&&typeof window.refreshMsgRow==='function')window.refreshMsgRow(m.id);

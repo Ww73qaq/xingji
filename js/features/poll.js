@@ -14,7 +14,7 @@ let pollEditing=false, surveyEditing=false;
 let editingFromId=null;   // 「修改并重发」的原消息 id：提交后给它打 superseded 标记
 
 /* ---------- 表单构造 ---------- */
-function buildPollFormHtml(question,optionsText,multi,minV,maxV){
+function buildPollFormHtml(question,optionsText,multi,minV,maxV,decide){
   const optCount=String(optionsText||'').split(/\n+/).map(x=>x.trim()).filter(Boolean).length;
   return '<input class="app-input" id="poll-q" placeholder="题目" value="'+esc(question)+'" style="width:100%;margin-bottom:10px">'
     +'<textarea class="textarea-full" id="poll-opts" placeholder="选项，一行一个（最多 10 个）" style="min-height:110px" oninput="syncPollLimits()">'+esc(optionsText)+'</textarea>'
@@ -24,7 +24,10 @@ function buildPollFormHtml(question,optionsText,multi,minV,maxV){
         +'<span>最多选</span><input class="app-input" id="poll-max" type="number" min="1" max="10" value="'+maxV+'" style="width:64px;text-align:center" oninput="syncPollLimits()">'
         +'<span>项</span><span id="poll-limit-hint" style="color:var(--hint)">（当前 '+optCount+' 个选项）</span></div>'
         +'<div style="font-size:11px;color:var(--hint);margin-top:6px">TA 作答时选中的数量会落在这个区间内；选项少于上限时自动收敛。</div>'
-      :'<div style="font-size:11px;color:var(--hint);margin-top:8px">单选：TA 会直接选中其中一个选项并作答。</div>');
+      :'<div style="font-size:11px;color:var(--hint);margin-top:8px">单选：TA 会直接选中其中一个选项并作答。</div>'
+        +'<label style="display:flex;align-items:center;gap:8px;margin-top:12px;padding:10px 12px;border:1px solid var(--input);border-radius:12px;background:rgba(128,128,128,.06);cursor:pointer;font-size:13px">'
+        +'<input type="checkbox" id="poll-decide"'+(decide?' checked':'')+' style="width:16px;height:16px;accent-color:#7c6fde">'
+        +'<span>让 TA 帮我决定 <span style="color:var(--hint);font-size:11px">（TA 选完还会从字卡里挑一张，补充他的意思）</span></span></label>');
 }
 /* 选项数量变化时，把最少/最多收敛到合法范围，避免出现「最少 5 项但只有 3 个选项」 */
 function syncPollLimits(){
@@ -98,7 +101,7 @@ async function editPollAndResend(m){
   pollEditing=true;surveyEditing=false;
   showModal(multi?'修改多选题（将作为新消息发出）':'修改单选题（将作为新消息发出）',
     buildPollFormHtml(p.question||'',(p.options||[]).join('\n'),multi,
-      Number(p.multiMin)||_surveyDefault('multiMin',1),Number(p.multiMax)||_surveyDefault('multiMax',6)),
+      Number(p.multiMin)||_surveyDefault('multiMin',1),Number(p.multiMax)||_surveyDefault('multiMax',6),!!p.decide),
     '<div class="modal-btn-row"><button class="modal-btn" onclick="closeModal()">取消</button>'
     +'<button class="modal-btn primary" onclick="submitPoll('+(multi?1:0)+',true)">重新发送</button></div>');
 }
@@ -137,6 +140,11 @@ async function submitPoll(multi,isEdit){
   if(!question){showToast('请输入题目');return;}
   if(opts.length<2){showToast('至少 2 个选项');return;}
   const poll={question,options:opts,multi:!!multi};
+  // v3.7.1：单选弹窗新增「让 TA 帮我决定」开关 → TA 选完再抽一张字卡补充意思
+  if(!multi){
+    const dc=document.getElementById('poll-decide');
+    if(dc&&dc.checked)poll.decide=1;
+  }
   if(multi){
     const mn=document.getElementById('poll-min'),mx=document.getElementById('poll-max');
     let a=_clamp(parseInt(mn?mn.value:'')||1,1,opts.length);

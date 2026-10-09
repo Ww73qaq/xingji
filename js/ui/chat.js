@@ -143,7 +143,10 @@ case 'gift':{
       }
       const opts=(pp.options||[]).map((o,i)=>{const on=isSelFlat(i);return '<div class="poll-opt'+(on?' sel':'')+'">'+String.fromCharCode(65+i)+'. '+esc(o)+(on?' <b>&#10003;</b>':'')+'</div>';}).join('');
       const tag=(pp.multi?('多选'+(pp.multiMin?' · 选 '+pp.multiMin+'-'+pp.multiMax+' 项':'')):'单选');
-      return q+'<div class="msg-bubble msg-card" style="min-width:0"><div style="padding:11px 13px 9px"><div class="poll-q">'+esc(pp.question||'题目')+' <span style="font-size:11px;color:var(--hint)">'+tag+'</span></div>'+opts+'</div>'+foot+'</div>';
+      // v3.7.1「让 TA 帮我决定」：作答后附一张字卡作为 TA 的意思（字卡库为空则无）
+      const decideCard=(m.answer&&m.answer.card)
+        ?'<div class="decide-card"><div class="decide-card-tag">TA 的意思 · '+esc(m.answer.card.group||'字卡')+'</div><div class="decide-card-text">'+esc(m.answer.card.text)+'</div></div>':'';
+      return q+'<div class="msg-bubble msg-card" style="min-width:0"><div style="padding:11px 13px 9px"><div class="poll-q">'+esc(pp.question||'题目')+' <span style="font-size:11px;color:var(--hint)">'+tag+'</span></div>'+opts+decideCard+'</div>'+foot+'</div>';
     }
     default:{
       const mark=(m.proactive&&m.sender==='other')?'<span class="proactive-mark">✦ </span>':'';
