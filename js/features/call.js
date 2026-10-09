@@ -2,6 +2,14 @@
    星迹 · 语音与视频通话（来电 / 去电 / 铃声 / 摄像头 / 悬浮窗）
    ========================================================= */
 
+/* v3.6.3 线性 SVG 图标（微信风格，描边 1.8，24px） */
+const IC_MUTE='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a3 3 0 0 1 3 3v5a3 3 0 0 1-6 0V6a3 3 0 0 1 3-3Z"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/><path d="m4 4 16 16"/></svg>';
+const IC_SPEAKER='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9v6h4l5 4V5L8 9H4Z"/><path d="M16 8a4 4 0 0 1 0 8M18.5 5.5a8 8 0 0 1 0 13"/></svg>';
+const IC_CAM='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6.5" width="13" height="11" rx="2.2"/><path d="m16 10.5 5-2.8v8.6l-5-2.8"/></svg>';
+const IC_PHONE='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.13.96.36 1.9.7 2.8a2 2 0 0 1-.45 2.1L8.1 9.9a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.45c.9.34 1.84.57 2.8.7A2 2 0 0 1 22 16.9Z"/></svg>';
+const IC_MIN='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 14v6h6M20 10V4h-6"/></svg>';
+const IC_KEYPAD='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="6" width="12" height="12" rx="2"/><circle cx="10" cy="10" r=".5"/><circle cx="14" cy="10" r=".5"/><circle cx="10" cy="14" r=".5"/><circle cx="14" cy="14" r=".5"/></svg>';
+
 /* ===== 视频通话：本地摄像头 + 模拟远端（无真实 WebRTC） ===== */
 let callKind='voice',camOn=false;
 function openVideoCall(){
@@ -84,12 +92,12 @@ function simulateIncomingCall(kind){
   setCallStatus(`${state.other.name} 正在呼叫…<br><span style="opacity:.6;font-size:12px">${CALL_BG[Math.floor(Math.random()*CALL_BG.length)]}</span>`);
   renderCallActions(
     '<div class="call-row">'
-    +'<div class="call-col"><button class="call-btn" onclick="toggleMute()">&#128263;</button><span class="call-btn-label">静音</span></div>'
-    +'<div class="call-col"><button class="call-btn" onclick="showToast(\'暂不支持\')">&#128250;</button><span class="call-btn-label">键盘</span></div>'
+    +'<div class="call-col"><button class="call-btn" onclick="toggleMute()">'+IC_MUTE+'</button><span class="call-btn-label">静音</span></div>'
+    +'<div class="call-col"><button class="call-btn" onclick="showToast(\'暂不支持\')">'+IC_KEYPAD+'</button><span class="call-btn-label">键盘</span></div>'
     +'</div>'
     +'<div class="call-row">'
-    +'<div class="call-col"><button class="call-btn end" onclick="declineCall()">&#128222;</button><span class="call-btn-label">拒绝</span></div>'
-    +'<div class="call-col"><button class="call-btn answer" onclick="answerCall()">&#128222;</button><span class="call-btn-label">接听</span></div>'
+    +'<div class="call-col"><button class="call-btn end" onclick="declineCall()">'+IC_PHONE+'</button><span class="call-btn-label">拒绝</span></div>'
+    +'<div class="call-col"><button class="call-btn answer" onclick="answerCall()">'+IC_PHONE+'</button><span class="call-btn-label">接听</span></div>'
     +'</div>');
   startRing();
   if(navigator.vibrate)navigator.vibrate([400,200,400]);
@@ -123,7 +131,7 @@ function callOutgoing(kind){
   showCallOverlay();
   setCallBadge(kind==='video'?'视频通话':'语音通话',false);
   setCallStatus('正在呼叫…');
-  renderCallActions('<div class="call-row"><div class="call-col"><button class="call-btn end" onclick="cancelOutgoing()">&#128222;</button><span class="call-btn-label">取消</span></div></div>');
+  renderCallActions('<div class="call-row"><div class="call-col"><button class="call-btn end" onclick="cancelOutgoing()">'+IC_PHONE+'</button><span class="call-btn-label">取消</span></div></div>');
   const t=setTimeout(()=>{
     if(!state.callActive)return;
     if(Math.random()<0.72)startCall();
@@ -152,35 +160,28 @@ function answerCall(){
 function startCall(){
   callSec=0;callMode='talk';
   setCallBadge(callKind==='video'?'视频通话中':'通话中',true);
-  const f=document.getElementById('call-float');f.classList.add('show');
-  updateCallFloat();
+  updateCallFloat();                // v3.6.3：全屏通话不显示浮窗（缩小后才出现，避免浮窗盖住全屏）
   if(callIv)clearInterval(callIv);
   callIv=setInterval(()=>{callSec++;updateCallFloat();},1000);
   if(callKind==='video')showVideoStage();
   renderCallActions(callActionsHtml());
   scheduleCallTalk();
 }
-/* 通话中操作按钮（初始化和状态更新共用，避免重复重启通话） */
+/* 通话中操作按钮（初始化和状态更新共用，避免重复重启通话）
+   v3.6.3 微信式：功能按钮一行并排（线性 SVG 小图标），挂断单独一行居中大红 */
 function callActionsHtml(){
   const camBtn=callKind==='video'
-    ?`<div class="call-col"><button class="call-btn${camOn?' on':''}" onclick="toggleCamera()">&#128249;</button><span class="call-btn-label">${camOn?'摄像头开':'摄像头关'}</span></div>`
+    ?`<div class="call-col"><button class="call-btn${camOn?' on':''}" onclick="toggleCamera()">${IC_CAM}</button><span class="call-btn-label">${camOn?'摄像头开':'摄像头关'}</span></div>`
     :'';
   return '<div class="call-row">'
-    +`<div class="call-col"><button class="call-btn${callMuted?' on':''}" onclick="toggleMute()">&#128263;</button><span class="call-btn-label">${callMuted?'已静音':'静音'}</span></div>`
+    +`<div class="call-col"><button class="call-btn${callMuted?' on':''}" onclick="toggleMute()">${IC_MUTE}</button><span class="call-btn-label">${callMuted?'已静音':'静音'}</span></div>`
+    +`<div class="call-col"><button class="call-btn${callSpeaker?' on':''}" onclick="toggleSpeaker()">${IC_SPEAKER}</button><span class="call-btn-label">${callSpeaker?'免提开':'免提'}</span></div>`
     +camBtn
+    +'<div class="call-col"><button class="call-btn" onclick="minimizeCall()">'+IC_MIN+'</button><span class="call-btn-label">小窗</span></div>'
     +'</div>'
     +'<div class="call-row">'
-    +`<div class="call-col"><button class="call-btn${callSpeaker?' on':''}" onclick="toggleSpeaker()">&#128266;</button><span class="call-btn-label">${callSpeaker?'免提开':'免提'}</span></div>`
-    +'<div class="call-col"><button class="call-btn" onclick="minimizeCall()">&#128736;</button><span class="call-btn-label">收起</span></div>'
-    +'<div class="call-col"><button class="call-btn end" onclick="endCall(\'hangup\')">&#128222;</button><span class="call-btn-label">挂断</span></div>'
+    +'<div class="call-col"><button class="call-btn end" onclick="endCall(\'hangup\')">'+IC_PHONE+'</button><span class="call-btn-label">挂断</span></div>'
     +'</div>';
-}
-function minimizeCall(){
-  // 小窗收起：隐藏全屏 overlay，通话继续（底部浮层可点击恢复）
-  const ov=document.getElementById('call-overlay');
-  if(ov)ov.classList.remove('show');
-  const f=document.getElementById('call-float');
-  if(f)updateCallFloat();
 }
 /* 通话中 TA 说话：概率 + 最短/最长间隔的重复调度 */
 function scheduleCallTalk(){
@@ -200,8 +201,61 @@ function scheduleCallTalk(){
 }
 function updateCallFloat(){
   const f=document.getElementById('call-float');
-  f.querySelector('#cf-text').textContent=`通话中 ${String(Math.floor(callSec/60)).padStart(2,'0')}:${String(callSec%60).padStart(2,'0')}`;
+  if(!f)return;
+  const n=document.getElementById('cf-name');if(n)n.textContent=state.other.name||'TA';
+  const t=document.getElementById('cf-text');
+  if(t)t.textContent=String(Math.floor(callSec/60)).padStart(2,'0')+':'+String(callSec%60).padStart(2,'0');
 }
+/* v3.6.3 微信式通话小窗：全局悬浮、可拖动、松手自动靠边 */
+function minimizeCall(){
+  if(callMode!=='talk')return;
+  hideCallOverlay();                 // 修复旧 bug：之前 remove('show') 不生效，全屏一直盖着浮条
+  initCallFloat();
+  const f=document.getElementById('call-float');if(f)f.classList.add('show');
+  updateCallFloat();
+}
+/* 拖动监听只初始化一次；默认落点：右侧中上（像微信视频小窗） */
+let _floatDragInit=false;
+function initCallFloat(){
+  const f=document.getElementById('call-float');if(!f)return;
+  if(_floatDragInit)return;_floatDragInit=true;
+  const ph=document.getElementById('phone');
+  const pw=ph.getBoundingClientRect().width;
+  f.style.right='auto';f.style.left=(pw-f.offsetWidth-14)+'px';f.style.top=(ph.getBoundingClientRect().height*0.3)+'px';
+  let dragging=false,dx=0,dy=0,sx=0,sy=0,moved=false;
+  f.addEventListener('pointerdown',e=>{
+    if(e.target.closest('.cf-x'))return;
+    dragging=true;moved=false;
+    const r=f.getBoundingClientRect();
+    dx=e.clientX-r.left;dy=e.clientY-r.top;sx=e.clientX;sy=e.clientY;
+    try{f.setPointerCapture(e.pointerId);}catch(err){}
+  });
+  f.addEventListener('pointermove',e=>{
+    if(!dragging)return;
+    const p=document.getElementById('phone').getBoundingClientRect();
+    if(Math.abs(e.clientX-sx)>6||Math.abs(e.clientY-sy)>6)moved=true;
+    let x=e.clientX-dx-p.left,y=e.clientY-dy-p.top;
+    x=Math.max(0,Math.min(p.width-f.offsetWidth,x));
+    y=Math.max(0,Math.min(p.height-f.offsetHeight,y));
+    f.style.left=x+'px';f.style.top=y+'px';f.style.right='auto';
+  });
+  f.addEventListener('pointerup',e=>{
+    if(!dragging)return;dragging=false;
+    const p=document.getElementById('phone').getBoundingClientRect();
+    const r=f.getBoundingClientRect();
+    if(moved){  // 拖动过 → 松手自动靠边（吸附左/右边缘，保留当前高度）
+      const left=r.left-p.left;
+      const snapLeft=(left+r.width/2)<p.width/2;
+      f.style.left=(snapLeft?0:p.width-r.width)+'px';
+      f.style.top=(r.top-p.top)+'px';
+      f.style.right='auto';
+    }else{      // 未拖动 = 点击 → 恢复全屏
+      expandCall();
+    }
+  });
+}
+/* 浮窗上的 × ：直接挂断 */
+function miniCallHangup(){endCall('hangup');}
 function toggleMute(){callMuted=!callMuted;if(mediaStream)mediaStream.getAudioTracks().forEach(t=>t.enabled=!callMuted);renderCallActions(callActionsHtml());}
 function toggleSpeaker(){callSpeaker=!callSpeaker;renderCallActions(callActionsHtml());}
 function endCall(reason){
@@ -229,11 +283,11 @@ function endCall(reason){
   else if(reason==='cancel')pushSys(`已取消呼叫${state.other.name}`);
 }
 
-/* 点击悬浮小窗 → 重新展开全屏通话界面（原先 onclick 指向的缺失函数） */
+/* 点击悬浮小窗 → 重新展开全屏通话界面（v3.6.3：改用 active 类正确显示全屏） */
 function expandCall(){
-  if(!state.callActive&&callMode!=='ringing'&&callMode!=='calling'&&callMode!=='talk')return;
+  if(!state.callActive)return;
   const ov=document.getElementById('call-overlay');
-  if(ov)ov.classList.add('show');
+  if(ov)ov.classList.add('active');
   const f=document.getElementById('call-float');
   if(f)f.classList.remove('show');
   if(callMode==='talk'){setCallStatus(callDurationText());renderCallActions(callActionsHtml());}

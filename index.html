@@ -312,7 +312,13 @@
   </div>
   <div class="call-actions" id="call-actions"></div>
 </div>
-<div class="call-float" id="call-float" onclick="expandCall()"><span class="cf-dot"></span><span id="cf-text">通话中 00:00</span></div>
+<!-- ===== 通话小窗（v3.6.3 微信式浮窗：全局可拖动、自动靠边；点击恢复全屏、× 挂断） ===== -->
+<div class="call-float" id="call-float">
+  <span class="cf-dot"></span>
+  <span class="cf-name" id="cf-name">TA</span>
+  <span class="cf-text" id="cf-text">00:00</span>
+  <span class="cf-x" onclick="miniCallHangup()" title="挂断">&#10005;</span>
+</div>
 
 <!-- ===== 返回手势热区 ===== -->
 <div class="edge-back" id="edge-back"></div>
