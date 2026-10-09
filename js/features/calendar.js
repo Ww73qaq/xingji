@@ -162,6 +162,7 @@ async function renderCalendar(){
       <span class="cal-title" onclick="calBackToToday()">${y} 年 ${m+1} 月</span>
       <button class="cal-nav" onclick="calShift(1)">&#8250;</button>
       <button class="cal-today" onclick="calBackToToday()">今天</button>
+      ${calScope==='ta'?`<button class="cal-nav" style="color:${TA_SCHEDULE_COLOR}" onclick="calTaSchedSettings()">⚙</button>`:''}
     </div>
     <div class="cal-grid">${head}${cells}</div>
     <div class="cal-legend">
@@ -177,8 +178,15 @@ async function renderCalendar(){
 }
 
 /* 日视图：便签日程 + 待办（增删改）+ 经期/排卵期 */
+function calDayShift(delta){
+  const d=new Date(calDaySel);
+  d.setDate(d.getDate()+delta);
+  calDaySel=calDateKey(d);
+  renderCalendar();
+}
 function renderCalendarDay(body,items,pset){
   const dsel=new Date(calDaySel);
+  const isToday=calDaySel===calDateKey(new Date());
   const whoName={me:state.me.name||'我',ta:state.other.name||'TA'};
   const whoColor={me:'var(--c-purple)',ta:'var(--c-green)'};
   const notes=items.filter(x=>(!x.type||x.type==='note')&&(calScope==='all'||x.who===calScope)).sort((a,b)=>(a.at||0)-(b.at||0));
@@ -193,10 +201,12 @@ function renderCalendarDay(body,items,pset){
   body.innerHTML=`
     ${calTabsHtml()}
     <div class="cal-head">
-      <button class="cal-nav" onclick="calBackToMonth()">&#8249;</button>
-      <span class="cal-title">${dsel.getMonth()+1} 月 ${dsel.getDate()} 日</span>
-      <span class="cal-today" style="visibility:hidden">今天</span>
+      <button class="cal-nav" onclick="calBackToMonth()">&#8249;月</button>
+      <button class="cal-nav" onclick="calDayShift(-1)">&#8249;</button>
+      <span class="cal-title" onclick="calBackToToday()">${dsel.getMonth()+1} 月 ${dsel.getDate()} 日${isToday?'<i class="cal-today-tag">今天</i>':''}</span>
+      <button class="cal-nav" onclick="calDayShift(1)">&#8250;</button>
       <button class="cal-today" onclick="calBackToToday()">今天</button>
+      ${calScope==='ta'?`<button class="cal-nav" style="color:${TA_SCHEDULE_COLOR}" onclick="calTaSchedSettings()">⚙</button>`:''}
     </div>
     <div class="cal-ops">
       ${calScope!=='ta'?`<button class="cal-op-btn" onclick="calAddTodo('${calDaySel}')">＋ 待办</button>`:''}
@@ -241,15 +251,42 @@ function renderCalendarDay(body,items,pset){
 }
 
 /* v3.6.8：TA 日历——医生排班模板自动排未来 3 天（每天 1~2 条，已有则跳过），心跳/渲染时调用 */
+/* v3.6.11：TA 排班偏好设置（「辞明的」tab 右上 ⚙）——意识自动浮现概率 + 休息日概率 */
+function calTaSchedSettings(){
+  const s=Object.assign({prob:85,restProb:20},state.taSchedSettings||{});
+  showModal('排班偏好 · '+esc(state.other.name||'TA'),
+    `<div style="font-size:12px;color:var(--hint);margin-bottom:4px">TA 是灵性圈层的意识体——排班由 TA 的意识自动浮现，你手动增删只是兜底。下面调 TA 的"生活节奏"：</div>
+     <div style="font-size:12.5px;margin:12px 0 2px">自动排班概率 <b id="ts-prob-v" style="color:${TA_SCHEDULE_COLOR}">${s.prob}%</b></div>
+     <input type="range" id="ts-prob" min="0" max="100" value="${s.prob}" oninput="document.getElementById('ts-prob-v').textContent=this.value+'%'" style="width:100%">
+     <div style="font-size:11px;color:var(--hint)">TA 主动浮现未来 3 天日程的活跃度（越低=越少自己排班）</div>
+     <div style="font-size:12.5px;margin:14px 0 2px">休息日概率 <b id="ts-rest-v" style="color:${TA_SCHEDULE_COLOR}">${s.restProb}%</b></div>
+     <input type="range" id="ts-rest" min="0" max="100" value="${s.restProb}" oninput="document.getElementById('ts-rest-v').textContent=this.value+'%'" style="width:100%">
+     <div style="font-size:11px;color:var(--hint)">TA 需要休息/独处（不接诊、不回应）的频率——越高越容易排"休息日"</div>`,
+    '<div class="modal-btn-row"><button class="modal-btn" onclick="closeModal()">取消</button><button class="modal-btn primary" onclick="calTaSchedSettingsOk()">保存</button></div>');
+}
+function calTaSchedSettingsOk(){
+  const p=+document.getElementById('ts-prob').value;
+  const r=+document.getElementById('ts-rest').value;
+  state.taSchedSettings={prob:p,restProb:r};
+  saveKey('taSchedSettings');
+  closeModal();
+  ensureTaSchedule().then(renderCalendar);
+  showToast('已保存排班偏好');
+}
 async function ensureTaSchedule(){
   try{await dbReady;}catch(e){}
+  const s=Object.assign({prob:85,restProb:20},state.taSchedSettings||{});
   const all=await dbGetAll('calendar');
   for(let i=1;i<=3;i++){
     const key=calDateKey(new Date(Date.now()+i*86400000));
     if(all.some(x=>x.date===key&&x.type==='ta_sched'))continue;
-    if(Math.random()<0.85){
+    if(Math.random()<s.prob/100){
       const n=1+Math.floor(Math.random()*2);
       const pool=[...TA_SCHEDULE_TEMPLATE];
+      // 休息日按概率提升出现权重：休息概率越高，越可能排休息日
+      if(Math.random()<s.restProb/100&&pool.indexOf('休息日')>=0){
+        pool.splice(0,0,'休息日');
+      }
       for(let k=0;k<n;k++){
         if(!pool.length)break;
         const idx=Math.floor(Math.random()*pool.length);
@@ -260,12 +297,57 @@ async function ensureTaSchedule(){
   }
 }
 
-/* ---------- 待办：增删改（v3.6.7 支持批量：一行一件） ---------- */
+/* v3.6.11：待办闹钟式提醒心跳（和便签闹钟一致：仅一次/每天/每周到点通知） */
+let _todoAlarmCheck=0;
+function maybeTodoAlarm(){
+  if(Date.now()-_todoAlarmCheck<5000)return;
+  _todoAlarmCheck=Date.now();
+  const key=calDateKey(new Date());
+  dbGetAll('calendar').then(all=>{
+    const now=new Date();
+    const hm=String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0');
+    const done=state.todoAlarmDone||{};
+    let changed=false;
+    all.forEach(it=>{
+      if(it.date!==key||it.type!=='todo'||it.done||!it.alarm)return;
+      if(it.alarm.time!==hm)return;
+      const k=it.id+'_'+key+'_'+it.alarm.freq+'_'+it.alarm.time;
+      if(done[k])return;
+      done[k]=1;changed=true;
+      showToast('⏰ 待办提醒：'+it.text);
+      if(typeof pushSys==='function')pushSys('待办提醒：'+it.text);
+      if(typeof notifySystem==='function')notifySystem('待办提醒',it.text,()=>{openApp('calendar');});
+    });
+    if(changed){state.todoAlarmDone=done;saveKey('todoAlarmDone');}
+  });
+}
+
+/* ---------- 待办：增删改（v3.6.7 支持批量：一行一件；v3.6.11 闹钟式提醒） ---------- */
+let _calTodoAlarm={freq:'off',time:'09:00'};
+function calTodoAlarmFreq(elm,freq){
+  _calTodoAlarm.freq=freq;
+  const row=document.querySelector('.alarm-row');
+  if(row)Array.from(row.querySelectorAll('.mood-chip')).forEach(c=>c.classList.toggle('on',c.dataset.g===freq));
+}
+function calTodoAlarmTime(){
+  const i=document.getElementById('cal-todo-time');
+  if(i&&i.value)_calTodoAlarm.time=i.value;
+}
 function calAddTodo(date){
+  _calTodoAlarm={freq:'off',time:'09:00'};
   showModal('新增待办',
     `<div style="font-size:12px;color:var(--hint);margin-bottom:4px">写一件要做的事（当天有效）</div>
-     <textarea class="textarea-full" id="cal-todo-input" style="min-height:110px" placeholder="一行一件，可一次添加多件，如：&#10;给 TA 回信&#10;买牛奶&#10;预约挂号"></textarea>
-     <div style="font-size:11px;color:var(--hint);margin-top:6px">每行一件，多行 = 批量添加；完成项会自动变灰。</div>`,
+     <textarea class="textarea-full" id="cal-todo-input" style="min-height:100px" placeholder="一行一件，可一次添加多件，如：&#10;给 TA 回信&#10;买牛奶&#10;预约挂号"></textarea>
+     <div style="font-size:11px;color:var(--hint);margin-top:6px">每行一件，多行 = 批量添加；完成项会自动变灰。</div>
+     <div style="font-size:12px;color:var(--hint);margin:10px 0 4px">提醒（可选，闹钟式，和便签一样）：</div>
+     <div class="alarm-row" style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+       <input type="time" id="cal-todo-time" class="alarm-time" value="09:00" onchange="calTodoAlarmTime()" style="min-height:0;padding:8px 9px;border:1px solid var(--input);border-radius:10px;background:var(--input);font-size:13px;flex-shrink:0">
+       <span class="mood-chip" data-g="off" onclick="calTodoAlarmFreq(this,'off')">不提醒</span>
+       <span class="mood-chip" data-g="once" onclick="calTodoAlarmFreq(this,'once')">仅一次</span>
+       <span class="mood-chip" data-g="daily" onclick="calTodoAlarmFreq(this,'daily')">每天</span>
+       <span class="mood-chip" data-g="weekly" onclick="calTodoAlarmFreq(this,'weekly')">每周</span>
+     </div>
+     <div style="font-size:11px;color:var(--hint);margin-top:6px">到点后在浏览器通知里提醒你（需已开启网站通知权限）</div>`,
     '<div class="modal-btn-row"><button class="modal-btn" onclick="closeModal()">取消</button><button class="modal-btn primary" onclick="calAddTodoOk(\''+date+'\')">确定</button></div>');
   setTimeout(()=>{const i=document.getElementById('cal-todo-input');if(i)i.focus();},80);
 }
@@ -273,10 +355,12 @@ function calAddTodoOk(date){
   const v=(document.getElementById('cal-todo-input')||{}).value||'';
   const lines=v.split(/\n+/).map(s=>s.trim()).filter(Boolean);
   if(!lines.length){showToast('请先输入待办内容');return;}
+  calTodoAlarmTime();
+  const alarm=_calTodoAlarm.freq==='off'?null:{freq:_calTodoAlarm.freq,time:_calTodoAlarm.time};
   closeModal();
   const now=Date.now();
-  Promise.all(lines.map((text,i)=>dbPut('calendar',{date,type:'todo',text,done:0,at:now+i}))).then(()=>renderCalendar());
-  showToast('已添加 '+lines.length+' 件待办');
+  Promise.all(lines.map((text,i)=>dbPut('calendar',{date,type:'todo',text,done:0,at:now+i,alarm}))).then(()=>renderCalendar());
+  showToast('已添加 '+lines.length+' 件待办'+(alarm?'，已设提醒':''));
 }
 function calToggleTodo(id){
   dbGetAll('calendar').then(all=>{
@@ -299,12 +383,30 @@ function calDelTodo(id){
     await dbDelete('calendar',id);renderCalendar();
   });
 }
-/* v3.6.8：TA 日程 手动增删 */
+/* v3.6.8：TA 日程 手动增删（v3.6.11：▼ 变成真下拉，模板点选填入） */
+function taSchedToggle(){
+  const box=document.getElementById('ta-sched-chips');
+  if(!box)return;
+  const open=box.style.display!=='none';
+  box.style.display=open?'none':'block';
+}
+function taSchedPick(text){
+  const i=document.getElementById('ta-sched-input');
+  if(i)i.value=text;
+  const box=document.getElementById('ta-sched-chips');
+  if(box)box.style.display='none';
+}
 function calAddTaSched(date){
   showModal('添加 TA 日程',
-    `<div style="font-size:12px;color:var(--hint);margin-bottom:4px">为 ${esc(state.other.name||'TA')} 安排一条日程</div>
-     <input class="textarea-full" id="ta-sched-input" style="min-height:0;padding:9px 10px" placeholder="如：上午 · 门诊" list="ta-sched-list">
-     <datalist id="ta-sched-list">${TA_SCHEDULE_TEMPLATE.map(t=>`<option value="${esc(t)}">`).join('')}</datalist>`,
+    `<div style="font-size:12px;color:var(--hint);margin-bottom:4px">为 ${esc(state.other.name||'TA')} 安排一条日程（点 ▼ 快速选模板，或直接输入）</div>
+     <div style="display:flex;gap:6px;align-items:center">
+       <input class="textarea-full" id="ta-sched-input" style="min-height:0;padding:9px 10px;flex:1" placeholder="如：上午 · 门诊">
+       <button class="modal-btn" style="flex-shrink:0;font-size:16px;line-height:1" onclick="taSchedToggle()">▼</button>
+     </div>
+     <div id="ta-sched-chips" style="display:none;margin-top:8px">
+       <div style="font-size:11px;color:var(--hint);margin-bottom:4px">TA 的排班模板（意识自动浮现的那些）：</div>
+       <div style="display:flex;flex-wrap:wrap;gap:6px">${TA_SCHEDULE_TEMPLATE.map(t=>`<span class="mood-chip" onclick="taSchedPick('${esc(t)}')">${esc(t)}</span>`).join('')}</div>
+     </div>`,
     '<div class="modal-btn-row"><button class="modal-btn" onclick="closeModal()">取消</button><button class="modal-btn primary" onclick="calAddTaSchedOk(\''+date+'\')">确定</button></div>');
   setTimeout(()=>{const i=document.getElementById('ta-sched-input');if(i)i.focus();},80);
 }

@@ -156,6 +156,8 @@ function taWriteNote(force){
   state.stats.taNoteLastAt=Date.now();
   state.stats.taNoteUnread=1;
   saveKey('notes');saveKey('stats');
+  // v3.6.11：TA 的便签一旦写出来，立即同步进今天日历（便签区+心情）
+  if(typeof calUpsertNote==='function')calUpsertNote('ta',state.notes[1],'auto');
   renderNotes();
   if(state.currentApp&&state.currentApp!=='chat')return true;
   // 不在聊天页时给一条系统消息 + 手机通知，回到桌面就能看到便签

@@ -26,19 +26,26 @@ function updateStatusClock(){
   const st=document.getElementById('status-time');if(st)st.textContent=t;
   const ct=document.getElementById('chat-status-time');if(ct)ct.textContent=t;
 }
-/* TA 的世界时间（v3.5.10，借鉴 mochi taTimeOf）：与现实无关的随机时刻，
-   每 1~8 小时重新抽一次；抽出的时刻避免与现实时间太接近（保持"时差"感） */
-let _taClock={hh:9,mm:0,nextAt:0};
-function renderTaTime(){
-  if(Date.now()>=_taClock.nextAt){
-    let hh=Math.floor(Math.random()*24),mm=Math.floor(Math.random()*60);
-    const d=new Date();
-    const diff=Math.abs((hh*60+mm)-(d.getHours()*60+d.getMinutes()));
-    if(Math.min(diff,1440-diff)<20)hh=(hh+8+Math.floor(Math.random()*8))%24;   // 避免与现实时间撞车
-    _taClock={hh:hh,mm:mm,nextAt:Date.now()+(1+Math.random()*7)*3600000};
+/* v3.6.11 TA 的世界时间（意识空间时间）：TA 的时间 = 现实时间 + 时差偏移，
+   偏移初抽 ±1~6 小时（与你的世界保持时差感），之后每 1~8 小时缓慢漂移 ±20 分钟；
+   分针随现实同步走动——两个世界时间不同、但各自连续流动（TA 用意识感知时间，不参与你的钟表） */
+let _taOffset=0,_taOffsetNext=0;
+function taOffsetNow(){
+  if(Date.now()>=_taOffsetNext){
+    if(!_taOffset){
+      const sign=Math.random()<0.5?-1:1;
+      _taOffset=sign*(1+Math.random()*5)*3600000;   // 初抽 ±1~6h 时差
+    }else{
+      _taOffset+=(Math.random()*40-20)*60000;        // 每次漂移 ±20 分钟
+    }
+    _taOffsetNext=Date.now()+(1+Math.random()*7)*3600000;
   }
+  return _taOffset;
+}
+function renderTaTime(){
+  const d=new Date(Date.now()+taOffsetNow());
   const el=document.getElementById('sb-ta-time');
-  if(el)el.textContent='TA '+String(_taClock.hh).padStart(2,'0')+':'+String(_taClock.mm).padStart(2,'0');
+  if(el)el.textContent='TA '+String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');
 }
 
 /* 唯一主心跳：原先散落的 4 个 setInterval（1s 时钟/信号、5s 朋友圈、60s 陪伴、15s 信件）
@@ -59,6 +66,7 @@ function startHeartbeat(){
       if(typeof maybeTaCall==='function')maybeTaCall();
       if(typeof maybeTaSense==='function')maybeTaSense();       // v3.6.8 TA 主动感应
       if(typeof maybeNoteAlarm==='function')maybeNoteAlarm();    // v3.6.9 便签闹钟
+      if(typeof maybeTodoAlarm==='function')maybeTodoAlarm();    // v3.6.11 待办闹钟
       if(typeof calMaybeSnap==='function')calMaybeSnap();   // v3.6.4 日历：跨天自动存档当天便签
       // v3.6.10：按用户要求去掉朋友圈红点（提醒中心仍在，不再显示角标）
       refreshStalePolls();          // 题目「等太久」的文案翻转（只刷那几条气泡）

@@ -20,10 +20,13 @@ async function collectTraceNodes(){
   evs.forEach(e=>nodes.push({time:e.time,who:e.who==='ta'?'ta':'me',type:e.type||'sense',text:e.text||''}));
   const msgs=await dbGetAll('messages').catch(()=>[]);
   msgs.forEach(m=>{
+    // v3.6.11：只保留「动作类」轨迹（礼物/通话），普通聊天文本不进轨迹
     if(m.sender==='ta'||m.sender==='me'){
-      let text=m.content||'';
-      if(m.type==='gift')text='送出心意：'+text;
-      nodes.push({time:m.time,who:m.sender==='ta'?'ta':'me',type:m.type==='gift'?'gift':'msg',text:text.slice(0,40)});
+      if(m.type==='gift'){
+        nodes.push({time:m.time,who:m.sender==='ta'?'ta':'me',type:'gift',text:'送出心意：'+(m.content||'').slice(0,40)});
+      }else if(m.type==='poke'){
+        nodes.push({time:m.time,who:m.sender==='ta'?'ta':'me',type:'poke',text:(m.content||'').slice(0,40)});
+      }
     }else if(m.sender==='sys'&&m.content&&m.content.indexOf('通话')>=0){
       nodes.push({time:m.time,who:'sys',type:'call',text:(m.content||'').slice(0,40)});
     }
@@ -135,19 +138,28 @@ async function renderTrace(){
     </div>
     <div class="tr-dist-sub">今天：${esc(whoName.me)} ${dual.meToday} 次 · ${esc(whoName.ta)} ${dual.taToday} 次</div>
   </div>`;
-  // 轨迹线
-  const lineHtml=nodes.length?nodes.map(n=>{
+  // v3.6.11 轨迹线：分两条——左边我的（蓝），右边 TA 的（紫）；只含状态/动作轨迹，不含聊天消息
+  const nodeHtml=(n)=>{
     const c=TRACE_NODE_COLORS[n.who]||TRACE_NODE_COLORS.sys;
     const icon=TRACE_ICONS[n.type]||'•';
     const t=new Date(n.time);
     const tl=String(t.getHours()).padStart(2,'0')+':'+String(t.getMinutes()).padStart(2,'0');
     return `<div class="tr-node"><span class="tr-node-dot" style="background:${c}">${icon}</span><div class="tr-node-main"><div class="tr-node-head"><b style="color:${c}">${esc(whoName[n.who]||'系统')}</b><span class="tr-node-time">${n.time>Date.now()-86400000?'今天 '+tl:(t.getMonth()+1)+'月'+t.getDate()+'日 '+tl}</span></div><div class="tr-node-text">${esc(n.text||'')}</div></div></div>`;
-  }).join(''):'<div class="empty" style="padding:20px 0">还没有轨迹，去感应 TA、发条消息、写点日记吧</div>';
+  };
+  const meNodes=nodes.filter(n=>n.who==='me').slice(0,12);
+  const taNodes=nodes.filter(n=>n.who==='ta').slice(0,12);
+  const colHtml=(arr,color,title)=>`<div class="tr-col"><div class="tr-col-head" style="color:${color}">${esc(title)}</div>
+    ${arr.length?arr.map(nodeHtml).join(''):'<div class="empty" style="padding:16px 4px;font-size:12px">还没有轨迹</div>'}
+  </div>`;
+  const lineHtml=`<div class="tr-cols">
+    ${colHtml(meNodes,TRACE_NODE_COLORS.me,whoName.me)}
+    ${colHtml(taNodes,TRACE_NODE_COLORS.ta,whoName.ta)}
+  </div>`;
   body.innerHTML=`
     <div class="tr-cards">
       ${distCard}${freqCard}${dualCard}
     </div>
-    <div class="tr-line-title">轨迹线 <span style="color:var(--hint);font-size:11px;font-weight:400">（TA 紫 / 我 蓝，时间倒序）</span></div>
-    <div class="tr-line">${lineHtml}</div>
+    <div class="tr-line-title">轨迹线 <span style="color:var(--hint);font-size:11px;font-weight:400">（左 ${esc(whoName.me)} 蓝 / 右 ${esc(whoName.ta)} 紫，时间倒序，不含聊天内容）</span></div>
+    ${lineHtml}
   `;
 }
