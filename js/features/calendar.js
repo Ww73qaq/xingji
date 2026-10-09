@@ -101,10 +101,11 @@ async function calMaybeSnap(){
   }catch(e){console.error('cal snap',e);}
 }
 
-/* v3.6.12：当天桌面便签 → 日历自愈（旧版本没同步的 TA 便签补进今天，含心情） */
+/* v3.6.12：当天桌面便签 → 日历自愈（旧版本没同步的 TA 便签补进今天，含心情）
+   force=true 时忽略节流立即同步（打开日历/渲染时调用，保证一点开就看到心情） */
 let _calSyncCheck=0;
-function calSyncTodayNotes(){
-  if(Date.now()-_calSyncCheck<60000)return;   // 每分钟兜底一次
+function calSyncTodayNotes(force){
+  if(!force&&Date.now()-_calSyncCheck<15000)return;   // 心跳兜底 15 秒一次
   _calSyncCheck=Date.now();
   try{dbGetAll('calendar').then(all=>{
     const key=calDateKey(new Date());
@@ -112,6 +113,11 @@ function calSyncTodayNotes(){
     const ta=(state.notes&&state.notes[1])||{};
     if(mine&&(mine.text||'').trim()&&!all.some(x=>x.date===key&&x.who==='me'))calUpsertNote('me',mine,'auto');
     if(ta&&(ta.text||'').trim()&&!all.some(x=>x.date===key&&x.who==='ta'))calUpsertNote('ta',ta,'auto');
+    // mood 兜底：记录在但心情变了 → 补更新（upsert 覆盖 mood）
+    all.filter(x=>x.date===key&&(!x.type||x.type==='note')).forEach(x=>{
+      const n=x.who==='me'?mine:ta;
+      if(n&&(n.mood||'')!==(x.mood||'')&&((n.text||'')===(x.text||'')))calUpsertNote(x.who,n,'auto');
+    });
   });}catch(e){}
 }
 
@@ -121,6 +127,7 @@ async function renderCalendar(){
   if(!body)return;
   try{await dbReady;}catch(e){}                 // 等 IndexedDB 就绪再渲染（避免异步静默失败）
   await calMaybeSnap();
+  if(typeof calSyncTodayNotes==='function')calSyncTodayNotes(true);   // v3.6.12 打开日历立即补同步（含心情）
   await ensureTaSchedule();                      // v3.6.8：TA 排班自动补
   const all=await dbGetAll('calendar');
   const byDate={};
