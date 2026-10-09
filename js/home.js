@@ -53,7 +53,7 @@ async function renderHomeTraceWidget(){
   if(el)el.textContent=(d.getMonth()+1)+'月'+d.getDate()+'日';
   const lg=document.getElementById('tw-legend-ta');
   if(lg)lg.textContent=state.other.name||'TA';
-  const W=300,H=84,PADL=5,PADR=5,PADT=6,PADB=16;
+  const W=312,H=84,PADL=17,PADR=5,PADT=6,PADB=16;   // 左侧 12px 留给 Y 刻度（0/3/5）
   const iw=W-PADL-PADR,ih=H-PADT-PADB;
   const x=i=>PADL+(i/(NB-1))*iw;
   // Y：活跃密度 0-5 档（每 2h 段节点数相对归一化，封顶 5 档，与信号格 5 格同语言）
@@ -71,16 +71,25 @@ async function renderHomeTraceWidget(){
     out+=`<line x1="${px}" y1="${PADT}" x2="${px}" y2="${H-PADB+3}" stroke="var(--hint)" stroke-width="0.6" opacity="${i%3===0?'.55':'.28'}"/>`;
     if(i%3===0)out+=`<text x="${px}" y="${H-2}" text-anchor="${i===0?'start':i===NB?'end':'middle'}" font-size="8.5" fill="var(--hint)" opacity=".8">${i*2}</text>`;
   }
-  // Y 网格横线（0 / 3 / 5 档）
+  // Y 网格横线（0 / 3 / 5 档）+ 左侧刻度文字
   for(const lv of [0,3,5]){
     out+=`<line x1="${PADL}" y1="${y(lv).toFixed(1)}" x2="${W-PADR}" y2="${y(lv).toFixed(1)}" stroke="var(--hint)" stroke-width="0.5" opacity="${lv===0?'.22':'.15'}" stroke-dasharray="2 3"/>`;
+    out+=`<text x="${PADL-10}" y="${(y(lv)+2.6).toFixed(1)}" text-anchor="end" font-size="8" fill="var(--hint)" opacity=".75">${lv}</text>`;
   }
   const mkLine=(arr,color)=>{
     const pts=arr.map((v,i)=>x(i).toFixed(1)+','+y(v).toFixed(1));
-    return `<polyline points="${pts.join(' ')}" fill="none" stroke="${color}" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" opacity=".85"/>`;
+    return `<polyline class="tw-line" points="${pts.join(' ')}" fill="none" stroke="${color}" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" opacity=".85"/>`;
   };
+  // 红心（心里是我和他首字母），落在各自折线最后一个有值的点上，持续心跳
+  const lastIdx=arr=>{for(let i=arr.length-1;i>=0;i--)if(arr[i]>0)return i;return -1;};
+  const heart=(px,py,ch)=>`<g class="tw-heart" transform="translate(${px.toFixed(1)},${py.toFixed(1)})"><path d="M0 2.2 C-2.8 -0.6 -5.4 -2.6 -5.4 -5 C-5.4 -6.9 -3.4 -7.8 -1.7 -7.1 C-0.8 -6.7 0 -5.8 0 -5.1 C0 -5.8 0.8 -6.7 1.7 -7.1 C3.4 -7.8 5.4 -6.9 5.4 -5 C5.4 -2.6 2.8 -0.6 0 2.2 Z" fill="#e05c5c" stroke="#fff" stroke-width="0.4"/><text x="0" y="1.4" text-anchor="middle" font-size="3.8" fill="#fff" font-weight="700">${esc(ch)}</text></g>`;
   const total=meB.reduce((a,b)=>a+b,0)+taB.reduce((a,b)=>a+b,0);
-  if(total>0)out+=mkLine(meL,'#5c8aa9')+mkLine(taL,'#8c7aa9');
+  if(total>0){
+    out+=mkLine(meL,'#5c8aa9')+mkLine(taL,'#8c7aa9');
+    const mi=lastIdx(meL),ti=lastIdx(taL);
+    if(mi>=0)out+=heart(x(mi),y(meL[mi]),(state.me.name||'我').slice(0,1));
+    if(ti>=0)out+=heart(x(ti),y(taL[ti]),(state.other.name||'TA').slice(0,1));
+  }
   else out+=`<line x1="${PADL}" y1="${(PADT+ih/2).toFixed(1)}" x2="${W-PADR}" y2="${(PADT+ih/2).toFixed(1)}" stroke="var(--hint)" stroke-width="1" opacity=".35"/>`;
   g.innerHTML=out;
 }
