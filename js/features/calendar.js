@@ -101,6 +101,20 @@ async function calMaybeSnap(){
   }catch(e){console.error('cal snap',e);}
 }
 
+/* v3.6.12：当天桌面便签 → 日历自愈（旧版本没同步的 TA 便签补进今天，含心情） */
+let _calSyncCheck=0;
+function calSyncTodayNotes(){
+  if(Date.now()-_calSyncCheck<60000)return;   // 每分钟兜底一次
+  _calSyncCheck=Date.now();
+  try{dbGetAll('calendar').then(all=>{
+    const key=calDateKey(new Date());
+    const mine=(state.notes&&state.notes[0])||{};
+    const ta=(state.notes&&state.notes[1])||{};
+    if(mine&&(mine.text||'').trim()&&!all.some(x=>x.date===key&&x.who==='me'))calUpsertNote('me',mine,'auto');
+    if(ta&&(ta.text||'').trim()&&!all.some(x=>x.date===key&&x.who==='ta'))calUpsertNote('ta',ta,'auto');
+  });}catch(e){}
+}
+
 /* ---------- 渲染 ---------- */
 async function renderCalendar(){
   const body=document.getElementById('calendar-body');

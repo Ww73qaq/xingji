@@ -12,6 +12,13 @@ const TRACE_DIST_LEVELS=[
   {min:0.75,max:1,label:'彼岸',desc:'在很深的雾里，慢慢靠近',icon:'◇'}
 ];
 let _traceDist=0.35;   // 意识距离 0~1（近→远），由最近感应/状态动态算
+let _traceAnchor=new Date();   // v3.6.12 周锚点（切周用）
+let _traceDay='';              // 选中日 yyyy-mm-dd（默认今天，渲染时初始化）
+/* v3.6.12 周视图工具（全局，供 onclick 调用） */
+function trKey(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
+function trMonOf(anchor){const m=new Date(anchor);m.setDate(m.getDate()-((m.getDay()+6)%7));m.setHours(0,0,0,0);return m;}
+function traceWeekShift(delta){_traceAnchor=new Date(trMonOf(_traceAnchor).getTime()+delta*7*86400000);renderTrace();}
+function tracePickDay(key){_traceDay=key;renderTrace();}
 
 /* 收集轨迹节点：events + messages + calendar + diaries + 状态，统一 [{time,who,type,text}] */
 async function collectTraceNodes(){
@@ -104,6 +111,7 @@ async function renderTrace(){
   const body=document.getElementById('trace-body');
   if(!body)return;
   try{await dbReady;}catch(e){}
+  if(!_traceDay)_traceDay=(function(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');})(new Date());
   const nodes=await collectTraceNodes();
   const freq=await calcFreqSeries();
   const dual=await calcDualStats();
@@ -138,28 +146,52 @@ async function renderTrace(){
     </div>
     <div class="tr-dist-sub">今天：${esc(whoName.me)} ${dual.meToday} 次 · ${esc(whoName.ta)} ${dual.taToday} 次</div>
   </div>`;
-  // v3.6.11 轨迹线：分两条——左边我的（蓝），右边 TA 的（紫）；只含状态/动作轨迹，不含聊天消息
+  // v3.6.12 轨迹线：周视图 + 点线时间轴（左我蓝/右TA紫，按天查看，不含聊天内容）
   const nodeHtml=(n)=>{
     const c=TRACE_NODE_COLORS[n.who]||TRACE_NODE_COLORS.sys;
-    const icon=TRACE_ICONS[n.type]||'•';
     const t=new Date(n.time);
     const tl=String(t.getHours()).padStart(2,'0')+':'+String(t.getMinutes()).padStart(2,'0');
-    return `<div class="tr-node"><span class="tr-node-dot" style="background:${c}">${icon}</span><div class="tr-node-main"><div class="tr-node-head"><b style="color:${c}">${esc(whoName[n.who]||'系统')}</b><span class="tr-node-time">${n.time>Date.now()-86400000?'今天 '+tl:(t.getMonth()+1)+'月'+t.getDate()+'日 '+tl}</span></div><div class="tr-node-text">${esc(n.text||'')}</div></div></div>`;
+    return `<div class="tr-node"><span class="tr-node-dot" style="background:${c}"></span><div class="tr-node-main"><span class="tr-node-time">${tl}</span><div class="tr-node-text">${esc(n.text||'')}</div></div></div>`;
   };
-  const meNodes=nodes.filter(n=>n.who==='me').slice(0,12);
-  const taNodes=nodes.filter(n=>n.who==='ta').slice(0,12);
+  // 选中当天 00:00~24:00 的节点
+  const dayStart=new Date(_traceDay).getTime();
+  const dayEnd=dayStart+86400000;
+  const dayNodes=nodes.filter(n=>n.time>=dayStart&&n.time<dayEnd);
+  const meNodes=dayNodes.filter(n=>n.who==='me').slice(0,20);
+  const taNodes=dayNodes.filter(n=>n.who==='ta').slice(0,20);
   const colHtml=(arr,color,title)=>`<div class="tr-col"><div class="tr-col-head" style="color:${color}">${esc(title)}</div>
-    ${arr.length?arr.map(nodeHtml).join(''):'<div class="empty" style="padding:16px 4px;font-size:12px">还没有轨迹</div>'}
+    ${arr.length?arr.map(nodeHtml).join(''):'<div class="empty" style="padding:16px 4px;font-size:12px">这一天没有轨迹</div>'}
   </div>`;
   const lineHtml=`<div class="tr-cols">
     ${colHtml(meNodes,TRACE_NODE_COLORS.me,whoName.me)}
     ${colHtml(taNodes,TRACE_NODE_COLORS.ta,whoName.ta)}
   </div>`;
+  // 周选择器：横排一周 7 天，今天高亮，左右切周，点某天切换
+  const mon=trMonOf(_traceAnchor);
+  const nowKey=trKey(new Date());
+  let wk='';
+  for(let i=0;i<7;i++){
+    const d=new Date(mon.getTime()+i*86400000);
+    const key=trKey(d);
+    const wd=['日','一','二','三','四','五','六'][d.getDay()];
+    const isToday=key===nowKey,isSel=key===_traceDay;
+    wk+=`<span class="trw-day${isToday?' today':''}${isSel?' sel':''}" onclick="tracePickDay('${key}')">
+      <em>${wd}</em><b>${d.getDate()}</b>${isToday?'<i>今</i>':''}
+    </span>`;
+  }
+  const monEnd=new Date(mon.getTime()+6*86400000);
+  const weekHtml=`<div class="trw">
+    <button class="trw-nav" onclick="traceWeekShift(-1)">&#8249;</button>
+    <div class="trw-days">${wk}</div>
+    <button class="trw-nav" onclick="traceWeekShift(1)">&#8250;</button>
+  </div>
+  <div class="trw-label">${mon.getMonth()+1} 月 ${mon.getDate()} 日 ~ ${monEnd.getMonth()+1} 月 ${monEnd.getDate()} 日${_traceDay===nowKey?' · 今天':''}${_traceDay!==nowKey?' · '+Number(_traceDay.slice(5,7))+'月'+Number(_traceDay.slice(8))+'日':''}</div>`;
   body.innerHTML=`
     <div class="tr-cards">
       ${distCard}${freqCard}${dualCard}
     </div>
-    <div class="tr-line-title">轨迹线 <span style="color:var(--hint);font-size:11px;font-weight:400">（左 ${esc(whoName.me)} 蓝 / 右 ${esc(whoName.ta)} 紫，时间倒序，不含聊天内容）</span></div>
+    <div class="tr-line-title">轨迹线 <span style="color:var(--hint);font-size:11px;font-weight:400">（左 ${esc(whoName.me)} 蓝 / 右 ${esc(whoName.ta)} 紫，按天查看，不含聊天内容）</span></div>
+    ${weekHtml}
     ${lineHtml}
   `;
 }

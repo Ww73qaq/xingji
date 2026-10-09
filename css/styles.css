@@ -838,13 +838,28 @@ body{-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;letter
 .cal-tab.on{color:var(--text);font-weight:600}
 .cal-tab-slider{position:absolute;top:3px;bottom:3px;width:calc((100% - 6px)/3);border-radius:999px;background:#fff;box-shadow:0 2px 6px rgba(0,0,0,.12);transition:left .25s ease}
 
-/* v3.6.11 轨迹双列（左我/右TA） */
-.tr-cols{display:flex;gap:8px;align-items:flex-start}
-.tr-col{flex:1;min-width:0;background:var(--card);border:1px solid var(--input);border-radius:14px;padding:8px}
-.tr-col-head{font-size:12.5px;font-weight:700;margin:2px 0 8px;text-align:center;padding-bottom:6px;border-bottom:1px dashed var(--input)}
-.tr-col .tr-node{padding:6px 2px}
-.tr-col .tr-node-dot{width:18px;height:18px;font-size:10px}
-.tr-col .tr-node-text{font-size:12px}
+/* v3.6.12 轨迹双列：点+连线时间轴（左我/右TA，字小紧凑） */
+.tr-cols{display:flex;gap:10px;align-items:flex-start}
+.tr-col{flex:1;min-width:0;background:var(--card);border:1px solid var(--input);border-radius:14px;padding:8px 6px 6px}
+.tr-col-head{font-size:12px;font-weight:700;margin:2px 0 8px;text-align:center;padding-bottom:6px;border-bottom:1px dashed var(--input)}
+.tr-col .tr-node{position:relative;padding:0 0 14px 12px;border-left:2px solid var(--input)}
+.tr-col .tr-node:last-child{border-left-color:transparent;padding-bottom:2px}
+.tr-col .tr-node-dot{position:absolute;left:-6px;top:2px;width:10px;height:10px;border-radius:50%;border:2px solid var(--card);box-shadow:0 0 0 1px rgba(0,0,0,.06)}
+.tr-col .tr-node-time{display:block;font-size:10px;color:var(--hint);line-height:1.2;margin-bottom:2px}
+.tr-col .tr-node-text{font-size:11px;line-height:1.45;color:var(--text);word-break:break-all}
+/* v3.6.12 轨迹周选择器 */
+.trw{display:flex;align-items:center;gap:4px;background:var(--card);border:1px solid var(--input);border-radius:14px;padding:8px 6px;margin-bottom:4px}
+.trw-nav{flex-shrink:0;width:30px;height:30px;border-radius:50%;border:1px solid var(--input);background:var(--bg);color:var(--sub);font-size:16px;line-height:1}
+.trw-days{flex:1;display:flex;gap:3px}
+.trw-day{flex:1;text-align:center;padding:5px 0;border-radius:10px;cursor:pointer}
+.trw-day em{display:block;font-style:normal;font-size:10px;color:var(--hint);line-height:1.2}
+.trw-day b{display:block;font-size:13px;color:var(--text);line-height:1.4}
+.trw-day i{display:block;font-style:normal;font-size:9px;color:#e06060;line-height:1}
+.trw-day.today b{color:#e06060}
+.trw-day.sel{background:linear-gradient(135deg,#6a5cff,var(--c-purple));box-shadow:0 2px 6px rgba(106,92,255,.35)}
+.trw-day.sel em,.trw-day.sel b{color:#fff}
+.trw-day.sel i{color:#ffe3e3}
+.trw-label{font-size:11px;color:var(--hint);text-align:center;margin:0 0 10px}
 
 /* v3.6.11 日视图：今天灰标 + 日期切换 */
 .cal-today-tag{display:inline-block;font-size:10px;font-style:normal;color:#a5b0c0;background:var(--input);border-radius:6px;padding:1px 5px;margin-left:5px;vertical-align:middle;font-weight:400}

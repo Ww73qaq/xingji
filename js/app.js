@@ -68,6 +68,7 @@ function startHeartbeat(){
       if(typeof maybeNoteAlarm==='function')maybeNoteAlarm();    // v3.6.9 便签闹钟
       if(typeof maybeTodoAlarm==='function')maybeTodoAlarm();    // v3.6.11 待办闹钟
       if(typeof calMaybeSnap==='function')calMaybeSnap();   // v3.6.4 日历：跨天自动存档当天便签
+      if(typeof calSyncTodayNotes==='function')calSyncTodayNotes();   // v3.6.12 当天便签自愈补同步
       // v3.6.10：按用户要求去掉朋友圈红点（提醒中心仍在，不再显示角标）
       refreshStalePolls();          // 题目「等太久」的文案翻转（只刷那几条气泡）
     }
