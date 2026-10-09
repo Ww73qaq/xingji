@@ -21,12 +21,21 @@ async function renderDiary(){
   if(diaryTab==='mine'){
     if(!mine.length){list.innerHTML='<div class="empty" style="padding:24px 0">还没有日记<br>写下第一篇吧</div>';}
     else for(const d of mine){
-      list.innerHTML+=`<div class="diary-entry locked"><div class="d-head"><span class="d-owner">${esc(state.me.name)}</span><span class="d-time">${fmtDiaryFull(d.time)}</span>
-        ${d.taAccess?'':'<span class="d-lock">&#128274; '+esc(state.other.name||'TA')+' 尚未解锁</span>'}
+      /* v3.6.9：我的日记默认模糊（对 TA 藏起内容），我自己点「查看」直接展开；
+         TA 想看 → 走申请流程（45% 弹窗同意/拒绝），同意后 taAccess=1 才明文显示 */
+      const lockHtml=d.taAccess?''
+        :`<div class="diary-lock-overlay"><div style="font-size:13px;color:var(--sub);margin-bottom:8px;padding:0 10px;text-align:center">🔒 日记已加密<br>${esc(state.other.name||'TA')} 想看你需要申请</div><button class="btn-pill primary" onclick="toggleMyDiary(${d.id})">查看</button></div>`;
+      list.innerHTML+=`<div class="diary-blur-wrap${d.taAccess?' open':''}">
+        <div class="${d.taAccess?'diary-entry':'diary-blur diary-entry'}" style="${d.taAccess?'':'margin:0'}">
+          <div class="d-head"><span class="d-owner">${esc(state.me.name)}</span><span class="d-time">${fmtDiaryFull(d.time)}</span>
+          ${d.taAccess?'<span class="d-lock" style="border-color:var(--c-green);color:var(--c-green)">✓ '+esc(state.other.name||'TA')+' 已解锁</span>':''}
+          </div>
+          <div class="d-text">${esc(d.content)}</div>
+          ${d.taReply?`<div style="font-size:12px;color:var(--sub);margin-top:6px;border-top:1px dashed var(--input);padding-top:6px">${esc(state.other.name)}：「${esc(d.taReply)}」</div>`:''}
+          <div class="d-btns"><span onclick="editDiary(${d.id})" title="编辑">${ICO_EDIT}</span><span style="color:#c0392b" onclick="delDiary(${d.id})" title="删除">${ICO_DEL}</span></div>
         </div>
-        <div class="d-text">${esc(d.content)}</div>
-        ${d.taReply?`<div style="font-size:12px;color:var(--sub);margin-top:6px;border-top:1px dashed var(--input);padding-top:6px">${esc(state.other.name)}：「${esc(d.taReply)}」</div>`:''}
-        <div class="d-btns"><span onclick="editDiary(${d.id})" title="编辑">${ICO_EDIT}</span><span style="color:#c0392b" onclick="delDiary(${d.id})" title="删除">${ICO_DEL}</span></div></div>`;
+        ${lockHtml}
+      </div>`;
     }
     list.innerHTML+='<button class="btn-pill primary" style="width:100%;margin-top:10px" onclick="openWriteDiary()">写日记</button>';
   }else{
@@ -116,6 +125,16 @@ async function grantTaDiary(id){
 async function taDiaryAutoGrant(id){
   const d=await dbGet('diaries',id);if(!d)return;
   if(!d.taAccess)await grantTaDiary(id);
+}
+/* v3.6.9：我的日记「查看」按钮——我自己直接展开明文（不需要申请） */
+function toggleMyDiary(id){
+  const wrap=event&&event.target?event.target.closest('.diary-blur-wrap'):null;
+  if(wrap){
+    wrap.classList.add('open');
+    return;
+  }
+  // 兜底：找不到 DOM 时全量刷新
+  renderDiary();
 }
 async function editDiary(id){
   const diaries=await dbGetAll('diaries');const d=diaries.find(x=>x.id===id);if(!d||d.owner!=='me')return;

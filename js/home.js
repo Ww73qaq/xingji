@@ -52,19 +52,17 @@ function renderNotes(){
     const card=body?body.closest('.note-card'):null;
     if(head){
       head.textContent=(i===0?'我的便签':state.other.name+'的便签');
-      // TA 那张：右侧显示更新时间 + 未读小红点
+      // v3.6.9：两张便签标题都显示保存时间（我的=主动保存，TA的=更新时间+未读红点）
       let badge=head.parentElement.querySelector('.note-head-meta');
-      if(i===1){
-        if(!badge){
-          badge=document.createElement('span');
-          badge.className='note-head-meta';
-          head.parentElement.insertBefore(badge,head.nextSibling);
-        }
-        const unread=state.stats.taNoteUnread&&noteIsTa(1);
-        badge.textContent=noteTimeLabel(n.at);
-        badge.classList.toggle('unread',!!unread);
-        badge.style.display=n.at?'':'none';
-      }else if(badge)badge.remove();
+      if(!badge){
+        badge=document.createElement('span');
+        badge.className='note-head-meta';
+        head.parentElement.insertBefore(badge,head.nextSibling);
+      }
+      const unread=i===1&&state.stats.taNoteUnread&&noteIsTa(1);
+      badge.textContent=noteTimeLabel(n.at);
+      badge.classList.toggle('unread',!!unread);
+      badge.style.display=n.at?'':'none';
     }
     if(body)body.textContent=n.text||'写点什么…';
     if(card)card.classList.toggle('from-ta',noteIsTa(i));
@@ -174,6 +172,7 @@ function editNote(id){
   _noteEditId=id;
   const cur=(state.notes&&state.notes[idx]&&state.notes[idx].text)||'';
   noteMood=(state.notes&&state.notes[idx]&&state.notes[idx].mood)||'';
+  const alarm=(state.notes&&state.notes[idx]&&state.notes[idx].alarm)||{};
   const title=id==='a'?'我的便签':state.other.name+'的便签';
   const fromTa=idx===1&&noteIsTa(1);
   const tip=idx===1
@@ -184,9 +183,22 @@ function editNote(id){
   const moodsHtml='<div style="display:flex;flex-wrap:wrap;gap:5px;margin-top:8px">'
     +moods.map(m=>`<span class="mood-chip${m===noteMood?' on':''}" onclick="toggleNoteMood(this,'${esc(m)}')">${esc(m)}</span>`).join('')
     +'<span class="mood-chip add" onclick="addCustomMood()">＋ 新增</span></div>';
-  showModal(title,`<textarea class="textarea-full" id="note-input" style="min-height:120px" placeholder="写点什么…">${esc(cur)}</textarea><div style="font-size:11px;color:var(--hint);margin-top:8px">心情（可选，显示在便签名字右侧）：</div>${moodsHtml}${tip}
+  /* v3.6.9：便签提醒（闹钟式：时间 + 频次） */
+  const alarmFreqs=[['','不提醒'],['once','仅一次'],['daily','每天'],['weekly','每周']];
+  const alarmHtml='<div style="font-size:11px;color:var(--hint);margin-top:10px">提醒（可选，闹钟式）：</div>'
+    +'<div style="display:flex;align-items:center;gap:8px;margin-top:6px;flex-wrap:wrap">'
+    +'<input type="time" id="note-alarm-time" class="textarea-full" style="min-height:0;padding:8px 10px;flex:0 0 92px" value="'+(alarm.time||'')+'">'
+    +alarmFreqs.map(f=>`<span class="mood-chip${alarm.freq===f[0]?' on':''}" onclick="toggleNoteAlarmFreq(this,'${f[0]}')">${f[1]}</span>`).join('')
+    +'</div><div style="font-size:10.5px;color:var(--hint);margin-top:5px">到点后在浏览器通知里提醒你（需已开启网站通知权限）</div>';
+  showModal(title,`<textarea class="textarea-full" id="note-input" style="min-height:120px" placeholder="写点什么…">${esc(cur)}</textarea><div style="font-size:11px;color:var(--hint);margin-top:8px">心情（可选，显示在便签名字右侧）：</div>${moodsHtml}${alarmHtml}${tip}
     <div class="modal-btn-row"><button class="modal-btn" onclick="closeModal()">取消</button><button class="modal-btn primary" onclick="saveNote('${id}')">保存</button></div>`);
   setTimeout(()=>{const i=document.getElementById('note-input');if(i)i.focus();},80);
+}
+let _noteAlarmFreq='';
+function toggleNoteAlarmFreq(el,f){
+  _noteAlarmFreq=f;
+  document.querySelectorAll('#note-alarm-time~.mood-chip').forEach(x=>x.classList.remove('on'));
+  el.classList.add('on');
 }
 function toggleNoteMood(el,m){
   if(noteMood===m){noteMood='';document.querySelectorAll('.mood-chip.on').forEach(x=>x.classList.remove('on'));return;}
@@ -206,9 +218,42 @@ function addCustomMood(){
 function saveNote(id){
   const idx=id==='a'?0:1;
   const v=document.getElementById('note-input')?document.getElementById('note-input').value:'';
+  // 提醒：时间 + 频次（_noteAlarmFreq 为本次弹窗选择的频次，未动则沿用旧值）
+  const tEl=document.getElementById('note-alarm-time');
+  const alarmTime=tEl?(tEl.value||''):((state.notes[idx]&&state.notes[idx].alarm&&state.notes[idx].alarm.time)||'');
+  const alarmFreq=_noteAlarmFreq||((state.notes[idx]&&state.notes[idx].alarm&&state.notes[idx].alarm.freq)||'');
+  _noteAlarmFreq='';
   // 用户编辑后 owner 归为 'me'：TA 之后不会再自动覆盖这一张
-  state.notes[idx]={id:id,owner:'me',text:v,at:Date.now(),mood:noteMood||''};
+  state.notes[idx]={id:id,owner:'me',text:v,at:Date.now(),mood:noteMood||'',alarm:(alarmTime&&alarmFreq)?{time:alarmTime,freq:alarmFreq}:null};
   saveKey('notes');closeModal();updateHome();showToast('便签已保存');
+  // v3.6.9：主动保存 → 实时同步进今天的日历（便签区 + 心情），标记「手动」
+  if(typeof calUpsertNote==='function'){calUpsertNote(id==='a'?'me':'ta',state.notes[idx],'manual');}
+}
+/* v3.6.9：便签闹钟——心跳检查（app.js 每 20 秒调用） */
+function maybeNoteAlarm(){
+  const notes=state.notes||[];
+  const now=new Date();
+  const hm=String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0');
+  const dateKey=now.getFullYear()+'-'+(now.getMonth()+1)+'-'+now.getDate();
+  notes.forEach((n,idx)=>{
+    const a=n&&n.alarm;
+    if(!a||!a.time||!a.freq)return;
+    if(a.time!==hm)return;
+    const done=state.noteAlarmDone||{};
+    let key;
+    if(a.freq==='once')key='1_'+idx+'_'+dateKey+'_'+a.time;
+    else if(a.freq==='daily')key='d_'+idx+'_'+dateKey+'_'+a.time;
+    else{
+      const wk=Math.ceil(now.getDate()/7);
+      key='w_'+idx+'_'+now.getFullYear()+'-W'+wk+'-'+now.getDay()+'_'+a.time;
+    }
+    if(done[key])return;
+    state.noteAlarmDone=done;done[key]=1;saveKey('noteAlarmDone');
+    const title=idx===0?'我的便签提醒':(state.other.name||'TA')+'的便签提醒';
+    showToast('⏰ '+title);
+    if(typeof pushSys==='function')pushSys('⏰ '+title+'：'+((n.text||'').slice(0,40)||'到了看便签的时间'));
+    if(typeof notifySystem==='function')notifySystem(title,(n.text||'').slice(0,40),()=>goHome());
+  });
 }
 function updateTabBar(){
   document.querySelectorAll('.tab-item').forEach(t=>t.classList.toggle('on',t.dataset.tab===navRoot));

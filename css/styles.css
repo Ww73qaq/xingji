@@ -822,3 +822,8 @@ body{-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;letter
 
 /* v3.6.8：日记「TA 尚未解锁」标记 */
 .d-lock{font-size:10.5px;color:var(--hint);border:1px solid var(--input);border-radius:6px;padding:1px 6px;margin-left:6px;font-weight:400}
+
+/* v3.6.9：我的日记「查看」展开 */
+.diary-blur-wrap.open .diary-blur{filter:none;opacity:1}
+.diary-blur-wrap.open .diary-lock-overlay{display:none}
+.diary-blur-wrap.open .diary-blur{pointer-events:auto}

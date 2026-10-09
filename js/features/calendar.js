@@ -58,31 +58,35 @@ function calPeriodInfo(dateKey,set){
    规则：跨天后（0 点过后）第一次心跳/打开时触发；
    两张便签只要「有内容」就快照进当天：当天已存在同人条目 → 覆盖更新（始终反映当天最新便签），否则新建。
    便签为空 → 当天不写该人条目（同时删除旧的空快照）。 */
+/* 便签快照 upsert（当天）：有内容/心情 → 覆盖更新或新建；全空 → 删除当天该人条目
+   供 calMaybeSnap（0 点被动存档）与 saveNote 主动保存共用，保证「当天写便签实时进日历」 */
+async function calUpsertNote(who,n,src){
+  try{await dbReady;}catch(e){}
+  const today=calDateKey(new Date());
+  const all=await dbGetAll('calendar');
+  const text=(n.text||'').trim(),mood=(n.mood||'').trim();
+  const old=all.find(x=>x.date===today&&x.who===who);
+  if(!text&&!mood){
+    if(old)await dbDelete('calendar',old.id);
+    return;
+  }
+  if(old){
+    old.text=text;old.mood=mood;old.at=n.at||Date.now();if(src)old.src=src;
+    await dbPut('calendar',old);
+  }else{
+    await dbPut('calendar',{date:today,who,text,mood,at:n.at||Date.now(),src:src||'auto'});
+  }
+}
 async function calMaybeSnap(){
   try{
     if(!window.DB)return;
     const today=calDateKey(new Date());
     if(state.calLastSnapDate===today)return;
     state.calLastSnapDate=today;saveKey('calLastSnapDate');
-    const all=await dbGetAll('calendar');
     const mine=(state.notes&&state.notes[0])||{};
     const ta=(state.notes&&state.notes[1])||{};
-    const upsert=(who,n)=>{
-      const old=all.find(x=>x.date===today&&x.who===who);
-      const text=(n.text||'').trim(),mood=(n.mood||'').trim();
-      if(!text&&!mood){
-        if(old){dbDelete('calendar',old.id);}
-        return;
-      }
-      if(old){
-        old.text=text;old.mood=mood;old.at=n.at||Date.now();
-        dbPut('calendar',old);
-      }else{
-        dbPut('calendar',{date:today,who,text,mood,at:n.at||Date.now()});
-      }
-    };
-    upsert('me',mine);
-    upsert('ta',ta);
+    await calUpsertNote('me',mine,'auto');
+    await calUpsertNote('ta',ta,'auto');
   }catch(e){console.error('cal snap',e);}
 }
 
@@ -206,7 +210,7 @@ function renderCalendarDay(body,items,pset){
           <div class="cal-day-main">
             <div class="cal-day-head"><b>${esc(whoName[it.who]||it.who)}</b>
               ${calMoodEmoji(it.mood)?`<span class="cal-day-mood">${calMoodEmoji(it.mood)}</span>`:''}
-              <span class="cal-day-time">${calTimeLabel(it.at)}</span></div>
+              <span class="cal-day-time">${it.src==='manual'?'手动 · ':''}${calTimeLabel(it.at)}</span></div>
             ${(it.text||'').trim()?`<div class="cal-day-text">${esc(it.text)}</div>`:''}
           </div>
         </div>`).join('')
@@ -310,8 +314,8 @@ function calSetPeriod(date){
   dbGetAll('calendar').then(all=>{
     const old=all.find(x=>x.type==='period_set');
     _calPsetTmp={start:old?old.start:date,days:old?old.days:5,cycle:old?old.cycle:28};
-    const daysOpts=[1,2,3,4,5,6,7,8,9,10].map(n=>`<span class="pset-chip${n===_calPsetTmp.days?' on':''}" onclick="calPsetDays(${n})">${n}天</span>`).join('');
-    const cycleOpts=[21,23,25,28,30,33,35,40].map(n=>`<span class="pset-chip${n===_calPsetTmp.cycle?' on':''}" onclick="calPsetCycle(${n})">${n}天</span>`).join('');
+    const daysOpts=[1,2,3,4,5,6,7,8,9,10].map(n=>`<span class="pset-chip" data-g="d"${n===_calPsetTmp.days?' on':''} onclick="calPsetDays(${n})">${n}天</span>`).join('');
+    const cycleOpts=[21,23,25,28,30,33,35,40].map(n=>`<span class="pset-chip" data-g="c"${n===_calPsetTmp.cycle?' on':''} onclick="calPsetCycle(${n})">${n}天</span>`).join('');
     showModal('经期设置',
       `<div style="font-size:12px;color:var(--hint);margin-bottom:4px">开始日期（最近一次月经第 1 天，点击可上下滑动选择）</div>
        <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
@@ -329,8 +333,8 @@ function calSetPeriod(date){
       '<div class="modal-btn-row"><button class="modal-btn" onclick="closeModal()">取消</button><button class="modal-btn primary" onclick="calPsetSave()">保存</button></div>');
   });
 }
-function calPsetDays(n){_calPsetTmp.days=n;document.querySelectorAll('.pset-chip').forEach((c,i)=>c.classList.toggle('on',i<10&&c.textContent===n+'天'));}
-function calPsetCycle(n){_calPsetTmp.cycle=n;document.querySelectorAll('.pset-chip').forEach(c=>c.classList.toggle('on',c.textContent===n+'天'));}
+function calPsetDays(n){_calPsetTmp.days=n;document.querySelectorAll('.pset-chip[data-g="d"]').forEach(c=>c.classList.toggle('on',+c.textContent.replace('天','')===n));}
+function calPsetCycle(n){_calPsetTmp.cycle=n;document.querySelectorAll('.pset-chip[data-g="c"]').forEach(c=>c.classList.toggle('on',+c.textContent.replace('天','')===n));}
 function calPsetQuick(off){
   const d=new Date();d.setDate(d.getDate()+off);
   document.getElementById('pset-start').value=calDateKey(d);
