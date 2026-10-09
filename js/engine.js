@@ -114,6 +114,20 @@ async function _buildBaseBubbleText(src,roundUsed,usage,bubbleUsed,markUsed,inte
   const p=state.prob||{};
   const cards=src.cards;
   let picked=[];
+  /* v3.6.4 颜文字字卡独立概率：命中则本轮基础回复直接抽「颜文字」分组字卡（单张成条，不参与拼接），
+     与「表情回应」emojiReplyProb 相互独立（后者是通用表情池，不占字卡）。 */
+  if(cards&&cards.length&&_roll(Number(p.emojiCardProb)||20)){
+    const emo=cards.filter(c=>c.group==='颜文字');
+    if(emo.length){
+      const c=_pickBalanced(emo,new Set([...roundUsed,...bubbleUsed]));
+      if(c){
+        picked.push(c);
+        roundUsed.add(c.text);
+        if(c.id)markUsed(c,usage);
+        return {text:c.text,cards:[c]};
+      }
+    }
+  }
   const useConcat=p.cardConcatEnabled!==false&&_roll(Number(p.cardConcatProb)||35);
   if(cards&&cards.length){
     const min=_clamp(Number(p.minCardsPerBubble)||1,1,6);

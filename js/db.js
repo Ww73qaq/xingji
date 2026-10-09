@@ -20,7 +20,7 @@ function dbPrimaryKey(store,rec){return store==='settings'?(rec&&rec.key):(rec&&
    老数据全部保留，只是多一次升级。 */
 function openDB(){
   return new Promise((res,rej)=>{
-    const req=indexedDB.open('xingji',2);
+    const req=indexedDB.open('xingji',3);
     req.onerror=()=>{_markDbReady();rej(req.error);};   // 失败也开门闩，避免等待者永久挂起（后续调用会自行 reject）
     req.onsuccess=()=>{DB=req.result;window.DB=DB;_markDbReady();res();};
     req.onupgradeneeded=e=>{
@@ -45,6 +45,8 @@ function openDB(){
       ensure('cardGroups',{keyPath:'id',autoIncrement:true});
       ensure('cards',{keyPath:'id',autoIncrement:true,indexes:[['group','group']]});
       ensure('emojis',{keyPath:'id',autoIncrement:true});
+      // v3.6.4：日历（每日心情/便签快照，按日期索引）
+      ensure('calendar',{keyPath:'id',autoIncrement:true,indexes:[['date','date']]});
       // 2) settings：keyPath 不可变更，老库只能删表重建并把旧行搬过去。
       //    必须放在最后，且不能提前 return，否则上面的索引不会被创建。
       if(!db.objectStoreNames.contains('settings')){

@@ -57,6 +57,7 @@ function startHeartbeat(){
       maybeTaMuteMe();
       if(typeof maybeTaStatusChange==='function')maybeTaStatusChange();
       if(typeof maybeTaCall==='function')maybeTaCall();
+      if(typeof calMaybeSnap==='function')calMaybeSnap();   // v3.6.4 日历：跨天自动存档当天便签
       const badge=document.getElementById('mom-notif-badge');
       if(badge)badge.style.display=notifUnreadCount()>0?'block':'none';
       refreshStalePolls();          // 题目「等太久」的文案翻转（只刷那几条气泡）

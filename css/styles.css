@@ -721,3 +721,30 @@ body{-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;letter
 #app-pages{padding-top:calc(var(--sat) + 34px)}
 /* v3.6.1 修正：app-pages 是 absolute 容器，padding 不会推下其 absolute 子页面 → 用 top 偏移 */
 #app-pages{top:calc(var(--sat) + 34px)}
+
+/* ===== v3.6.4：日历（月视图网格 + 日视图日程） ===== */
+.cal-head{display:flex;align-items:center;gap:6px;padding:6px 4px 10px}
+.cal-nav{width:34px;height:34px;border-radius:50%;border:none;background:var(--input);color:var(--text);font-size:19px;cursor:pointer;flex-shrink:0}
+.cal-title{flex:1;text-align:center;font-size:15px;font-weight:600;color:var(--text);cursor:pointer;white-space:nowrap}
+.cal-today{font-size:12px;color:var(--accent,#4a7dcf);background:none;border:none;cursor:pointer;padding:4px 8px;flex-shrink:0}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:5px;padding:4px 0}
+.cal-dow{font-size:11px;color:var(--hint);text-align:center;padding:2px 0}
+.cal-cell{position:relative;min-height:46px;border-radius:10px;background:var(--input);display:flex;flex-direction:column;align-items:center;justify-content:flex-start;padding:4px 0 2px;cursor:pointer;gap:2px}
+.cal-cell.empty{background:none;cursor:default}
+.cal-cell.today{outline:1.5px solid var(--accent,#4a7dcf);outline-offset:-1px}
+.cal-cell.has{background:var(--ov-chip,var(--input))}
+.cal-num{font-size:12px;font-weight:600;color:var(--text)}
+.cal-cell.today .cal-num{color:var(--accent,#4a7dcf)}
+.cal-emos{display:flex;flex-wrap:wrap;justify-content:center;gap:2px;max-width:100%}
+.cal-emos i{font-style:normal;font-size:13px;line-height:1}
+.cal-legend{display:flex;align-items:center;gap:14px;font-size:11px;color:var(--sub);padding:10px 4px 4px;flex-wrap:wrap}
+.cal-legend i{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:4px}
+.cal-daylist{display:flex;flex-direction:column;gap:8px;padding:4px 0 8px}
+.cal-day-item{display:flex;gap:10px;background:var(--input);border-radius:12px;padding:11px 12px;align-items:flex-start}
+.cal-day-dot{width:9px;height:9px;border-radius:50%;margin-top:5px;flex-shrink:0}
+.cal-day-main{flex:1;min-width:0}
+.cal-day-head{display:flex;align-items:center;gap:8px;font-size:13px}
+.cal-day-head b{font-weight:600;color:var(--text)}
+.cal-day-mood{font-size:17px;line-height:1}
+.cal-day-time{font-size:11px;color:var(--hint);margin-left:auto;flex-shrink:0}
+.cal-day-text{font-size:13px;color:var(--sub);margin-top:6px;line-height:1.6;white-space:pre-wrap;word-break:break-word}

@@ -45,6 +45,9 @@ function renderProbability(){
         const v=Number.isFinite(Number(p[k]))?Number(p[k]):def;
         return `<div style="margin-top:10px;font-size:12px;color:var(--sub)">${label} <b id="lb-${k}">${v}</b>%</div><input type="range" min="0" max="100" value="${v}" oninput="setProb('${k}',this.value)" style="width:100%">`;
       }).join('')}
+      <div style="margin-top:14px;font-size:12px;color:var(--sub)">颜文字字卡 <b id="lb-emojiCardProb">${iv('emojiCardProb',20)}</b>%</div>
+      <input type="range" min="0" max="100" value="${iv('emojiCardProb',20)}" oninput="setProb('emojiCardProb',this.value)" style="width:100%">
+      <div style="font-size:11px;color:var(--hint);margin-top:6px">命中时 TA 的回复直接用「颜文字」分组字卡（如 ^_^ 小表情）；与上方「表情回应」互不冲突，也不参与字卡拼接。</div>
       <div style="font-size:11px;color:var(--hint);margin-top:8px">普通字卡是基础回复，始终参与。单选 / 多选 / 问卷属于你明确提交的问题，TA 会<b>必答</b>（不走概率）；问卷期限与多选数量在<b>对应弹窗内</b>设置。</div>
     </div>
     <div class="list-card">

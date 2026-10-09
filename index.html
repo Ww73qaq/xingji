@@ -95,6 +95,7 @@
     <div class="app-item" onclick="openApp('emoji')"><div class="app-icon" style="background:var(--c-green)">表</div><div class="app-label">表情</div></div>
     <div class="app-item" onclick="openApp('sense')"><div class="app-icon" style="background:#7a9a8c">感</div><div class="app-label">感应房间</div></div>
     <div class="app-item" onclick="openApp('writing')"><div class="app-icon" style="background:#a97a5c">拼</div><div class="app-label">拼写</div></div>
+    <div class="app-item" onclick="openApp('calendar')"><div class="app-icon" style="background:#5c8aa9">历</div><div class="app-label">日历</div></div>
   </div>
   <!-- 手机底部标签栏（4 个一级入口，与网格互斥） -->
   <div class="tabbar" id="tabbar">
@@ -217,6 +218,12 @@
 <div id="app-writing" class="app-page">
   <div class="app-header"><div class="back" onclick="goBack()">&#8249;</div><h1>拼写</h1><div class="act" style="opacity:.25">&#8942;</div></div>
   <div class="app-body" id="writing-body"></div>
+</div>
+
+<!-- CALENDAR（日历：联动心情便签，每日 0 点自动存档） -->
+<div id="app-calendar" class="app-page">
+  <div class="app-header"><div class="back" onclick="goBack()">&#8249;</div><h1>日历</h1><div class="act" style="opacity:.25">&#8942;</div></div>
+  <div class="app-body" id="calendar-body"></div>
 </div>
 
 <!-- SENSE ROOM -->
@@ -357,6 +364,7 @@
 <script src="js/ui/companion.js"></script>
 <script src="js/ui/probability.js"></script>
 <script src="js/features/reply-library.js"></script>
+<script src="js/features/calendar.js"></script>
 <script src="js/features/decide.js"></script>
 <script src="js/features/group-chat.js"></script>
 <script src="js/ui/room.js"></script>

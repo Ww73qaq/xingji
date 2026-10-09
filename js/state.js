@@ -16,6 +16,8 @@ let state = {
     cardConcatEnabled:true, cardConcatProb:35, minCardsPerBubble:1, maxCardsPerBubble:3,
     // 独立互动概率（各自掷骰、可叠加，每轮最多 2 个额外互动；题目必答不走概率）
     emojiReplyProb:15, pokeReplyProb:8, quoteReplyProb:20, giftReplyProb:5,
+    // v3.6.4：颜文字字卡独立概率（命中后本轮基础回复直接抽「颜文字」分组字卡）
+    emojiCardProb:20,
     // 回复行为
     readIgnoreEnabled:false, repeatExclude:5, customRatio:90,
     // 主动消息：只暴露「开关 + 最小间隔（分钟）」，TA 的想不想主动属于内部行为
@@ -51,7 +53,7 @@ let state = {
 };
 
 async function loadSettings(){
-  const keys=['me','other','skin','pin','prob','meetTime','quote','splashText','stats','chat','muteEndTime','muteRequest','surveySettings','notify','notes','taMuteMeEndTime','taMuteReqCoolAt','diaryReqAt','writings','taMuteLastEnd','taMuteReqAt','statusPool','moodPool','taStatusUntil','taStatusCoolAt','taMuteCycleSkip','taCallCycleSkip','taMuteReason','taStatusLockMin'];
+  const keys=['me','other','skin','pin','prob','meetTime','quote','splashText','stats','chat','muteEndTime','muteRequest','surveySettings','notify','notes','taMuteMeEndTime','taMuteReqCoolAt','diaryReqAt','writings','taMuteLastEnd','taMuteReqAt','statusPool','moodPool','taStatusUntil','taStatusCoolAt','taMuteCycleSkip','taCallCycleSkip','taMuteReason','taStatusLockMin','calLastSnapDate'];
   for(const k of keys){const v=await dbGet('settings',k);if(v&&v.value!==undefined)state[k]=typeof v.value==='object'&&v.value!==null?{...state[k],...v.value}:v.value;}
 }
 async function saveKey(key){const v=await dbGet('settings',key);if(v){v.value=state[key];await dbPut('settings',v);}else{await dbPut('settings',{key,value:state[key]});}}
@@ -84,6 +86,7 @@ function migrateProb(){
       pokeReplyProb:old.pokeReplyProb!==undefined?old.pokeReplyProb:(old.pokeProb!==undefined?old.pokeProb:8),
       quoteReplyProb:old.quoteReplyProb!==undefined?old.quoteReplyProb:(old.quoteProb!==undefined?old.quoteProb:20),
       giftReplyProb:old.giftReplyProb!==undefined?old.giftReplyProb:5,
+      emojiCardProb:old.emojiCardProb!==undefined?old.emojiCardProb:20,
       readIgnoreEnabled:old.readIgnoreEnabled!==undefined?old.readIgnoreEnabled:!!(old.readIgnoreProb),
       repeatExclude:old.repeatExclude!==undefined?old.repeatExclude:5,
       customRatio:old.customRatio!==undefined?old.customRatio:90,

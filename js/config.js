@@ -266,9 +266,9 @@ const COMPANION_SCENES=[
 const DEFAULT_CARD_GROUPS=['默认','日常','拍一拍','颜文字'];   // v3.5.1：只保留 4 个内置分组（旧内置分组若有字卡则保留，空则清）
 
 /* ===== DATA（数据管理：完整备份 / 选择性导出 / 选择性导入 / 保留 ID） ===== */
-const STORES=['messages','letters','diaries','moments','cardGroups','cards','emojis','pokeGroups','settings'];
-const STORE_LABELS={messages:'聊天记录',letters:'信件',diaries:'日记',moments:'朋友圈',cardGroups:'字卡分组',cards:'字卡',emojis:'表情包',pokeGroups:'拍一拍',settings:'设置'};
-const SCHEMA_VERSION=2;
+const STORES=['messages','letters','diaries','moments','cardGroups','cards','emojis','pokeGroups','calendar','settings'];
+const STORE_LABELS={messages:'聊天记录',letters:'信件',diaries:'日记',moments:'朋友圈',cardGroups:'字卡分组',cards:'字卡',emojis:'表情包',pokeGroups:'拍一拍',calendar:'日历',settings:'设置'};
+const SCHEMA_VERSION=3;
 const CALL_BG=[
   '大家都在吃饭吗','刚看到你的消息','忙完了吗','我这边下雨了',
   '在做什么呀','有点想听你说话','今天累不累','睡了吗'
