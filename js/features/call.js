@@ -49,6 +49,7 @@ function showVideoStage(){
 
 /* ===== CALL（手机通话：来电 / 去电 / 通话中 / 通话记录） ===== */
 let callSec=0,callIv=null,callMode=null,callMuted=false,callSpeaker=false,ringIv=null,ringOsc=null,callTalkTimer=null;
+let callInitiator=null;   // v3.6.6：记录发起方（'me'|'ta'），避免 startCall 后 callMode='talk' 覆盖导致文案错误
 function showCallOverlay(){
   const ov=document.getElementById('call-overlay');
   ov.classList.add('active');
@@ -86,7 +87,7 @@ function stopRing(){if(ringIv){clearInterval(ringIv);ringIv=null;}}
 /* 来电（TA 主动打来） */
 function simulateIncomingCall(kind){
   if(state.callActive){showToast('当前正在通话中');return;}
-  callMode='in';callKind=kind||'voice';state.callActive=true;callSec=0;callMuted=false;callSpeaker=false;camOn=(callKind==='video');
+  callMode='in';callKind=kind||'voice';state.callActive=true;callSec=0;callMuted=false;callSpeaker=false;camOn=(callKind==='video');callInitiator='ta';
   showCallOverlay();
   setCallBadge('星迹',true);
   setCallStatus(`${state.other.name} 正在呼叫…<br><span style="opacity:.6;font-size:12px">${CALL_BG[Math.floor(Math.random()*CALL_BG.length)]}</span>`);
@@ -127,7 +128,7 @@ function maybeTaCall(){
 /* 去电 */
 function callOutgoing(kind){
   if(state.callActive){showToast('当前正在通话中');return;}
-  callMode='out';callKind=kind||'voice';state.callActive=true;callSec=0;callMuted=false;callSpeaker=false;camOn=(kind==='video');
+  callMode='out';callKind=kind||'voice';state.callActive=true;callSec=0;callMuted=false;callSpeaker=false;camOn=(kind==='video');callInitiator='me';
   showCallOverlay();
   setCallBadge(kind==='video'?'视频通话':'语音通话',false);
   setCallStatus('正在呼叫…');
@@ -162,7 +163,14 @@ function startCall(){
   setCallBadge(callKind==='video'?'视频通话中':'通话中',true);
   updateCallFloat();                // v3.6.3：全屏通话不显示浮窗（缩小后才出现，避免浮窗盖住全屏）
   if(callIv)clearInterval(callIv);
-  callIv=setInterval(()=>{callSec++;updateCallFloat();},1000);
+  callIv=setInterval(()=>{
+    callSec++;updateCallFloat();
+    // v3.6.6：TA 可能挂断——40 秒后每秒约 4% 概率（通话一般持续 40~80 秒）
+    if(callSec>=40&&Math.random()<0.04){
+      showToast((state.other.name||'TA')+'挂断了通话');
+      endCall('hangup','ta');
+    }
+  },1000);
   if(callKind==='video')showVideoStage();
   renderCallActions(callActionsHtml());
   scheduleCallTalk();
@@ -180,7 +188,7 @@ function callActionsHtml(){
     +'<div class="call-col"><button class="call-btn" onclick="minimizeCall()">'+IC_MIN+'</button><span class="call-btn-label">小窗</span></div>'
     +'</div>'
     +'<div class="call-row">'
-    +'<div class="call-col"><button class="call-btn end" onclick="endCall(\'hangup\')">'+IC_PHONE+'</button><span class="call-btn-label">挂断</span></div>'
+    +'<div class="call-col"><button class="call-btn end" onclick="endCall(\'hangup\',\'me\')">'+IC_PHONE+'</button><span class="call-btn-label">挂断</span></div>'
     +'</div>';
 }
 /* 通话中 TA 说话：概率 + 最短/最长间隔的重复调度 */
@@ -203,6 +211,12 @@ function updateCallFloat(){
   const f=document.getElementById('call-float');
   if(!f)return;
   const n=document.getElementById('cf-name');if(n)n.textContent=state.other.name||'TA';
+  const k=document.getElementById('cf-kind');if(k)k.textContent=(callKind==='video'?'视频通话':'语音通话');
+  const a=document.getElementById('cf-av');
+  if(a){
+    if(state.other.avatar)a.innerHTML=`<img src="${state.other.avatar}">`;
+    else a.textContent=state.other.name.charAt(0)||'TA';
+  }
   const t=document.getElementById('cf-text');
   if(t)t.textContent=String(Math.floor(callSec/60)).padStart(2,'0')+':'+String(callSec%60).padStart(2,'0');
 }
@@ -255,14 +269,14 @@ function initCallFloat(){
   });
 }
 /* 浮窗上的 × ：直接挂断 */
-function miniCallHangup(){endCall('hangup');}
+function miniCallHangup(){endCall('hangup','me');}
 function toggleMute(){callMuted=!callMuted;if(mediaStream)mediaStream.getAudioTracks().forEach(t=>t.enabled=!callMuted);renderCallActions(callActionsHtml());}
 function toggleSpeaker(){callSpeaker=!callSpeaker;renderCallActions(callActionsHtml());}
-function endCall(reason){
+function endCall(reason,by){
   const dur=callSec;
   const connected=(callMode==='talk');
   const kind=callKind||'voice';
-  state.callActive=false;callSec=0;callMode=null;
+  state.callActive=false;callSec=0;callMode=null;callInitiator=null;
   if(callIv){clearInterval(callIv);clearTimeout(callIv);callIv=null;}
   if(callTalkTimer){clearTimeout(callTalkTimer);callTalkTimer=null;}
   stopRing();
@@ -276,11 +290,16 @@ function endCall(reason){
   document.getElementById('call-float').classList.remove('show');
   document.getElementById('edge-back').classList.toggle('on',navStack.length>1);
   const dstr=String(Math.floor(dur/60)).padStart(2,'0')+':'+String(dur%60).padStart(2,'0');
-  if(connected)pushSys(`${kind==='video'?'视频':'语音'}通话 ${dstr}`);
-  else if(reason==='miss-out')pushSys(`呼叫${state.other.name}未接通`);
-  else if(reason==='miss-in')pushSys(`${state.other.name}的来电已超时`);
-  else if(reason==='declined')pushSys(`你拒接了${state.other.name}的来电`);
-  else if(reason==='cancel')pushSys(`已取消呼叫${state.other.name}`);
+  const tn=state.other.name||'TA';
+  if(connected){   // v3.6.6：通话记录明确「谁发起 / 谁挂断」
+    const caller=callInitiator==='ta'?tn:'你';
+    const hanger=by==='ta'?tn:'你';
+    pushSys(`${caller}发起的${kind==='video'?'视频':'语音'}通话 ${dstr}，${hanger}挂断`);
+  }
+  else if(reason==='miss-out')pushSys(`呼叫${tn}未接通`);
+  else if(reason==='miss-in')pushSys(`${tn}的来电已超时`);
+  else if(reason==='declined')pushSys(`你拒接了${tn}的来电`);
+  else if(reason==='cancel')pushSys(`已取消呼叫${tn}`);
 }
 
 /* 点击悬浮小窗 → 重新展开全屏通话界面（v3.6.3：改用 active 类正确显示全屏） */

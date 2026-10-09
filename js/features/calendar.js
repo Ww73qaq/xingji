@@ -24,8 +24,35 @@ function calTimeLabel(at){
   const d=new Date(at),h=String(d.getHours()).padStart(2,'0'),mi=String(d.getMinutes()).padStart(2,'0');
   return h+':'+mi;
 }
-/* 月经量级：1=少(粉) 2=中(黄) 3=多(红) */
+/* 月经量级：1=少(粉) 2=中(黄) 3=多(红)；排卵期：蓝 */
 const CAL_PERIOD={1:{c:'#f2a8c4',t:'少'},2:{c:'#e6c24a',t:'中'},3:{c:'#e06060',t:'多'}};
+const CAL_OVU_C='#5bb0f0';
+/* ---------- 月经周期计算（v3.6.6）
+   数据：{type:'period_set', start:'YYYY-MM-DD', days:5(持续天数), cycle:28(周期长度)}
+   规则：以 start 为基准向前回溯到「最近一个周期起点 s」（s<=今天且 s+cycle>今天）；
+   经期区间 = [s, s+days-1]，排卵日 = s+cycle-14，排卵窗口 = 排卵日±2 天（与经期重叠时优先经期）。
+   返回 {inPeriod:0|第几天, level:1|2|3, ovu:bool, nextStart:'YYYY-MM-DD'} */
+function calPeriodInfo(dateKey,set){
+  if(!set||!set.start)return {inPeriod:0,ovu:false};
+  const dayMs=86400000;
+  const t=new Date(dateKey+'T00:00:00').getTime();
+  const s0=new Date(set.start+'T00:00:00').getTime();
+  const cycle=Math.max(21,Math.min(40,Number(set.cycle)||28));
+  const days=Math.max(1,Math.min(10,Number(set.days)||5));
+  let s=s0;
+  while(s+cycle*dayMs<=t)s+=cycle*dayMs;       // 回溯到最近周期起点
+  const diff=Math.floor((t-s)/dayMs);
+  const info={inPeriod:0,ovu:false,nextStart:new Date(s+cycle*dayMs).toISOString().slice(0,10)};
+  if(diff>=0&&diff<days){                       // 经期第 diff+1 天
+    info.inPeriod=diff+1;
+    info.level=(diff===0)?3:(diff===days-1?1:2); // 第1天红(多)、中间黄(中)、最后1天粉(少)
+    return info;
+  }
+  const ovu=s+(cycle-14)*dayMs;
+  const ovuIdx=Math.floor((t-ovu)/dayMs);
+  if(ovuIdx>=-2&&ovuIdx<=2&&t>=s)info.ovu=true;
+  return info;
+}
 
 /* ---------- 每日快照 ----------
    规则：跨天后（0 点过后）第一次心跳/打开时触发；
@@ -68,9 +95,10 @@ async function renderCalendar(){
   const all=await dbGetAll('calendar');
   const byDate={};
   all.forEach(x=>{if(x&&x.date)(byDate[x.date]=byDate[x.date]||[]).push(x);});
+  byDate._periodSet=all.find(x=>x.type==='period_set');   // v3.6.6 周期设置（全局一条）
 
   if(calView==='day'&&calDaySel){
-    renderCalendarDay(body,byDate[calDaySel]||[]);
+    renderCalendarDay(body,byDate[calDaySel]||[],byDate._periodSet);
     return;
   }
   // 月视图：加高格子，日期 + 心情(我/TA 分开) + 待办点 + 月经点
@@ -88,10 +116,15 @@ async function renderCalendar(){
     const myMood=calMoodEmoji((items.find(x=>x.who==='me')||{}).mood);
     const taMood=calMoodEmoji((items.find(x=>x.who==='ta')||{}).mood);
     const todos=items.filter(x=>x.type==='todo'&&!x.done);
-    const period=items.find(x=>x.type==='period');
-    const hasAny=items.length>0;
+    // v3.6.6：经期/排卵期 = 周期设置计算（无设置时兼容旧单天记录）
+    const pset=byDate._periodSet;
+    const pInfo=pset?calPeriodInfo(key,pset):{inPeriod:0,ovu:false};
+    const oldPeriod=items.find(x=>x.type==='period');
+    const period=pInfo.inPeriod?pInfo:(oldPeriod?oldPeriod.level:0);
+    const pdot=period?((typeof period==='object'&&period.level)?CAL_PERIOD[period.level]:(CAL_PERIOD[period])).c:(pInfo.ovu?CAL_OVU_C:'');
+    const pTitle=period?(pInfo.inPeriod?`经期第 ${pInfo.inPeriod} 天`:'经期'):(pInfo.ovu?'排卵期':'');
+    const hasAny=items.length>0||!!pdot;
     const isToday=key===todayKey;
-    const pdot=period?(CAL_PERIOD[period.level]||CAL_PERIOD[1]).c:'';
     cells+=`<span class="cal-cell${isToday?' today':''}${hasAny?' has':''}" onclick="calOpenDay('${key}')">
       <b class="cal-num">${d}</b>
       <span class="cal-moods">
@@ -100,7 +133,7 @@ async function renderCalendar(){
       </span>
       <span class="cal-dots">
         ${todos.length?`<i class="cal-dot todo" title="${todos.length} 项待办"></i>`:''}
-        ${pdot?`<i class="cal-dot period" style="background:${pdot}"></i>`:''}
+        ${pdot?`<i class="cal-dot period" style="background:${pdot}" title="${pTitle}"></i>`:''}
       </span>
     </span>`;
   }
@@ -119,21 +152,25 @@ async function renderCalendar(){
       <span><i style="background:#f2a8c4"></i>经期·少</span>
       <span><i style="background:#e6c24a"></i>经期·中</span>
       <span><i style="background:#e06060"></i>经期·多</span>
+      <span><i style="background:${CAL_OVU_C}"></i>排卵期</span>
     </div>
     <div class="empty" style="font-size:12px;line-height:1.9;text-align:left;padding:14px 6px">
       点任意日期可查看当天的便签、待办与经期记录。桌面的两张便签会在每天 0 点后自动记录到这里。${state.calLastSnapDate?`<br><span style="color:var(--hint)">最近一次存档：${state.calLastSnapDate.replace(/-/g,'/')}</span>`:''}
     </div>`;
 }
 
-/* 日视图：便签日程 + 待办（增删改）+ 月经记录 */
-function renderCalendarDay(body,items){
+/* 日视图：便签日程 + 待办（增删改）+ 经期/排卵期 */
+function renderCalendarDay(body,items,pset){
   const dsel=new Date(calDaySel);
   const whoName={me:state.me.name||'我',ta:state.other.name||'TA'};
   const whoColor={me:'var(--c-purple)',ta:'var(--c-green)'};
   const notes=items.filter(x=>!x.type||x.type==='note').sort((a,b)=>(a.at||0)-(b.at||0));
   const todos=items.filter(x=>x.type==='todo').sort((a,b)=>((a.done||0)-(b.done||0))||((a.at||0)-(b.at||0)));
-  const period=items.find(x=>x.type==='period');
-  const plv=period?((CAL_PERIOD[period.level]||CAL_PERIOD[1])):null;
+  const pInfo=pset?calPeriodInfo(calDaySel,pset):{inPeriod:0,ovu:false};
+  const oldPeriod=items.find(x=>x.type==='period');
+  const dayLevel=pInfo.inPeriod?pInfo.level:(oldPeriod?(oldPeriod.level||1):0);
+  const plv=dayLevel?CAL_PERIOD[dayLevel]:null;
+  const dayTag=pInfo.inPeriod?('经期 · 第 '+pInfo.inPeriod+' 天'):(pInfo.ovu?'排卵期':'');
   body.innerHTML=`
     <div class="cal-head">
       <button class="cal-nav" onclick="calBackToMonth()">&#8249;</button>
@@ -143,8 +180,8 @@ function renderCalendarDay(body,items){
     </div>
     <div class="cal-ops">
       <button class="cal-op-btn" onclick="calAddTodo('${calDaySel}')">＋ 待办</button>
-      <button class="cal-op-btn" onclick="calSetPeriod('${calDaySel}')">${period?'✎ 经期':'＋ 经期'}</button>
-      ${period?`<span class="cal-op-tag" style="color:${plv.c};border-color:${plv.c}">经期 · ${plv.t}量</span>`:''}
+      <button class="cal-op-btn" onclick="calSetPeriod('${calDaySel}')">${pset?'✎ 经期设置':'＋ 经期设置'}</button>
+      ${dayTag?`<span class="cal-op-tag" style="color:${plv?plv.c:CAL_OVU_C};border-color:${plv?plv.c:CAL_OVU_C}">${dayTag}</span>`:''}
     </div>
     <div class="cal-section-title">便签</div>
     <div class="cal-daylist">
@@ -201,27 +238,57 @@ function calDelTodo(id){
     await dbDelete('calendar',id);renderCalendar();
   });
 }
-/* ---------- 月经记录：粉·少 / 黄·中 / 红·多 ---------- */
+/* ---------- 经期设置（v3.6.6）：开始日期 + 持续天数 + 周期长度 → 自动算经期区间与排卵期 ---------- */
+let _calPsetTmp={};
 function calSetPeriod(date){
   dbGetAll('calendar').then(all=>{
-    const old=all.find(x=>x.date===date&&x.type==='period');
-    const opts=[1,2,3].map(l=>{
-      const c=CAL_PERIOD[l];
-      return `<div class="modal-item" onclick="calPeriodPick('${date}',${l})"><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:${c.c};vertical-align:middle;margin-right:8px"></span>经期 · ${c.t}量（${c.c}）</div>`;
-    }).join('');
-    showModal('经期记录',opts+(old?'<div class="modal-item" style="color:#c0392b" onclick="calPeriodClear(\''+date+'\')">清除今天的经期记录</div>':''),
-      '<div class="modal-btn-row"><button class="modal-btn" onclick="closeModal()">取消</button></div>');
+    const old=all.find(x=>x.type==='period_set');
+    _calPsetTmp={start:old?old.start:date,days:old?old.days:5,cycle:old?old.cycle:28};
+    const daysOpts=[1,2,3,4,5,6,7,8,9,10].map(n=>`<span class="pset-chip${n===_calPsetTmp.days?' on':''}" onclick="calPsetDays(${n})">${n}天</span>`).join('');
+    const cycleOpts=[21,23,25,28,30,33,35,40].map(n=>`<span class="pset-chip${n===_calPsetTmp.cycle?' on':''}" onclick="calPsetCycle(${n})">${n}天</span>`).join('');
+    showModal('经期设置',
+      `<div style="font-size:12px;color:var(--hint);margin-bottom:4px">开始日期（最近一次月经第 1 天）</div>
+       <div style="display:flex;gap:6px;align-items:center">
+         <input class="textarea-full" id="pset-start" style="min-height:0;padding:9px 10px" value="${old?old.start:date}" placeholder="YYYY-MM-DD">
+         <button class="modal-btn" style="flex-shrink:0" onclick="calPsetQuick(0)">今天</button>
+         <button class="modal-btn" style="flex-shrink:0" onclick="calPsetQuick(1)">明天</button>
+       </div>
+       <div style="font-size:12px;color:var(--hint);margin:10px 0 4px">持续天数</div>
+       <div style="display:flex;flex-wrap:wrap;gap:6px">${daysOpts}</div>
+       <div style="font-size:12px;color:var(--hint);margin:10px 0 4px">周期长度（两次经期间隔）</div>
+       <div style="display:flex;flex-wrap:wrap;gap:6px">${cycleOpts}</div>
+       <div style="font-size:11px;color:var(--hint);margin-top:10px">保存后日历会自动标出经期（第 1 天红·多 → 中间黄·中 → 最后 1 天粉·少）与排卵期（蓝色，下次经期前 14 天 ± 2 天）。</div>
+       ${old?'<div style="font-size:11px;color:#c0392b;margin-top:8px;cursor:pointer" onclick="calPsetClear()">清除经期设置</div>':''}`,
+      '<div class="modal-btn-row"><button class="modal-btn" onclick="closeModal()">取消</button><button class="modal-btn primary" onclick="calPsetSave()">保存</button></div>');
   });
 }
-function calPeriodPick(date,level){
+function calPsetDays(n){_calPsetTmp.days=n;document.querySelectorAll('.pset-chip').forEach((c,i)=>c.classList.toggle('on',i<10&&c.textContent===n+'天'));}
+function calPsetCycle(n){_calPsetTmp.cycle=n;document.querySelectorAll('.pset-chip').forEach(c=>c.classList.toggle('on',c.textContent===n+'天'));}
+function calPsetQuick(off){
+  const d=new Date();d.setDate(d.getDate()+off);
+  document.getElementById('pset-start').value=calDateKey(d);
+}
+function calPsetSave(){
+  const start=document.getElementById('pset-start')?document.getElementById('pset-start').value.trim():'';
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(start)||isNaN(new Date(start+'T00:00:00').getTime())){showToast('日期格式应为 YYYY-MM-DD');return;}
+  const days=Math.max(1,Math.min(10,Number(_calPsetTmp.days)||5));
+  const cycle=Math.max(21,Math.min(40,Number(_calPsetTmp.cycle)||28));
+  dbGetAll('calendar').then(all=>{
+    const old=all.find(x=>x.type==='period_set');
+    if(old){old.start=start;old.days=days;old.cycle=cycle;old.at=Date.now();dbPut('calendar',old);}
+    else dbPut('calendar',{date:start,type:'period_set',start,days,cycle,at:Date.now()});
+    closeModal();renderCalendar();showToast('经期设置已保存');
+  });
+}
+function calPsetClear(){
   closeModal();
   dbGetAll('calendar').then(all=>{
-    const old=all.find(x=>x.date===date&&x.type==='period');
-    if(old){old.level=level;dbPut('calendar',old);}
-    else dbPut('calendar',{date,type:'period',level,at:Date.now()});
-    renderCalendar();
+    const old=all.find(x=>x.type==='period_set');
+    if(old)dbDelete('calendar',old.id);
+    renderCalendar();showToast('已清除经期设置');
   });
 }
+/* 旧单天记录（v3.6.5 兼容）：仍可单独清除 */
 function calPeriodClear(date){
   closeModal();
   dbGetAll('calendar').then(all=>{

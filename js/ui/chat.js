@@ -514,7 +514,7 @@ function toggleVoiceMode(){
   const input=document.getElementById('chat-input'),talk=document.getElementById('talk-btn'),btn=document.getElementById('btn-voice');
   if(input){input.style.display=voiceMode?'none':'';if(voiceMode)input.blur();}
   if(talk)talk.classList.toggle('show',voiceMode);
-  if(btn)btn.innerHTML=voiceMode?'<svg viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="2"/><path d="M10 9l4 6M14 9l-4 6"/></svg>':'<svg viewBox="0 0 24 24"><path d="M12 3a4 4 0 0 1 4 4v5a4 4 0 0 1-8 0V7a4 4 0 0 1 4-4Z"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg>';
+  if(btn)btn.innerHTML=voiceMode?'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="6" width="12" height="12" rx="2"/><path d="M10 9l4 6M14 9l-4 6"/></svg>':'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a4 4 0 0 1 4 4v5a4 4 0 0 1-8 0V7a4 4 0 0 1 4-4Z"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg>';
   if(voiceMode)closeEmojiPanel();
 }
 let voiceRecTick=null;

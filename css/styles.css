@@ -473,24 +473,28 @@ mark{background:#ffe58f;color:inherit;border-radius:2px;padding:0 1px}
 .call-name{font-size:24px;font-weight:600}
 .call-status{font-size:13px;opacity:.7;letter-spacing:.5px}
 .call-status .big{font-size:34px;font-weight:300;letter-spacing:2px;opacity:.92;font-variant-numeric:tabular-nums;display:block;margin-top:4px}
-.call-actions{display:flex;flex-direction:column;align-items:center;gap:20px;width:100%;flex-shrink:0}
-.call-row{display:flex;gap:min(16vw,72px);justify-content:center;align-items:flex-start}
-.call-col{display:flex;flex-direction:column;align-items:center;gap:6px;width:56px}
-.call-btn{width:56px;height:56px;border-radius:50%;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,.16);color:#fff;transition:.15s;backdrop-filter:blur(6px)}
-.call-btn svg{width:24px;height:24px}
+.call-actions{display:flex;flex-direction:column;align-items:center;gap:14px;width:100%;flex-shrink:0}
+.call-row{display:flex;gap:min(10vw,44px);justify-content:center;align-items:flex-start}
+.call-col{display:flex;flex-direction:column;align-items:center;gap:5px;width:52px}
+.call-btn{width:52px;height:52px;border-radius:50%;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,.16);color:#fff;transition:.15s;backdrop-filter:blur(6px)}
+.call-btn svg{width:20px;height:20px}
 .call-btn:active{transform:scale(.92)}
 .call-btn.end{background:#e74c3c}
 .call-btn.answer{background:#2ecc71}
 .call-btn.on{background:#fff;color:#1a1a1a}
 .call-btn-label{font-size:11px;opacity:.75}
-/* v3.6.3 微信式通话小窗：全局悬浮、可拖动、自动靠边 */
-.call-float{position:absolute;z-index:350;display:none;align-items:center;gap:6px;background:rgba(20,20,20,.94);color:#fff;padding:7px 10px;border-radius:20px;font-size:12px;font-weight:500;backdrop-filter:blur(10px);box-shadow:0 6px 22px rgba(0,0,0,.35);touch-action:none;user-select:none;-webkit-user-select:none;cursor:grab;white-space:nowrap;border:1px solid rgba(255,255,255,.14)}
+/* v3.6.6 通话小窗：微信式大卡片（头像 + 类型/时长 + 挂断），全局拖动 */
+.call-float{position:absolute;z-index:350;display:none;flex-direction:column;align-items:center;gap:8px;width:150px;background:rgba(22,22,26,.96);color:#fff;padding:14px 12px 12px;border-radius:18px;backdrop-filter:blur(12px);box-shadow:0 10px 30px rgba(0,0,0,.45);touch-action:none;user-select:none;-webkit-user-select:none;cursor:grab;border:1px solid rgba(255,255,255,.16)}
 .call-float.show{display:flex}
-.call-float .cf-dot{width:7px;height:7px;border-radius:50%;background:#2ecc71;animation:recPulse 1.2s infinite;flex-shrink:0}
-.call-float .cf-name{max-width:96px;overflow:hidden;text-overflow:ellipsis}
-.call-float .cf-text{font-variant-numeric:tabular-nums;opacity:.85}
-.call-float .cf-x{width:20px;height:20px;border-radius:50%;background:rgba(255,255,255,.2);display:flex;align-items:center;justify-content:center;font-size:10px;cursor:pointer;flex-shrink:0;margin-left:2px}
-.call-float .cf-x:active{background:#e74c3c}
+.call-float .cf-av{width:64px;height:64px;border-radius:50%;background:linear-gradient(135deg,#5b7db1,#3a4f74);display:flex;align-items:center;justify-content:center;font-size:26px;font-weight:600;overflow:hidden;border:2px solid rgba(255,255,255,.22)}
+.call-float .cf-av img{width:100%;height:100%;object-fit:cover}
+.call-float .cf-info{display:flex;flex-direction:column;align-items:center;gap:2px}
+.call-float .cf-name{max-width:126px;overflow:hidden;text-overflow:ellipsis;font-size:14px;font-weight:600}
+.call-float .cf-kind{font-size:11px;opacity:.65}
+.call-float .cf-text{font-variant-numeric:tabular-nums;font-size:13px;color:#2ecc71;font-weight:600}
+.call-float .cf-x{width:46px;height:46px;border-radius:50%;background:#e74c3c;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;box-shadow:0 4px 12px rgba(231,76,60,.4)}
+.call-float .cf-x svg{width:20px;height:20px}
+.call-float .cf-x:active{transform:scale(.92)}
 .call-video{position:absolute;inset:0;display:flex;flex-direction:column;background:#111}
 .call-video .cv-remote{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;background:radial-gradient(circle at 50% 30%,#3a3a3a,#141414);color:#888;font-size:15px}
 .call-video .cv-remote-ph{font-size:64px;opacity:.55;animation:recPulse 2s infinite}
@@ -765,3 +769,6 @@ body{-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;letter
 .cal-todo-check.on{background:var(--c-green,#2ecc71);border-color:var(--c-green,#2ecc71)}
 .cal-todo-text{flex:1;min-width:0;font-size:14px;color:var(--text);word-break:break-word;cursor:pointer}
 .cal-todo-del{width:24px;height:24px;border-radius:50%;background:rgba(192,57,43,.14);color:#c0392b;display:flex;align-items:center;justify-content:center;font-size:11px;cursor:pointer;flex-shrink:0}
+/* v3.6.6 经期设置弹窗 */
+.pset-chip{display:inline-block;padding:6px 12px;border-radius:14px;background:var(--input);border:1px solid transparent;color:var(--text);font-size:12px;cursor:pointer}
+.pset-chip.on{background:rgba(226,96,96,.16);border-color:#e06060;color:#e06060}
