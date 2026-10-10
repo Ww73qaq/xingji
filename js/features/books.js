@@ -387,7 +387,6 @@ function bkBuildTxtReader() {
   if (s.settings.mode === 'page') {
     stage.innerHTML = `
       <div class="bk-clip" id="bk-pageclip"><div class="bk-flow bk-paged" id="bk-pageflow"></div></div>
-      <div class="bk-cover-anim" id="bk-coveranim" style="visibility:hidden"></div>
       <div class="bk-pagefoot" id="bk-pagefoot"></div>
       ${bkMenuHTML()}
     `;
@@ -480,9 +479,30 @@ function bkLayoutPages() {
   const total = Math.max(1, totalMap, totalSW || 0);
   s.txtPages = total;
   s.pageChars = new Array(total).fill(-1);
+  s._pageParas = new Array(total);   // 每页的段落实引用（动画克隆用）
   for (const p of flow.children) {
     const pg = Math.max(0, Math.round((p.offsetLeft - s._padLeft) / unit));
-    if (pg >= 0 && pg < total && s.pageChars[pg] < 0) s.pageChars[pg] = p._charStart;
+    if (pg >= 0 && pg < total) {
+      if (s.pageChars[pg] < 0) s.pageChars[pg] = p._charStart;
+      (s._pageParas[pg] || (s._pageParas[pg] = [])).push(p);
+    }
+  }
+  /* 页间无段落开头的页（长段落跨页）线性插值字符偏移，避免进度显示 0% */
+  let lastPg = -1, lastChar = 0;
+  for (let i = 0; i < total; i++) {
+    if (s.pageChars[i] >= 0) {
+      if (lastPg >= 0 && i - lastPg > 1) {
+        for (let j = lastPg + 1; j < i; j++) {
+          s.pageChars[j] = Math.round(lastChar + (s.pageChars[i] - lastChar) * (j - lastPg) / (i - lastPg));
+        }
+      }
+      lastPg = i; lastChar = s.pageChars[i];
+    }
+  }
+  if (lastPg >= 0 && lastPg < total - 1) {
+    for (let j = lastPg + 1; j < total; j++) {
+      s.pageChars[j] = Math.round(lastChar + (s.totalChars - lastChar) * (j - lastPg) / (total - 1 - lastPg));
+    }
   }
   let last = 0;
   for (let i = 0; i < total; i++) {
@@ -528,36 +548,68 @@ function bkGoPage(pg) {
   const stage = document.getElementById('bk-stage');
   const unit = s._pageUnit || (stage.clientWidth + BK_COL_GAP);   // 必须用 bkLayoutPages 实测的步长，否则翻页累积偏移
 
-  if (s._jumpNoAnim || anim === 'none' || pg === prev) {
+  if (s._jumpNoAnim || anim === 'none' || pg === prev || !s._pageParas) {
     flow.style.transition = 'none';
     flow.style.transform = 'translateX(' + (-pg * unit) + 'px)';
     return;
   }
-  if (anim === 'slide') {
-    flow.style.transition = 'transform .3s ease';
-    flow.style.transform = 'translateX(' + (-pg * unit) + 'px)';
-    return;
-  }
-  /* cover：遮罩层滑入盖住 → 底下瞬时换页 → 遮罩继续滑出 */
-  const ov = document.getElementById('bk-coveranim');
-  if (!ov) { flow.style.transition = 'none'; flow.style.transform = 'translateX(' + (-pg * unit) + 'px)'; return; }
+
+  /* 克隆页面动画层：新页/旧页都带真实文字，动画中不再出现"空白页" */
   s.animLock = true;
-  const bg = (bkBgList()[s.settings.bg] || bkBgList().paper)[0];
-  ov.style.background = bg;
-  ov.style.transition = 'none';
-  ov.style.visibility = 'visible';
-  ov.style.left = dir > 0 ? '100%' : '-100%';
-  requestAnimationFrame(() => {
-    ov.style.transition = 'left .26s ease-in';
-    ov.style.left = '0';
-    setTimeout(() => {
-      flow.style.transition = 'none';
-      flow.style.transform = 'translateX(' + (-pg * unit) + 'px)';
-      ov.style.transition = 'left .26s ease-out';
-      ov.style.left = dir > 0 ? '-100%' : '100%';
-      setTimeout(() => { ov.style.visibility = 'hidden'; s.animLock = false; }, 280);
-    }, 270);
-  });
+  const newOv = bkMakePageOverlay(pg);
+  const finish = () => {
+    flow.style.transition = 'none';
+    flow.style.transform = 'translateX(' + (-pg * unit) + 'px)';
+    newOv.remove();
+    if (oldOv) oldOv.remove();
+    s.animLock = false;
+  };
+  let oldOv = null;
+
+  if (anim === 'slide') {
+    /* 滑动：旧页滑出 + 新页滑入，同步等速，中间无空隙 */
+    oldOv = bkMakePageOverlay(prev);
+    oldOv.style.zIndex = '5';
+    newOv.style.zIndex = '6';
+    newOv.style.transform = 'translateX(' + (dir > 0 ? '100%' : '-100%') + ')';
+    void newOv.offsetWidth;
+    const trans = 'transform .3s ease';
+    oldOv.style.transition = trans; newOv.style.transition = trans;
+    oldOv.style.transform = 'translateX(' + (dir > 0 ? '-100%' : '100%') + ')';
+    newOv.style.transform = 'translateX(0)';
+  } else {
+    /* 覆盖：新页整页从行进方向滑入盖住旧页（旧页不动） */
+    newOv.style.zIndex = '6';
+    newOv.style.transform = 'translateX(' + (dir > 0 ? '100%' : '-100%') + ')';
+    newOv.style.boxShadow = dir > 0 ? '-8px 0 20px rgba(0,0,0,.18)' : '8px 0 20px rgba(0,0,0,.18)';
+    void newOv.offsetWidth;
+    newOv.style.transition = 'transform .3s ease';
+    newOv.style.transform = 'translateX(0)';
+  }
+  setTimeout(finish, 330);
+}
+
+/* 克隆某一页的段落为一个全屏覆盖层（无段落开头的跨页用纯色兜底） */
+function bkMakePageOverlay(pg) {
+  const s = _bk;
+  const stage = document.getElementById('bk-stage');
+  const flow = document.getElementById('bk-pageflow');
+  const cs = getComputedStyle(flow);
+  const bg = (bkBgList()[s.settings.bg] || bkBgList().paper);
+  const ov = document.createElement('div');
+  ov.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;overflow:hidden;z-index:6;'
+    + 'background:' + bg[0] + ';color:' + bg[1] + ';';
+  const paras = (s._pageParas || [])[pg];
+  if (paras && paras.length) {
+    const inner = document.createElement('div');
+    inner.style.cssText = 'height:100%;overflow:hidden;'
+      + 'padding:' + cs.paddingTop + ' ' + cs.paddingRight + ' ' + cs.paddingBottom + ' ' + cs.paddingLeft + ';'
+      + 'font-size:' + cs.fontSize + ';line-height:' + cs.lineHeight + ';letter-spacing:' + cs.letterSpacing + ';';
+    for (const p of paras) inner.appendChild(p.cloneNode(true));
+    ov.appendChild(inner);
+  }
+  stage.appendChild(ov);
+  return ov;
 }
 
 function bkNextPage() {
@@ -580,9 +632,11 @@ function bkUpdatePageFoot() {
   if (!foot || !s || s.type !== 'txt') return;
   const charNow = s.pageChars ? (s.pageChars[s.pageIndex] || 0) : 0;
   const ch = bkChapterByChar(charNow);
-  const pct = Math.min(99.9, (s.fraction || 0) * 100).toFixed(1);
+  /* 百分比按页计算（长段落跨页时字符偏移会失真），尾页恰为 100% */
+  const pct = s.txtPages > 1 ? (s.pageIndex / (s.txtPages - 1) * 100) : 100;
+  const pctStr = (pct >= 99.95 ? 100 : pct).toFixed(1);
   foot.innerHTML = `<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:52%">${esc(ch ? ch.title : '')}</span>
-    <span>${s.pageIndex + 1}/${s.txtPages} · ${pct}%</span>`;
+    <span>${s.pageIndex + 1}/${s.txtPages} · ${pctStr}%</span>`;
   foot.style.color = (bkBgList()[s.settings.bg] || bkBgList().paper)[2];
 }
 
