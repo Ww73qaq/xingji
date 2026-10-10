@@ -469,11 +469,19 @@ function bkLayoutPages() {
   s._padLeft = parseFloat(cs.paddingLeft) || 0;
 
   const unit = period;
-  const total = Math.max(1, Math.round((flow.scrollWidth - s._padLeft) / unit));
+  /* 总页数由段落实测列号推导（WebKit 的 scrollWidth 不含 multicol 溢出宽度，不可用） */
+  let maxPg = 0;
+  for (const p of flow.children) {
+    const pg = Math.round((p.offsetLeft - s._padLeft) / unit);
+    if (pg > maxPg) maxPg = pg;
+  }
+  const totalMap = maxPg + 1;
+  const totalSW = Math.round((flow.scrollWidth - s._padLeft) / unit);
+  const total = Math.max(1, totalMap, totalSW || 0);
   s.txtPages = total;
   s.pageChars = new Array(total).fill(-1);
   for (const p of flow.children) {
-    const pg = Math.round(p.offsetLeft / unit);
+    const pg = Math.max(0, Math.round((p.offsetLeft - s._padLeft) / unit));
     if (pg >= 0 && pg < total && s.pageChars[pg] < 0) s.pageChars[pg] = p._charStart;
   }
   let last = 0;
