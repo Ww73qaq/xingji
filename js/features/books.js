@@ -448,15 +448,28 @@ function bkLayoutPages() {
   flow.style.boxSizing = 'border-box';
   flow.style.width = W + 'px';
   flow.style.height = H + 'px';
-  /* 分栏宽度 = 内容区宽（扣除左右边距），翻页步长 = 分栏宽 + 栏间距 */
+  /* 分栏宽度 = 内容区宽（扣除左右边距），翻页步长以浏览器实际列间距实测为准 */
   const cs = getComputedStyle(flow);
   const cw = Math.max(120, W - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight));
   flow.style.columnWidth = cw + 'px';
   flow.style.columnGap = BK_COL_GAP + 'px';
   flow.style.transform = 'translateX(0)';
 
-  const unit = cw + BK_COL_GAP;
-  const total = Math.max(1, Math.round(flow.scrollWidth / unit));
+  /* 实测步长：取前两段不同 offsetLeft 的差值（= 列宽+栏间距），杜绝任何舍入/计算口径不一致 */
+  let period = cw + BK_COL_GAP;
+  const kids = flow.children;
+  if (kids.length > 1) {
+    const first = kids[0].offsetLeft;
+    for (let k = 1; k < kids.length; k++) {
+      const d = kids[k].offsetLeft - first;
+      if (d > cw * 0.5) { period = d; break; }
+    }
+  }
+  s._pageUnit = period;
+  s._padLeft = parseFloat(cs.paddingLeft) || 0;
+
+  const unit = period;
+  const total = Math.max(1, Math.round((flow.scrollWidth - s._padLeft) / unit));
   s.txtPages = total;
   s.pageChars = new Array(total).fill(-1);
   for (const p of flow.children) {
@@ -505,8 +518,7 @@ function bkGoPage(pg) {
 
   const anim = s.settings.anim || 'cover';
   const stage = document.getElementById('bk-stage');
-  const W = stage.clientWidth;
-  const unit = W + BK_COL_GAP;
+  const unit = s._pageUnit || (stage.clientWidth + BK_COL_GAP);   // 必须用 bkLayoutPages 实测的步长，否则翻页累积偏移
 
   if (s._jumpNoAnim || anim === 'none' || pg === prev) {
     flow.style.transition = 'none';
