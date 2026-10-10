@@ -81,7 +81,7 @@ function enterPage(id){
     mailbox:renderMailbox, diary:renderDiary, moments:renderMoments,
     probability:renderProbability,
     cards:renderCards, emoji:renderEmojis, memory:renderMemory,
-    sense:initRoom, writing:renderWriting, calendar:renderCalendar,
+    sense:initRoom, books:renderBookshelf, calendar:renderCalendar,
     trace:renderTrace, profile:renderProfile, data:renderDataPage
   };
   if(render[id])try{render[id]();}catch(e){console.error(e);}

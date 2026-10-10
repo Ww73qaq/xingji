@@ -20,7 +20,7 @@ function dbPrimaryKey(store,rec){return store==='settings'?(rec&&rec.key):(rec&&
    老数据全部保留，只是多一次升级。 */
 function openDB(){
   return new Promise((res,rej)=>{
-    const req=indexedDB.open('xingji',4);
+    const req=indexedDB.open('xingji',5);
     req.onerror=()=>{_markDbReady();rej(req.error);};   // 失败也开门闩，避免等待者永久挂起（后续调用会自行 reject）
     req.onsuccess=()=>{DB=req.result;window.DB=DB;_markDbReady();res();};
     req.onupgradeneeded=e=>{
@@ -49,6 +49,8 @@ function openDB(){
       ensure('calendar',{keyPath:'id',autoIncrement:true,indexes:[['date','date']]});
       // v3.6.8：事件轨迹（感应/状态/日程等，供「心念轨迹」App 与 TA 记得引用）
       ensure('events',{keyPath:'id',autoIncrement:true,indexes:[['time','time']]});
+      // v3.8.0：本地阅读书架（书的文件本体 Blob + 元信息 + 进度；按 addedAt 索引）
+      ensure('books',{keyPath:'id',autoIncrement:true,indexes:[['addedAt','addedAt']]});
       // 2) settings：keyPath 不可变更，老库只能删表重建并把旧行搬过去。
       //    必须放在最后，且不能提前 return，否则上面的索引不会被创建。
       if(!db.objectStoreNames.contains('settings')){

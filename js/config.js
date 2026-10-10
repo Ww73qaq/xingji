@@ -16,7 +16,7 @@ const LINE_ICONS={
 
 /* ===== 手机导航栈（push / pop + 系统返回键 + 边缘滑动手势） ===== */
 const TAB_PAGE={chat:'chat',moments:'moments',cards:'cards',me:'profile'};
-const PAGE_TITLES={chat:'聊天',chatinfo:'聊天信息',chatsearch:'聊天记录',mailbox:'信箱',diary:'日记',moments:'朋友圈',profile:'我的',sense:'感应房间',probability:'相处节奏',cards:'字卡',emoji:'表情',memory:'回忆录',data:'数据',trace:'心跳轨迹'};
+const PAGE_TITLES={chat:'聊天',chatinfo:'聊天信息',chatsearch:'聊天记录',mailbox:'信箱',diary:'日记',moments:'朋友圈',profile:'我的',sense:'感应房间',books:'书架',probability:'相处节奏',cards:'字卡',emoji:'表情',memory:'回忆录',data:'数据',trace:'心跳轨迹'};
 
 
 /* ===== CHAT（微信风格） ===== */
@@ -302,13 +302,6 @@ const TA_LETTER_TAILS=[
   '如果你读懂了，就当我什么都没说；如果没懂，我下次再挑。',
   '这封信不用回，我写出来心里就安静了。'
 ];
-
-/* ===== SPELLING（拼写：TA 在意识空间的拼音练习本。这是「他」的功能——像在纸上完成拼写练习） ===== */
-const ALPHABET='abcdefghijklmnopqrstuvwxyz'.split('');
-const SPELL_CELL_MAX=6;        // 每格最多 6 个拼音字母
-const SPELL_CELLS=3;
-const SPELL_MAX=SPELL_CELL_MAX*SPELL_CELLS;
-const SPELL_PRAISES=['今天的拼写我认真写了。','拼好的字母，都是想对你说的。','我在纸上写了一会儿，心里很安静。','拼写练习完成了，心里很静。'];
 
 /* ===== ROOM / SENSE ===== */
 const FURNITURE_ITEMS=['衣','桌','柜','椅','床','窗','门','沙','书','画','灯','花','茶','琴','镜','毯'];
