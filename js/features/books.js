@@ -101,6 +101,11 @@ function bkInjectStyle() {
   .bk-toolbar .bk-tb:active{background:#e8e4d9}
   .bk-toolbar .bk-ind{font-size:12px;color:var(--sub,#7d7d7d);padding:0 4px}
   .bk-reader-scroll{flex:1;overflow:auto;-webkit-overflow-scrolling:touch;overflow-anchor:none}
+  /* v3.12.0 开书 loading：合成器线程驱动的转圈，主线程忙时也转 */
+  .bk-openload{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;min-height:60vh}
+  .bk-openload-ring{width:34px;height:34px;border-radius:50%;border:3px solid #e4ded0;border-top-color:#8a6d4b;animation:bk-spin .8s linear infinite}
+  .bk-openload-tx{font-size:13px;color:var(--sub,#7d7d7d);max-width:70%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  @keyframes bk-spin{to{transform:rotate(360deg)}}
   .bk-txt-text{max-width:720px;margin:0 auto}
   .bk-p{margin:0 0 .55em;white-space:pre-wrap;word-break:break-word;overflow-wrap:break-word}
   /* ===== PDF 阅读舞台（v3.10.0 重做：连续滚动 + 页虚拟化 + 缩放沙盒） ===== */
@@ -483,6 +488,9 @@ async function openBook(id) {
   body.style.cssText = '';
   body.classList.add('bk-reading');
   bkSetBack(true);
+  /* v3.12.0 开书 loading 态：立即画壳+转圈（CSS transform 动画在合成器线程，
+     主线程解码/切段时也持续旋转），消除点书后几百 ms 的「没反应」空窗 */
+  body.innerHTML = `<div class="bk-openload"><div class="bk-openload-ring"></div><div class="bk-openload-tx">${esc(rec.name || '正在打开…')}</div></div>`;
 
   if (s.type === 'txt') await bkOpenTxt(body);
   else await bkOpenPdf(body);
@@ -834,6 +842,7 @@ function bkPageLabel() {
 function bkCancelPageAnim() {
   const s = _bk; if (!s) return;
   s.animSeq = (s.animSeq || 0) + 1;
+  s._animFinish = null;                    // v3.12.0：快进句柄一并作废
   const stage = document.getElementById('bk-stage');
   if (stage) {
     const ovs = stage.querySelectorAll('.bk-pageov');
@@ -844,6 +853,19 @@ function bkCancelPageAnim() {
 
 /* ---------- 翻页：块内动画 / 跨块换装（v3.10.0） ---------- */
 /* 块内翻到 local 页：基座仍是旧页，动画结束才提交位移（v3.9.3 克隆页面层方案原样保留） */
+/* v3.12.0 连点加速：动画期间再点不丢弃——立刻完成当前动画（快进 finish）再接着翻 */
+function bkAnimKick() {
+  const s = _bk;
+  if (!s || !s.animLock) return true;
+  if (s._animFinish) {
+    const f = s._animFinish;
+    s._animFinish = null;
+    f();                                   // finish 内部会清 animLock 并落位 transform
+    return !s.animLock;
+  }
+  return false;
+}
+
 function bkTurnTo(local, dir) {
   const s = _bk; if (!s || s.type !== 'txt') return;
   const flow = document.getElementById('bk-pageflow');
@@ -884,7 +906,9 @@ function bkTurnTo(local, dir) {
     newOv.remove();
     if (oldOv) oldOv.remove();
     s.animLock = false;
+    s._animFinish = null;
   };
+  s._animFinish = finish;                  // v3.12.0：连点时 bkAnimKick 快进用
 
   if (anim === 'slide') {
     /* 滑动：旧页滑出 + 新页滑入，同步等速，中间无空隙 */
@@ -987,7 +1011,8 @@ function bkMakePageOverlay(pg, paras) {
 
 function bkNextPage() {
   const s = _bk;
-  if (!s || s.type !== 'txt' || s.settings.mode !== 'page' || s.animLock) return;
+  if (!s || s.type !== 'txt' || s.settings.mode !== 'page') return;
+  if (s.animLock && !bkAnimKick()) return;   // v3.12.0：快进未完动画，连点不丢
   const blk = s.blockMap && s.blockMap[s.curChunk];
   if (!blk) return;
   if (s.curLocal >= blk.pages - 1) {
@@ -999,7 +1024,8 @@ function bkNextPage() {
 }
 function bkPrevPageTxt() {
   const s = _bk;
-  if (!s || s.type !== 'txt' || s.settings.mode !== 'page' || s.animLock) return;
+  if (!s || s.type !== 'txt' || s.settings.mode !== 'page') return;
+  if (s.animLock && !bkAnimKick()) return;   // v3.12.0：快进未完动画，连点不丢
   if (s.curLocal <= 0) {
     if (s.curChunk <= 0) { showToast('已经是第一页'); return; }
     bkTurnChunk(s.curChunk - 1, -1);
@@ -1039,7 +1065,7 @@ function bkUpdatePageFoot() {
   const pct = L.y > 1 ? ((L.x - 1) / (L.y - 1) * 100) : 100;
   const pctStr = (pct >= 99.95 ? 100 : pct).toFixed(1);
   foot.innerHTML = `<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:52%">${esc(ch ? ch.title : '')}</span>
-    <span>${L.x}/${L.y} · ${pctStr}%</span>`;
+    <span>${L.exact ? '' : '约 '}${L.x}/${L.y} · ${pctStr}%</span>`;
   foot.style.color = (bkBgList()[s.settings.bg] || bkBgList().paper)[2];
 }
 
@@ -1122,7 +1148,14 @@ function bkOnTxtScroll() {
   clearTimeout(_bkSaveTimer);
   _bkSaveTimer = setTimeout(bkSaveProgress, 500);
   /* 虚拟窗口维护：近底补下一块；近顶补上一块并裁尾；滚出第一块后裁头 */
-  if (sc.scrollTop + sc.clientHeight > host.offsetHeight - 1400 && s.scrollLast < bkChunkCount() - 1) {
+  /* v3.12.0 甩动自适应：按实时滚动速度放大提前量（快速甩动时最多 ~6000px），
+     避免一划半屏越过 1400px 固定提前量、撞进未挂载区顿一下 */
+  const nowT = performance.now();
+  const dt = Math.max(16, nowT - (sc._ltT || nowT));
+  const vPx = Math.max(0, (sc.scrollTop - (sc._lt == null ? sc.scrollTop : sc._lt)) / dt);   // px/ms，只算正向
+  sc._lt = sc.scrollTop; sc._ltT = nowT;
+  const lead = Math.min(6000, 1400 + vPx * 250);
+  if (sc.scrollTop + sc.clientHeight > host.offsetHeight - lead && s.scrollLast < bkChunkCount() - 1) {
     bkScrollMount(s.scrollLast + 1);
   }
   if (sc.scrollTop < 800 && s.scrollFirst > 0) {
