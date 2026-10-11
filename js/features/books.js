@@ -100,13 +100,16 @@ function bkInjectStyle() {
   .bk-toolbar .bk-tb{border:1px solid #e2ded4;background:#f3f1ea;color:#5a5344;border-radius:14px;padding:4px 11px;font-size:12px;cursor:pointer;line-height:1.4}
   .bk-toolbar .bk-tb:active{background:#e8e4d9}
   .bk-toolbar .bk-ind{font-size:12px;color:var(--sub,#7d7d7d);padding:0 4px}
-  .bk-reader-scroll{flex:1;overflow:auto;-webkit-overflow-scrolling:touch}
+  .bk-reader-scroll{flex:1;overflow:auto;-webkit-overflow-scrolling:touch;overflow-anchor:none}
   .bk-txt-text{max-width:720px;margin:0 auto}
   .bk-p{margin:0 0 .55em;white-space:pre-wrap;word-break:break-word;overflow-wrap:break-word}
   /* ===== PDF 阅读舞台（v3.10.0 重做：连续滚动 + 页虚拟化 + 缩放沙盒） ===== */
   .bk-pdf-scroll{position:absolute;inset:0;overflow:auto;-webkit-overflow-scrolling:touch;touch-action:pan-x pan-y}
-  .bk-pdf-flow{position:relative;margin:0 auto}
-  .bk-pdf-page{position:relative;margin:10px auto;background:#fff;box-shadow:0 3px 14px rgba(0,0,0,.18);border-radius:2px;overflow:hidden}
+  .bk-pdf-flow{position:relative;margin:0 auto;padding-top:12px}
+  .bk-pdf-page{position:relative;margin:0 auto 10px;background:#fff;box-shadow:0 3px 14px rgba(0,0,0,.18);border-radius:2px;overflow:hidden}
+  /* v3.11.1：页间距改「仅下 margin 10px + flow 顶 padding 12px」——旧版上下 margin 各 10 会
+     相邻塌缩成 10px，而 bkPdfPageTop/bkPdfPageAt 按 20px/页累计，越往后偏差越大（每页多算
+     10px），跳页后页顶被顶部栏遮住 ~N×10px。现在 DOM 与页高表口径完全一致。 */
   .bk-pdf-page canvas{display:block;width:100%;height:100%}
   .bk-pdf-page .bk-pdf-loading{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#c9c2b4;font-size:12px}
   /* 夜间模式：反色滤镜（白底 PDF 变暗底亮字），只作用于页面画布 */
@@ -436,7 +439,13 @@ function bkTeardownSession() {
 
 let _bkOpenSeq = 0;   // 打开序号：连点两张书卡时作废先发起的那次，避免两次打开互相覆盖 DOM / 状态
 
+let _bkOpenAt = 0;   // v3.11.1：连点保护——大书打开要几百 ms，用户会再点一下，
+                     // 第二次点按在部分手机浏览器（无视 viewport 缩放限制的内置内核）里
+                     // 会触发双击缩放，把书架页「放大一点」后再进阅读器
 async function openBook(id) {
+  const now = Date.now();
+  if (now - _bkOpenAt < 800) return;
+  _bkOpenAt = now;
   bkInjectStyle();
   const seq = ++_bkOpenSeq;
   bkTeardownSession();
@@ -1187,8 +1196,15 @@ function bkBindStageTap() {
       else bkShowMenu();
     } else {
       const sc = document.getElementById('bk-txt-scroll');
-      if (x < r.width * 0.32 && sc) sc.scrollBy({ top: -sc.clientHeight * 0.85, behavior: 'smooth' });
-      else if (x > r.width * 0.68 && sc) sc.scrollBy({ top: sc.clientHeight * 0.85, behavior: 'smooth' });
+      if (sc && (x < r.width * 0.32 || x > r.width * 0.68)) {
+        /* v3.11.1：落点按行取整——任意像素落点会让屏幕底部露出半截行，
+           看起来像「底部多两行、翻页后又消失」 */
+        const host = document.getElementById('bk-txt-text');
+        const lh = host ? (parseFloat(getComputedStyle(host).lineHeight) || 36) : 36;
+        const dir = x > r.width * 0.68 ? 1 : -1;
+        const target = sc.scrollTop + dir * sc.clientHeight * 0.85;
+        sc.scrollTo({ top: Math.max(0, Math.round(target / lh) * lh), behavior: 'smooth' });
+      }
       else bkShowMenu();
     }
   };
@@ -1220,8 +1236,8 @@ function bkMenuHTML() {
         <span class="bk-mb2" onclick="bkMenuChapter(1)">下一章</span>
       </div>
       <div class="bk-menu-tabs">
-        <span class="bk-mb2" onclick="bkBookmarkAdd()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h12v18l-6-4.5L6 21Z"/></svg>加书签</span>
         <span class="bk-mb2" onclick="bkToggleToc(true)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h10"/></svg>目录</span>
+        <span class="bk-mb2" onclick="bkBookmarkAdd()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h12v18l-6-4.5L6 21Z"/></svg>加书签</span>
         <span class="bk-mb2" onclick="bkMenuMode()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h12M4 8l3-3M4 8l3 3M20 16H8M20 16l-3-3M20 16l-3 3"/></svg><span id="bk-menu-mode-t">滚动</span></span>
         <span class="bk-mb2" onclick="bkShowPanel()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h9"/><circle cx="18.5" cy="17" r="1.6"/></svg>界面</span>
         <span class="bk-mb2" onclick="bkCycleEnc()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 17l6-10M10 7l6 10M6.5 13h7M17 17h3"/></svg><span id="bk-menu-enc-t"></span></span>
@@ -1680,7 +1696,7 @@ function bkPdfHeights() {
   const hs = new Array(s.totalPages + 1).fill(0);
   for (let i = 1; i <= s.totalPages; i++) {
     const sz = s.pdfSizes[i - 1] || { w: s.baseW, h: s.baseH };
-    hs[i] = sz.h * eff;
+    hs[i] = Math.round(sz.h * eff);   // v3.11.1：与 DOM 取整口径一致（页框 height=Math.round），否则大 PDF 累积 ~0.5px/页 漂移
   }
   s.pdfHeights = hs; s.pdfEff = eff; s.pdfVer = s.pdfSizeVer;
   return hs;
@@ -1688,7 +1704,7 @@ function bkPdfHeights() {
 function bkPdfPageTop(pg) {
   const hs = bkPdfHeights();
   let acc = 12;                            // flow 顶部 padding
-  for (let i = 1; i < pg; i++) acc += hs[i] + 20;   // 页间距 margin 10×2
+  for (let i = 1; i < pg; i++) acc += hs[i] + 10;   // v3.11.1：页间距=下 margin 10px（不再有塌缩误差）
   return acc;
 }
 function bkPdfPageAt(scrollTop) {
@@ -1698,8 +1714,8 @@ function bkPdfPageAt(scrollTop) {
   const probe = scrollTop + (sc ? sc.clientHeight * 0.35 : 0) - 12;
   let acc = 0;
   for (let i = 1; i <= s.totalPages; i++) {
-    if (probe < acc + hs[i] + 20) return i;
-    acc += hs[i] + 20;
+    if (probe < acc + hs[i] + 10) return i;    // v3.11.1：页间距 20→10，与 .bk-pdf-page 新 margin 口径一致
+    acc += hs[i] + 10;
   }
   return s.totalPages;
 }
@@ -1996,8 +2012,8 @@ function bkPdfMenuHTML() {
         <span class="bk-mb2" onclick="bkPdfGoPageRel(1)">下一页</span>
       </div>
       <div class="bk-menu-tabs">
-        <span class="bk-mb2" onclick="bkBookmarkAdd()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h12v18l-6-4.5L6 21Z"/></svg>加书签</span>
         <span class="bk-mb2" onclick="bkTogglePdfToc(true)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h10"/></svg>目录</span>
+        <span class="bk-mb2" onclick="bkBookmarkAdd()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h12v18l-6-4.5L6 21Z"/></svg>加书签</span>
         <span class="bk-mb2" onclick="bkPdfSetScale(1)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg>适应宽度</span>
         <span class="bk-mb2" onclick="bkShowPdfPanel()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h9"/><circle cx="18.5" cy="17" r="1.6"/></svg>界面</span>
       </div>

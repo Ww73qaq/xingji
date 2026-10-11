@@ -24,7 +24,7 @@
   --kb:0px;          /* 软键盘高度（JS 注入） */
 }
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;touch-action:manipulation}
-html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'PingFang SC','Hiragino Sans GB','Microsoft YaHei',sans-serif;background:#e2e2e0;color:var(--text);overscroll-behavior:none}
+html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'PingFang SC','Hiragino Sans GB','Microsoft YaHei',sans-serif;background:#e2e2e0;color:var(--text);overscroll-behavior:none;touch-action:manipulation}
 body{position:fixed;inset:0;width:100%}
 #phone{max-width:430px;height:100%;height:100dvh;margin:0 auto;background:var(--bg);position:relative;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 0 40px rgba(0,0,0,.18)}
 /* v3.9.5：软键盘适配——消费 js/nav.js 注入的 body.kb-open + --kb（此前无消费者=死代码）。
