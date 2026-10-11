@@ -60,7 +60,14 @@
         body: (body || '').slice(0, 150),
         channelId: XJ_CHANNEL
       }]
-    }).catch(function () {});
+    }).then(function () {
+      /* v3.18.2：投递成功回执（前台可直接看到发送结果） */
+      try { if (typeof showToast === 'function') showToast('原生通知已提交系统'); } catch (e) {}
+    }).catch(function (err) {
+      /* v3.18.2：失败原因直接显示，不再静默吞掉 */
+      try { if (typeof showToast === 'function') showToast('通知发送失败：' + ((err && (err.message || err.details)) || JSON.stringify(err) || '未知')); } catch (e) {}
+      console.error('[xingji] LocalNotifications.schedule 失败', err);
+    });
   }
 
   /* 重载发送层（notifySystem 内部调 sendWebNotify；SW 不可达时走 fallbackNotify） */

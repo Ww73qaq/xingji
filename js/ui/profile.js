@@ -110,7 +110,12 @@ function openNotifySettings(){
   const deniedHint=(notifySupported()&&Notification.permission==='denied')
     ?'<div style="font-size:11px;color:#c55;line-height:1.8;margin:6px 0 4px;padding:8px 10px;background:rgba(200,80,80,.08);border-radius:8px">浏览器已「自动禁止」本站通知（Edge / Chrome 在多次拒绝授权框后会自动挡掉该站点）。<br>请到：<br>· Edge：地址栏左侧图标 → 网站权限 → 通知 → 允许；<br>· 或 浏览器 设置 → 网站设置 → 通知 →「添加网站例外」→ 输入本站网址。<br>允许后回来点下方「测试通知」验证。</div>'
     :'';
-  showModal('消息通知',`<div style="font-size:12px;color:var(--sub);line-height:1.9;margin-bottom:8px">让 TA 找你时能弹出通知。<br><span style="color:var(--hint)">浏览器权限：${perm}${!notifySupported()?'（当前浏览器不支持）':''}</span></div>${deniedHint}
+  let appBuildInfo='';
+  if(typeof inApp==='function'&&inApp()&&typeof appLocalVersion==='function'){
+    appLocalVersion().then(v=>{ if(v){const el=document.getElementById('bk-app-build'); if(el)el.textContent='APP 构建：v'+(v.version||'?')+' (code '+(v.code||'?')+')';} }).catch(()=>{});
+    appBuildInfo='<div id="bk-app-build" style="font-size:11px;color:var(--hint);margin-bottom:6px">APP 构建：读取中…</div>';
+  }
+  showModal('消息通知',`<div style="font-size:12px;color:var(--sub);line-height:1.9;margin-bottom:8px">${appBuildInfo}让 TA 找你时能弹出通知。<br><span style="color:var(--hint)">浏览器权限：${perm}${!notifySupported()?'（当前浏览器不支持）':''}</span></div>${deniedHint}
     <div class="modal-item" onclick="setNotify('enabled')"><span style="flex:1">总开关</span><span class="cs-switch${n.enabled?' on':''}" onclick="event.stopPropagation();setNotify('enabled')"></span></div>
     <div class="modal-item" onclick="setNotify('chat')"><span style="flex:1">聊天消息</span><span class="cs-switch${n.chat!==false?' on':''}" onclick="event.stopPropagation();setNotify('chat')"></span></div>
     <div class="modal-item" onclick="setNotify('moments')"><span style="flex:1">朋友圈互动</span><span class="cs-switch${n.moments!==false?' on':''}" onclick="event.stopPropagation();setNotify('moments')"></span></div>
