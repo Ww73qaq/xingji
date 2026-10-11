@@ -278,9 +278,9 @@ function renderCalendarDay(body,items,pset,allItems){
     <div class="cal-todolist">
       ${todos.length?todos.map(it=>`
         <div class="cal-todo-item${it.done?' done':''}">
-          <span class="cal-todo-check${it.done?' on':''}" onclick="calToggleTodo(${it.id})">${it.done?'✓':''}</span>
-          <span class="cal-todo-text" onclick="calEditTodo(${it.id})">${esc(it.text)}${(it.alarmFreq||(it.alarm&&it.alarm.freq))?` <i style="font-style:normal;font-size:10px;color:var(--hint)">${calTodoFreqTag(it.alarmFreq||it.alarm.freq)}</i>`:''}</span>
-          <span class="cal-todo-del" onclick="calDelTodo(${it.id})">&#10005;</span>
+          <span class="cal-todo-check${it.done?' on':''}" onclick="calToggleTodo('${it.id}')">${it.done?'✓':''}</span>
+          <span class="cal-todo-text" onclick="calEditTodo('${it.id}')">${esc(it.text)}${(it.alarmFreq||(it.alarm&&it.alarm.freq))?` <i style="font-style:normal;font-size:10px;color:var(--hint)">${calTodoFreqTag(it.alarmFreq||it.alarm.freq)}</i>`:''}</span>
+          <span class="cal-todo-del" onclick="calDelTodo('${it.id}')">&#10005;</span>
         </div>`).join('')
       :'<div class="empty" style="padding:12px 0">还没有待办，点上方「＋ 待办」添加</div>'}
     </div>`:''}
@@ -343,23 +343,35 @@ let _todoAlarmCheck=0;
    - daily：添加日及以后每天都出现；weekly：与添加日同星期的日子出现
    - 展开实例 id=`tpl:<源id>:<日期>`，勾选状态存 state.todoDoneByDay[<源id>:<日期>]
    - 待办列表/轨迹/提醒统一走 calTodosFor */
+/* v3.15.0：周期待办命中判定（daily=每天；weekly=旧数据，与添加日同星期；w0~w6=每周日~每周六） */
+function calTodoHitsDate(x,dateKey){
+  const a=x.alarm;if(!a||!a.freq||a.freq==='off'||a.freq==='once')return false;
+  const dw=new Date(dateKey+'T00:00:00').getDay();
+  if(a.freq==='daily')return dateKey>=x.date;
+  if(a.freq==='weekly')return dateKey>=x.date&&(new Date(x.date+'T00:00:00').getDay()===dw);
+  if(/^w[0-6]$/.test(a.freq))return dateKey>=x.date&&parseInt(a.freq.slice(1),10)===dw;
+  return false;
+}
 function calTodosFor(items,dateKey){
   const out=items.filter(x=>x.type==='todo'&&x.date===dateKey);
-  const dw=new Date(dateKey+'T00:00:00').getDay();
   const doneByDay=state.todoDoneByDay||{};
+  const excl=state.todoExclByDay||{};
   items.forEach(x=>{
     if(x.type!=='todo'||x.date===dateKey)return;
-    const a=x.alarm;if(!a||(a.freq!=='daily'&&a.freq!=='weekly'))return;
-    let hit=false;
-    if(a.freq==='daily')hit=dateKey>=x.date;
-    else if(a.freq==='weekly')hit=(new Date(x.date+'T00:00:00').getDay()===dw)&&dateKey>=x.date;
-    if(!hit)return;
+    if(!calTodoHitsDate(x,dateKey))return;
     const dkey=x.id+':'+dateKey;
-    out.push(Object.assign({},x,{id:'tpl:'+dkey,_tpl:true,_srcId:x.id,date:dateKey,alarmFreq:a.freq,done:doneByDay[dkey]?1:0}));
+    if(excl[dkey])return;                        // v3.15.0：当天被单独删除的周期实例
+    out.push(Object.assign({},x,{id:'tpl:'+dkey,_tpl:true,_srcId:x.id,date:dateKey,alarmFreq:a2f(x),done:doneByDay[dkey]?1:0}));
   });
   return out.sort((a,b)=>((a.done||0)-(b.done||0))||((a.at||0)-(b.at||0)));
+  function a2f(x){return (x.alarm&&x.alarm.freq)||'';}
 }
-function calTodoFreqTag(f){return f==='daily'?'每天':f==='weekly'?'每周':'';}
+function calTodoFreqTag(f){
+  if(f==='daily')return '每天';
+  if(f==='weekly')return '每周';
+  if(/^w[0-6]$/.test(f))return '每周'+['日','一','二','三','四','五','六'][parseInt(f.slice(1),10)];
+  return '';
+}
 function maybeTodoAlarm(){
   if(Date.now()-_todoAlarmCheck<5000)return;
   _todoAlarmCheck=Date.now();
@@ -370,8 +382,7 @@ function maybeTodoAlarm(){
     const done=state.todoAlarmDone||{};
     let changed=false;
     const dw=new Date().getDay();
-    const todayTpl=all.filter(it=>it.type==='todo'&&it.alarm&&(it.alarm.freq==='daily'||it.alarm.freq==='weekly')&&it.date!==key&&
-      (it.alarm.freq==='daily'||new Date(it.date+'T00:00:00').getDay()===dw));
+    const todayTpl=all.filter(it=>it.type==='todo'&&it.alarm&&it.date!==key&&calTodoHitsDate(it,key));
     all.forEach(it=>{
       if(it.type!=='todo'||!it.alarm)return;
       if(it.alarm.time!==hm)return;
@@ -423,9 +434,15 @@ function calAddTodo(date){
        <span class="mood-chip" data-g="off" onclick="calTodoAlarmFreq(this,'off')">不提醒</span>
        <span class="mood-chip" data-g="once" onclick="calTodoAlarmFreq(this,'once')">仅一次</span>
        <span class="mood-chip" data-g="daily" onclick="calTodoAlarmFreq(this,'daily')">每天</span>
-       <span class="mood-chip" data-g="weekly" onclick="calTodoAlarmFreq(this,'weekly')">每周</span>
+       <span class="mood-chip" data-g="w1" onclick="calTodoAlarmFreq(this,'w1')">每周一</span>
+       <span class="mood-chip" data-g="w2" onclick="calTodoAlarmFreq(this,'w2')">每周二</span>
+       <span class="mood-chip" data-g="w3" onclick="calTodoAlarmFreq(this,'w3')">每周三</span>
+       <span class="mood-chip" data-g="w4" onclick="calTodoAlarmFreq(this,'w4')">每周四</span>
+       <span class="mood-chip" data-g="w5" onclick="calTodoAlarmFreq(this,'w5')">每周五</span>
+       <span class="mood-chip" data-g="w6" onclick="calTodoAlarmFreq(this,'w6')">每周六</span>
+       <span class="mood-chip" data-g="w0" onclick="calTodoAlarmFreq(this,'w0')">每周日</span>
      </div>
-     <div style="font-size:11px;color:var(--hint);margin-top:6px">到点后在浏览器通知里提醒你（需已开启网站通知权限）</div>`,
+     <div style="font-size:11px;color:var(--hint);margin-top:6px">选「每天/每周几」：该项会自动出现在对应日期的待办里，到设定时间提醒你（需已开启网站通知权限）</div>`,
     '<div class="modal-btn-row"><button class="modal-btn" onclick="closeModal()">取消</button><button class="modal-btn primary" onclick="calAddTodoOk(\''+date+'\')">确定</button></div>');
   setTimeout(()=>{const i=document.getElementById('cal-todo-input');if(i)i.focus();},80);
 }
@@ -454,30 +471,58 @@ function calToggleTodo(id){
 }
 function calEditTodo(id){
   dbGetAll('calendar').then(all=>{
-    let it=all.find(x=>x.id===id);if(!it)return;
-    if(String(id).indexOf('tpl:')===0)it=all.find(x=>x.id===String(id).slice(4).split(':')[0]);
-    if(!it)return;
-    appPrompt('编辑待办','修改内容：',v=>{
+    /* v3.15.1 修：tpl 虚拟 id 必须先归一到源 id 再查库——旧代码先 if(!it)return
+       再归一，导致周期待办点编辑永远静默无反应 */
+    if(String(id).indexOf('tpl:')===0)id=String(id).slice(4).split(':')[0];
+    const it=all.find(x=>x.id===id);if(!it)return;
+    appPrompt('编辑待办内容',it.text||'',v=>{
       v=(v||'').trim();if(!v)return false;
       it.text=v;dbPut('calendar',it).then(()=>renderCalendar());
       return true;
-    },it.text);
+    });
   });
 }
 function calDelTodo(id){
   if(String(id).indexOf('tpl:')===0){
-    appConfirm('删除周期待办','这是「每天/每周」自动出现的待办，删除后对应的周期待办也会一起删除，确定吗？',async()=>{
-      const srcId=String(id).slice(4).split(':')[0];
-      await dbDelete('calendar',srcId);
-      const m={};Object.assign(m,state.todoDoneByDay||{});
-      Object.keys(m).forEach(k=>{if(String(k).indexOf(srcId+':')===0)delete m[k];});
-      state.todoDoneByDay=m;saveKey('todoDoneByDay');
-      renderCalendar();
+    /* v3.15.0：周期待办删除二选一——仅删当天（排除日）/ 删除整个周期 */
+    const dkey=String(id).slice(4);
+    const srcId=dkey.split(':')[0];
+    const date=dkey.split(':').slice(1).join(':');
+    const allP=dbGetAll('calendar').then(all=>{
+      const src=all.find(x=>x.id===srcId);
+      showModal('删除周期待办',
+        `<div style="font-size:14px;color:var(--text);text-align:left;padding:4px 0 10px">「${esc((src&&src.text)||'')}」按周期重复。<b>要删哪一个？</b></div>
+         <div style="display:flex;flex-direction:column;gap:8px">
+           <button class="modal-btn" style="width:100%" onclick="calDelTodoOnly('${esc(srcId)}','${date}')">仅删除 ${esc(date.replace(/-/g,'/'))} 这一天</button>
+           <button class="modal-btn primary" style="width:100%" onclick="calDelTodoSeries('${esc(srcId)}')">删除整个周期（含已完成记录）</button>
+         </div>`,
+        '<div class="modal-btn-row"><button class="modal-btn" onclick="closeModal()">取消</button></div>');
     });
     return;
   }
   appConfirm('删除待办','确定删除这条待办吗？',async()=>{
     await dbDelete('calendar',id);renderCalendar();
+  });
+}
+/* v3.15.0：周期待办删除——仅当天（排除日） */
+function calDelTodoOnly(srcId,date){
+  const m=Object.assign({},state.todoExclByDay||{});
+  m[srcId+':'+date]=1;
+  state.todoExclByDay=m;saveKey('todoExclByDay');
+  closeModal();renderCalendar();showToast('已删除今天的这一项（之后照常出现）');
+}
+/* 删除整个周期（源记录+全部勾选状态） */
+function calDelTodoSeries(srcId){
+  dbGetAll('calendar').then(async all=>{
+    const src=all.find(x=>x.id===srcId);
+    if(src)await dbDelete('calendar',srcId);
+    const m={};Object.assign(m,state.todoDoneByDay||{});
+    Object.keys(m).forEach(k=>{if(String(k).indexOf(srcId+':')===0)delete m[k];});
+    state.todoDoneByDay=m;saveKey('todoDoneByDay');
+    const ex={};Object.assign(ex,state.todoExclByDay||{});
+    Object.keys(ex).forEach(k=>{if(String(k).indexOf(srcId+':')===0)delete ex[k];});
+    state.todoExclByDay=ex;saveKey('todoExclByDay');
+    closeModal();renderCalendar();
   });
 }
 /* v3.6.8：TA 日程 手动增删（v3.6.11：▼ 变成真下拉，模板点选填入） */

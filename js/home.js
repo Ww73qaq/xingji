@@ -104,14 +104,17 @@ function noteAt(i){
 }
 function noteIsTa(i){return noteAt(i).owner==='other';}
 function noteBody(i){return (noteAt(i).text||'').trim();}
-/* 便签时间标签：刚刚 / N 分钟前 / N 小时前 / MM月DD日 */
+/* 便签时间标签（v3.15.0 改日期制，以本机时间为标准）：今天/昨天 HH:MM，更早 MM月DD日 HH:MM */
 function noteTimeLabel(t){
   if(!t)return '';
-  const d=Date.now()-t;
-  if(d<60000)return '刚刚';
-  if(d<3600000)return Math.floor(d/60000)+' 分钟前';
-  if(d<86400000)return Math.floor(d/3600000)+' 小时前';
-  return fmtFull(t);
+  const d=new Date(t),now=new Date();
+  const pad=n=>String(n).padStart(2,'0');
+  const hm=pad(d.getHours())+':'+pad(d.getMinutes());
+  const sod=x=>{const z=new Date(x);z.setHours(0,0,0,0);return z.getTime();};
+  const diff=Math.round((sod(now)-sod(t))/86400000);
+  if(diff===0)return '今天 '+hm;
+  if(diff===1)return '昨天 '+hm;
+  return (d.getMonth()+1)+'月'+d.getDate()+'日 '+hm;
 }
 function renderNotes(){
   const cards=[{k:'a',i:0},{k:'b',i:1}];
