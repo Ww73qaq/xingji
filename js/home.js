@@ -262,7 +262,7 @@ function editNote(id){
     +'<input type="time" id="note-alarm-time" class="textarea-full" style="min-height:0;padding:8px 10px;flex:0 0 92px" value="'+(alarm.time||'')+'">'
     +alarmFreqs.map(f=>`<span class="mood-chip${alarm.freq===f[0]?' on':''}" onclick="toggleNoteAlarmFreq(this,'${f[0]}')">${f[1]}</span>`).join('')
     +'</div><div style="font-size:10.5px;color:var(--hint);margin-top:5px">到点后在浏览器通知里提醒你（需已开启网站通知权限）</div>';
-  showModal(title,`<textarea class="textarea-full" id="note-input" style="min-height:120px" placeholder="写点什么…">${esc(cur)}</textarea><div style="font-size:11px;color:var(--hint);margin-top:8px">心情（可选，显示在便签名字右侧）：</div>${moodsHtml}${alarmHtml}${tip}
+  showModal(title,`<textarea class="textarea-full" id="note-input" style="min-height:120px" placeholder="写点什么…" oninput="noteAutoSave('${id}')">${esc(cur)}</textarea><div style="font-size:11px;color:var(--hint);margin-top:8px">心情（可选，显示在便签名字右侧）：</div>${moodsHtml}${alarmHtml}${tip}
     <div class="modal-btn-row"><button class="modal-btn" onclick="closeModal()">取消</button><button class="modal-btn primary" onclick="saveNote('${id}')">保存</button></div>`);
   setTimeout(()=>{const i=document.getElementById('note-input');if(i)i.focus();},80);
 }
@@ -292,6 +292,26 @@ function addCustomMood(){
     state.moodPool.push(v);saveKey('moodPool');
     editNote(_noteEditId);return false;
   });
+}
+/* v3.14.0 写了就存：编辑弹窗输入防抖 800ms 自动保存并同步日历（不动 owner 归属语义：
+   用户动过的便签归 me，TA 不再覆盖）；「保存」按钮仍保留（关弹窗+toast） */
+let _noteAutoT=null;
+function noteAutoSave(id){
+  clearTimeout(_noteAutoT);
+  _noteAutoT=setTimeout(()=>{
+    try{
+      const idx=id==='a'?0:1;
+      const el=document.getElementById('note-input');
+      if(!el)return;
+      const v=el.value;
+      const cur=state.notes[idx]||{};
+      if((cur.text||'')===v)return;          // 无变化不存
+      state.notes[idx]={id:id,owner:'me',text:v,at:Date.now(),mood:noteMood||'',alarm:cur.alarm||null};
+      saveKey('notes');
+      if(typeof calUpsertNote==='function')calUpsertNote(id==='a'?'me':'ta',state.notes[idx],'auto');
+      if(typeof updateHome==='function')try{updateHome();}catch(e){}
+    }catch(e){console.error('note autosave',e);}
+  },800);
 }
 function saveNote(id){
   const idx=id==='a'?0:1;

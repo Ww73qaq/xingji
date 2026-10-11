@@ -79,9 +79,9 @@ function calPeriodInfo(dateKey,set){
    便签为空 → 当天不写该人条目（同时删除旧的空快照）。 */
 /* 便签快照 upsert（当天）：有内容/心情 → 覆盖更新或新建；全空 → 删除当天该人条目
    供 calMaybeSnap（0 点被动存档）与 saveNote 主动保存共用，保证「当天写便签实时进日历」 */
-async function calUpsertNote(who,n,src){
+async function calUpsertNote(who,n,src,dayOverride){
   try{await dbReady;}catch(e){}
-  const today=calDateKey(new Date());
+  const today=dayOverride||calDateKey(new Date());   // v3.14.0：可指定归属日（跨天归档用）
   const all=await dbGetAll('calendar');
   const text=(n.text||'').trim(),mood=(n.mood||'').trim();
   const old=all.find(x=>x.date===today&&x.who===who);
@@ -101,11 +101,18 @@ async function calMaybeSnap(){
     if(!window.DB)return;
     const today=calDateKey(new Date());
     if(state.calLastSnapDate===today)return;
-    state.calLastSnapDate=today;saveKey('calLastSnapDate');
+    /* v3.14.0 一天一张，写了就存，到点清空：跨天 → 便签内容归档到「所属日」
+       （calLastSnapDate=内容开始的那天，无则昨天），然后清空桌面便签开新一张；
+       TA 的 likewise 清空后由 TA 重写。空便签不归档。 */
+    const belongDay=state.calLastSnapDate||calDateKey(new Date(Date.now()-86400000));
     const mine=(state.notes&&state.notes[0])||{};
     const ta=(state.notes&&state.notes[1])||{};
-    await calUpsertNote('me',mine,'auto');
-    await calUpsertNote('ta',ta,'auto');
+    if((mine.text||'').trim()||(mine.mood||'').trim())await calUpsertNote('me',mine,'auto',belongDay);
+    if((ta.text||'').trim()||(ta.mood||'').trim())await calUpsertNote('ta',ta,'auto',belongDay);
+    state.notes=[{id:'a',owner:'me',text:'',mood:''},{id:'b',owner:'me',text:'',mood:''}];
+    saveKey('notes');
+    state.calLastSnapDate=today;saveKey('calLastSnapDate');
+    if(typeof updateHome==='function')try{updateHome();}catch(e){}
   }catch(e){console.error('cal snap',e);}
 }
 
@@ -203,7 +210,7 @@ async function renderCalendar(){
       ${calScope!=='ta'?`<span><i style="background:#f2a8c4"></i>经期·少</span><span><i style="background:#e6c24a"></i>经期·中</span><span><i style="background:#e06060"></i>经期·多</span><span><i style="background:${CAL_OVU_C}"></i>排卵期</span>`:''}
     </div>
     <div class="empty" style="font-size:12px;line-height:1.9;text-align:left;padding:14px 6px">
-      点任意日期可查看当天的便签、待办、${esc(state.other.name||'TA')}日程与经期记录。桌面的两张便签会在每天 0 点后自动记录到这里。${state.calLastSnapDate?`<br><span style="color:var(--hint)">最近一次存档：${state.calLastSnapDate.replace(/-/g,'/')}</span>`:''}
+      点任意日期可查看当天的便签、待办、${esc(state.other.name||'TA')}日程与经期记录。便签一天一张：写了就自动存进当天的日历，跨天自动归档并清空桌面，重新开一张。${state.calLastSnapDate?`<br><span style="color:var(--hint)">最近一次存档：${state.calLastSnapDate.replace(/-/g,'/')}</span>`:''}
     </div>`;
 }
 
