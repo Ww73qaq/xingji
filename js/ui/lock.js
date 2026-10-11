@@ -3,8 +3,16 @@
    ========================================================= */
 
 /* ===== PIN ===== */
+/* v3.9.5：pin-error 用 opacity:0 隐藏，仍留在无障碍树里（读屏会在输密码前就读到「密码错误」）。
+   与 .show 同步切换 aria-hidden；aria-live="polite" 在 index.html 上做实时区域公告。 */
+function showPinError(show){
+  const el=document.getElementById('pin-error');
+  if(!el)return;
+  el.classList.toggle('show',show);
+  el.setAttribute('aria-hidden',show?'false':'true');
+}
 function pinInput(n){if(pinVal.length>=4)return;pinVal+=n;updatePinDots();if(pinVal.length===4)checkPin();}
-function pinBack(){pinVal=pinVal.slice(0,-1);updatePinDots();document.getElementById('pin-error').classList.remove('show');}
+function pinBack(){pinVal=pinVal.slice(0,-1);updatePinDots();showPinError(false);}
 function updatePinDots(){const dots=document.querySelectorAll('#pin-dots .pin-dot');dots.forEach((d,i)=>d.classList.toggle('filled',i<pinVal.length));}
 function checkPin(){
   if(pinVal===state.pin.code){
@@ -13,7 +21,7 @@ function checkPin(){
     renderSplashLetter();
     document.getElementById('screen-splash').classList.add('active');
   }
-  else{document.getElementById('pin-error').classList.add('show');pinVal='';setTimeout(updatePinDots,300);}
+  else{showPinError(true);pinVal='';setTimeout(updatePinDots,300);}
 }
 function renderSplashLetter(){
   const el=document.getElementById('splash-letter');

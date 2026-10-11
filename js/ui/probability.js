@@ -17,7 +17,8 @@ function _tierRow(current, options, applyFn){
 
 /* 相处习惯开关行：只显「开 / 关」，不显概率 */
 function _switchRow(key,label,sub){
-  const on=state.prob[key]!==false;   // 默认开，唯 readIgnoreEnabled 默认关
+  const v=state.prob[key];
+  const on=!(v===false||v===0);   // v3.9.5：false / 数字 0 都算关（兼容旧数据）；未设置默认开，唯 readIgnoreEnabled 默认关
   return `<div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 0;border-top:1px solid rgba(0,0,0,.06)">
     <div>
       <div style="font-size:14px;color:var(--text)">${label}</div>
@@ -76,7 +77,7 @@ function setSurveySetting(key,v){
 /* 能力开关：只用于相处习惯的 0/1 开关行 */
 function setProb(key,val){
   if(probAdjusting)return;
-  state.prob[key]=parseInt(val)?1:0;
+  state.prob[key]=parseInt(val)?true:false;   // v3.9.5：一律存布尔——原来存 0/1 会被读侧的 !==false 当成「开」
   saveKey('prob');
   if(key==='proactiveEnabled')scheduleProactive();
   renderProbability();

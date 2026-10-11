@@ -70,7 +70,14 @@ async function _latestUserMsg(){
   const all=await dbGetAll('messages');
   for(let i=all.length-1;i>=0;i--){
     const m=all[i];
-    if(m.sender==='me'&&!m.recalled&&(m.type==='text'||m.type==='poll'||m.type==='survey'))return m;
+    if(m.sender==='me'&&!m.recalled&&(m.type==='text'||m.type==='poll'||m.type==='survey')){
+      /* v3.9.5：已作答的题目不再当成本轮「必答」目标。否则点「继续」会重跑一遍任务
+         （scheduler 的 continue 不带 messageId → _jobPollTarget 返回 null → 落到这里），
+         重掷答案并覆盖用户看到的勾选。直接返回 null，而不是继续往前找更旧的文本，
+         免得对早就聊过的内容补一条莫名其妙的回复。 */
+      if((m.type==='poll'||m.type==='survey')&&m.answer)return null;
+      return m;
+    }
   }
   return null;
 }
@@ -411,6 +418,9 @@ function _buildPollAnswerText(m){return _buildPollAnswer(m).text;}
 async function _applyPollAnswer(answerOf){
   const m=await dbGet('messages',answerOf.id);
   if(!m)return;
+  /* v3.9.5：已经有作答就不再覆盖。任务重跑（刷新后 catch-up / 「继续」）时同一道题会被再答一次，
+     而 _buildPollAnswer 是随机抽取，于是勾选和新答案文本对不上。 */
+  if(m.answer)return;
   const usedSec=Math.max(0,Math.round((Date.now()-(m.time||Date.now()))/1000));
   m.answer={sel:answerOf.sel,usedSec,at:Date.now()};
   if(answerOf.card)m.answer.card=answerOf.card;

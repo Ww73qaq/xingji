@@ -41,7 +41,7 @@ async function renderMemory(){
   const emojis=await dbGetAll('emojis');
   const days=state.meetTime?Math.max(1,Math.floor((Date.now()-state.meetTime)/86400000)):null;
   const first=msgs.length?new Date(Math.min(...msgs.map(m=>m.time))):null;
-  const pokeCount=Array.isArray(state.stats?.pokeGroups)?state.stats.pokeGroups.length:0;
+  const pokeCount=(state.stats&&state.stats.pokeGroups&&typeof state.stats.pokeGroups==='object')?Object.keys(state.stats.pokeGroups).length:0;
   const favCount=msgs.filter(m=>m.fav).length;
   body.innerHTML=`
     <div class="list-card" style="text-align:center;padding:22px 16px">
@@ -65,17 +65,24 @@ async function renderMemory(){
     </div>
     <div class="empty" style="font-size:12px;line-height:1.8;text-align:left">备份、迁移与导入入口已移到「数据」Tab。</div>`;
 }
-function openFavMsg(id){chatPageSize=99999;saveScrollTop();navStack=['chat'];navRoot='chat';renderNav();enterPage('chat');setTimeout(()=>jumpToMsg(id),180);}
+function openFavMsg(id){saveScrollTop();navStack=['chat'];navRoot='chat';renderNav();enterPage('chat');setTimeout(()=>jumpToMsg(id),180);}   // v3.9.5：不再把 chatPageSize 顶成 99999——jumpToMsg 内部按需临时扩窗并恢复，否则一次跳转后全量渲染永久生效
 
 /* ===== 清除全部星迹数据 ===== */
 async function clearAllXingjiData(){
-  appConfirm('清除全部数据','这会删除聊天、信件、日记、朋友圈、字卡、表情包、拍一拍和收藏等本机数据，且不可恢复。',async()=>{
+  appConfirm('清除全部数据','这会删除聊天、信件、日记、朋友圈、字卡、表情包、拍一拍、日历、心念轨迹、书架与设置等本机数据，且不可恢复。',async()=>{
     try{
-      for(const store of ['messages','letters','diaries','moments','cardGroups','cards','emojis','settings']){
+      /* v3.9.5：改为遍历库中真实存在的 store。此前是硬编码列表：
+         ① 漏掉 calendar / events / books（日历、心念轨迹、书架原样保留）；
+         ② 用 it.id 当主键，而 settings 的 keyPath 是 key → 整个 settings 一行都没删掉，
+            所以昵称/头像/PIN/便签/概率/统计全都活了下来。 */
+      for(const store of dbStoreNames()){
         const all=await dbGetAll(store);
-        for(const it of all) if(it&&it.id!==undefined) await dbDelete(store,it.id);
+        for(const it of all) await dbDelete(store,dbPrimaryKey(store,it));
+        dbMemoInvalidate(store);
       }
-      localStorage.clear();
+      /* v3.9.5：不再用 localStorage.clear()——那是整站 origin 级的清除，
+         会连带清掉同一 origin 下其他项目的数据。只清本应用自己的键。 */
+      try{Object.keys(localStorage).filter(k=>/^xingji-|^xj/.test(k)).forEach(k=>localStorage.removeItem(k));}catch(e){}
       // v3.5.1：打标记阻止 app 启动时 ensureTaDiary 自动重生 TA 加密日记（本次会话 TA 不再凭空写日记）
       try{sessionStorage.setItem('xingji-cleared','1');}catch(e){}
       location.reload();

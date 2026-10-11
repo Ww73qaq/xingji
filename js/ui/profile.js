@@ -70,14 +70,14 @@ function toggleTaNote(){
   renderProfile();
   if(typeof openTaNoteSettings==='function'&&document.getElementById('modal').classList.contains('show'))openTaNoteSettings();
 }
-function notifySystem(title,body,onClick){
+function notifySystem(title,body,onClick,src){
   const n=state.notify||{};
   if(n.enabled===false||!notifyPermGranted())return;
   // 聊天消息：仅当用户当前正停在聊天界面（且页面可见）时不打扰；
   // 其余情况一律通知——网站其它页面（朋友圈/我的/桌面等）、切到别的App、锁屏等后台场景
-  const tag=(title||'').indexOf(state.other.name)>=0?'chat':'other';
-  if(tag==='chat'&&n.chat===false)return;
-  if(tag==='other'&&n.moments===false)return;
+  const tag=src||((title||'').indexOf(state.other.name)>=0?'chat':'other');   // v3.9.5：分流以调用方显式来源 src 为准（chat/moments/letters），未传时保留旧标题判定兜底
+  if(tag==='chat'&&n.chat===false)return;if(tag==='letters'&&n.letters===false)return;
+  if(tag==='moments'&&n.moments===false)return;   // v3.9.5：只有显式传 'moments' 的才受「朋友圈互动」管；便签/提醒等由调用方显式传源，不再被标题判定误伤
   const inChatView=Array.isArray(navStack)&&navStack[navStack.length-1]==='chat';
   if(!document.hidden&&inChatView)return;
   sendWebNotify(title||'星迹',body,tag+'|'+Date.now(),onClick);

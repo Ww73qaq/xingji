@@ -48,7 +48,7 @@ async function taSendLetter(){
   saveKey('stats');
   updateTabBadge('chat',await countUnreadLetters());
   if(typeof pushNotif==='function')pushNotif({type:'letter',from:state.other.name,text:'写了一封信给你',letterId:rec});
-  notifySystem(`${state.other.name} 写信给你`,content.slice(0,50),()=>openApp('mailbox'));
+  notifySystem(`${state.other.name} 写信给你`,content.slice(0,50),()=>openApp('mailbox'),'letters');
   if(navStack.length||document.getElementById('app-pages').classList.contains('on')){
     pushSys(state.other.name+' 给你写了一封信');
   }

@@ -217,11 +217,11 @@ async function taPostMoment(){
   state.stats.taMomentLastAt=Date.now();
   saveKey('stats');
   if(typeof pushNotif==='function')pushNotif({type:'newMoment',from:state.other.name,text:'发布了新动态',momentId:rec});
-  notifySystem(`${state.other.name} 发了新动态`,line.slice(0,50),()=>switchTab('moments'));
+  notifySystem(`${state.other.name} 发了新动态`,line.slice(0,50),()=>switchTab('moments'),'moments');   // v3.9.5：显式来源分流
   if(state.currentApp==='moments')renderMoments();
   return true;
 }
-function processMomentReplies(){
+async function processMomentReplies(){
   const q=state.stats.momentReplyQueue||[];
   if(!q.length)return;
   const now=Date.now();
@@ -235,8 +235,8 @@ function processMomentReplies(){
   }
   state.stats.momentReplyQueue=q.filter(x=>x.at>now).concat(kept);
   saveKey('stats');
-  processed.forEach(async x=>{
-    const ms=await dbGetAll('moments');const mm=ms.find(y=>y.id===Number(x.momentId));if(!mm)return;
+  for(const x of processed){   /* v3.9.5：改串行 for..of——原先 forEach(async) 并发读改写，同批到期回评会互相覆盖丢评论 */
+    const ms=await dbGetAll('moments');const mm=ms.find(y=>y.id===Number(x.momentId));if(!mm)continue;
     mm.comments=mm.comments||[];
     let text=MOMENT_COMMENTS[Math.floor(Math.random()*MOMENT_COMMENTS.length)];
     let cardText=null;
@@ -247,9 +247,9 @@ function processMomentReplies(){
     mm.comments.push({name:state.other.name,text:text,time:Date.now(),replyTo:target?{name:target.name,index:x.replyToIndex}:null,card:cardText,fromTa:true,read:false});
     await dbPut('moments',mm);
     pushNotif({type:'comment',from:state.other.name,text:'回复了你的评论：'+text.slice(0,16),momentId:mm.id});
-    notifySystem(`${state.other.name} 回复了你`,text.slice(0,50),()=>switchTab('moments'));
+    notifySystem(`${state.other.name} 回复了你`,text.slice(0,50),()=>switchTab('moments'),'moments');
     if(state.currentApp==='moments')renderMoments();
-  });
+  }
 }
 async function momentMenu(id){
   const moments=await dbGetAll('moments');const m=moments.find(x=>String(x.id)===String(id));if(!m)return;
@@ -278,7 +278,7 @@ async function hideMoment(id){
   else state.stats.hiddenMoments.push(nid);
   saveKey('stats');renderMoments();showToast('已更新');
 }
-async function delMoment(id){await dbDelete('moments',id);renderMoments();showToast('已删除');}
+async function delMoment(id){await dbDelete('moments',Number(id));renderMoments();showToast('已删除');}   /* v3.9.5：id 经 momentMenu 模板串已是字符串，IndexedDB 主键为数字，需归一化否则静默删不掉 */
 function toggleMomentAllow(k){
   if(k==='comment')state.stats.momentsAllowComment=state.stats.momentsAllowComment===0?1:0;
   else state.stats.momentsAllowEmoji=state.stats.momentsAllowEmoji===0?1:0;
@@ -331,7 +331,7 @@ async function scheduleTaMomentInteraction(momentId){
     if(momentOptOn('momentsAllowLike')&&Math.random()<0.8&&!m.taLiked){
       m.likes=(m.likes||0)+1;m.taLiked=true;changed=true;
       pushNotif({type:'like',from:state.other.name,text:'赞了你的动态',momentId:m.id});
-      notifySystem(state.other.name+' 赞了你的动态',(m.content||'').slice(0,50),()=>switchTab('moments'));
+      notifySystem(state.other.name+' 赞了你的动态',(m.content||'').slice(0,50),()=>switchTab('moments'),'moments');
     }
     if(momentOptOn('momentsAllowComment')&&Math.random()<0.65){
       m.comments=m.comments||[];
@@ -339,7 +339,7 @@ async function scheduleTaMomentInteraction(momentId){
       m.comments.push({name:state.other.name,text:text,time:Date.now(),replyTo:null,fromTa:true,read:false});
       changed=true;
       pushNotif({type:'comment',from:state.other.name,text:'评论了你的动态：'+text.slice(0,16),momentId:m.id});
-      notifySystem(state.other.name+' 评论了你的动态',text.slice(0,50),()=>switchTab('moments'));
+      notifySystem(state.other.name+' 评论了你的动态',text.slice(0,50),()=>switchTab('moments'),'moments');
     }
     if(changed){await dbPut('moments',m);if(state.currentApp==='moments')renderMoments();}
   },delay);

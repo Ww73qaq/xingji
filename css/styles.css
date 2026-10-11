@@ -27,6 +27,9 @@
 html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'PingFang SC','Hiragino Sans GB','Microsoft YaHei',sans-serif;background:#e2e2e0;color:var(--text);overscroll-behavior:none}
 body{position:fixed;inset:0;width:100%}
 #phone{max-width:430px;height:100%;height:100dvh;margin:0 auto;background:var(--bg);position:relative;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 0 40px rgba(0,0,0,.18)}
+/* v3.9.5：软键盘适配——消费 js/nav.js 注入的 body.kb-open + --kb（此前无消费者=死代码）。
+   max(0px,…) 与 var(--kb) 兜底：--kb 为 0 或未注入时该规则等于 height:100dvh，桌面端零影响。 */
+body.kb-open #phone{height:calc(100dvh - max(0px,var(--kb,0px)))}
 @media (max-width:440px){ body{background:var(--bg)} #phone{box-shadow:none;max-width:100%} }
 .screen{position:absolute;inset:0;display:none;flex-direction:column;overflow:hidden}
 .screen.active{display:flex}
@@ -261,7 +264,7 @@ body{position:fixed;inset:0;width:100%}
 #img-viewer{position:absolute;inset:0;background:#000;z-index:420;display:flex;align-items:center;justify-content:center;overflow:hidden;touch-action:none}
 #img-viewer .iv-img{max-width:96%;max-height:96%;transition:transform .22s;border-radius:4px;transform-origin:center center}
 #img-viewer .iv-bar{position:absolute;left:0;right:0;bottom:calc(var(--sab) + 12px);display:flex;justify-content:center;gap:22px}
-#img-viewer .iv-btn{width:44px;height:44px;border-radius:50%;background:rgba(255,255,255,.16);display:flex;align-items:center;justify-content:center;font-size:19px;color:#fff;cursor:pointer;backdrop-filter:blur(8px)}
+#img-viewer .iv-btn{width:44px;height:44px;border-radius:50%;background:rgba(255,255,255,.16);display:flex;align-items:center;justify-content:center;font-size:19px;color:#fff;cursor:pointer;-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px)}
 #img-viewer .iv-idx{position:absolute;top:calc(var(--sat) + 10px);left:0;right:0;text-align:center;color:rgba(255,255,255,.7);font-size:12px}
 
 /* ===== CHAT INPUT BAR（微信风格） ===== */
@@ -486,7 +489,7 @@ mark{background:#ffe58f;color:inherit;border-radius:2px;padding:0 1px}
 .call-actions{display:flex;flex-direction:column;align-items:center;gap:14px;width:100%;flex-shrink:0}
 .call-row{display:flex;gap:min(10vw,44px);justify-content:center;align-items:flex-start}
 .call-col{display:flex;flex-direction:column;align-items:center;gap:5px;width:52px}
-.call-btn{width:52px;height:52px;border-radius:50%;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,.16);color:#fff;transition:.15s;backdrop-filter:blur(6px)}
+.call-btn{width:52px;height:52px;border-radius:50%;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,.16);color:#fff;transition:.15s;-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px)}
 .call-btn svg{width:20px;height:20px}
 .call-btn:active{transform:scale(.92)}
 .call-btn.end{background:#e74c3c}
@@ -495,7 +498,7 @@ mark{background:#ffe58f;color:inherit;border-radius:2px;padding:0 1px}
 .call-btn-label{font-size:11px;opacity:.75}
 /* v3.6.6 通话小窗：微信式大卡片（头像 + 类型/时长 + 挂断），全局拖动 */
 /* v3.6.10 通话小窗：正方形、右上角四角缩小钮、靠边漏半+半透明、迷你态（无挂断钮防误触） */
-.call-float{position:absolute;z-index:350;display:none;flex-direction:column;align-items:center;justify-content:center;gap:6px;width:104px;height:104px;background:rgba(22,22,26,.92);color:#fff;padding:8px;border-radius:16px;backdrop-filter:blur(12px);box-shadow:0 10px 30px rgba(0,0,0,.45);touch-action:none;user-select:none;-webkit-user-select:none;cursor:grab;border:1px solid rgba(255,255,255,.16);transition:width .22s,height .22s,opacity .22s,left .18s,right .18s}
+.call-float{position:absolute;z-index:350;display:none;flex-direction:column;align-items:center;justify-content:center;gap:6px;width:104px;height:104px;background:rgba(22,22,26,.92);color:#fff;padding:8px;border-radius:16px;-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);box-shadow:0 10px 30px rgba(0,0,0,.45);touch-action:none;user-select:none;-webkit-user-select:none;cursor:grab;border:1px solid rgba(255,255,255,.16);transition:width .22s,height .22s,opacity .22s,left .18s,right .18s}
 .call-float.show{display:flex}
 .call-float.edge{opacity:.62}
 .call-float.mini{width:54px;height:54px;gap:0;padding:3px;border-radius:14px;opacity:.55}
@@ -651,7 +654,7 @@ body{-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;letter
 .mem-stat span{font-size:11px;color:var(--sub)}
 .diary-blur-wrap{position:relative;overflow:hidden;border-radius:14px;margin-bottom:10px}
 .diary-blur{filter:blur(9px);user-select:none;pointer-events:none;opacity:.75}
-.diary-lock-overlay{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(247,246,243,.55);backdrop-filter:blur(2px);z-index:2;border-radius:14px}
+.diary-lock-overlay{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(247,246,243,.55);-webkit-backdrop-filter:blur(2px);backdrop-filter:blur(2px);z-index:2;border-radius:14px}
 .plus-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:2px 6px;padding:2px 0}
 .plus-item{display:flex;flex-direction:column;align-items:center;gap:6px;padding:12px 4px;border-radius:12px;cursor:pointer}
 .plus-item:active{background:var(--input)}
@@ -878,7 +881,7 @@ body{-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;letter
 @keyframes bflyFlapFast{0%,100%{transform:scaleX(1)}50%{transform:scaleX(.35)}}
 
 /* v3.7 连接通道仪式 UI（小蝴蝶=通道，点击同步 TA 世界，不重载） */
-.connect-overlay{position:fixed;inset:0;z-index:520;display:flex;align-items:center;justify-content:center;background:radial-gradient(circle at 50% 46%,rgba(250,252,255,.94) 0%,rgba(232,240,252,.9) 46%,rgba(214,228,248,.88) 100%);backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px);opacity:0;visibility:hidden;transition:opacity .32s ease,visibility .32s}
+.connect-overlay{position:absolute;inset:0;z-index:520;display:flex;align-items:center;justify-content:center;background:radial-gradient(circle at 50% 46%,rgba(250,252,255,.94) 0%,rgba(232,240,252,.9) 46%,rgba(214,228,248,.88) 100%);backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px);opacity:0;visibility:hidden;transition:opacity .32s ease,visibility .32s}
 .connect-overlay.show{opacity:1;visibility:visible}
 .connect-core{position:relative;width:180px;height:200px;display:flex;align-items:center;justify-content:center}
 .connect-bfly{position:absolute;top:44px;z-index:3;filter:drop-shadow(0 4px 14px rgba(74,168,255,.4));animation:bflyFloat 2.2s ease-in-out infinite}

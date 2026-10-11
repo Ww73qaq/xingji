@@ -64,7 +64,7 @@ async function renderCards(){
 let cardGroupNames=[];
 function pickCardGroup(i){cardGroupFilter=cardGroupNames[i]||'全部';renderCards();}
 /* v3.6.14 字卡性能：分批渲染（每批 60 条），滚动到底部再追加，避免字卡上千时一次性渲染卡顿 */
-let _cardList=[],_cardRenderN=60,_cardSearchQ='';
+let _cardList=[],_cardHits=[],_cardRenderN=60,_cardSearchQ='';   // v3.9.5：_cardHits 单独存搜索命中，_cardList 始终保留全量（分组过滤后）
 function cardHtml(c){
   const n=Number(c.useCount)||0;
   const meta=n?(' · '+n+' 次使用'+(c.lastUsedAt?(' · 最近 '+fmtChatDate(c.lastUsedAt)):'')):'';
@@ -73,9 +73,10 @@ function cardHtml(c){
 function renderCardList(reset){
   dbGetAll('cards').then(all=>{
     let list=all.filter(c=>cardGroupFilter==='全部'||(c.group||'默认')===cardGroupFilter);
-    if(_cardSearchQ)list=list.filter(c=>(c.text||'').toLowerCase().includes(_cardSearchQ));
     list.sort(cardCompare);
-    _cardList=list;
+    _cardList=list;   // v3.9.5：全量（分组过滤后）始终留在 _cardList，搜索命中另存 _cardHits（否则后续搜索只在上一次命中的子集里找）
+    if(_cardSearchQ)list=list.filter(c=>(c.text||'').toLowerCase().includes(_cardSearchQ));
+    _cardHits=_cardSearchQ?list:[];
     if(reset)_cardRenderN=60;
     const box=document.getElementById('card-list');
     if(!list.length){box.innerHTML='<div class="empty">这个分组还没有字卡<br>点击上方 ＋ 字卡 添加</div>';return;}
@@ -85,13 +86,14 @@ function renderCardList(reset){
   });
 }
 function maybeCardLoadMore(){
-  if(!_cardList.length||_cardRenderN>=_cardList.length)return;
+  const src=_cardSearchQ?_cardHits:_cardList;   // v3.9.5：搜索态从命中集追加，非搜索态用全量
+  if(!src.length||_cardRenderN>=src.length)return;
   const box=document.getElementById('card-list');
   if(!box)return;
   const r=box.getBoundingClientRect();
   if(r.bottom<innerHeight+160){
-    _cardRenderN=Math.min(_cardList.length,_cardRenderN+60);
-    box.innerHTML=_cardList.slice(0,_cardRenderN).map(cardHtml).join('');
+    _cardRenderN=Math.min(src.length,_cardRenderN+60);
+    box.innerHTML=src.slice(0,_cardRenderN).map(cardHtml).join('');
   }
 }
 window.addEventListener('scroll',()=>{if(document.getElementById('app-cards')&&document.getElementById('app-cards').classList.contains('on'))maybeCardLoadMore();},{passive:true});
@@ -125,12 +127,13 @@ function filterCards(q){
   // v3.6.14：搜索时重建已渲染批次（不一次性渲染全部）
   const box=document.getElementById('card-list');
   if(!box)return;
-  if(!q){renderCardList(false);return;}
+  if(!q){_cardHits=[];renderCardList(false);return;}
+  // v3.9.5：命中项存 _cardHits，不再覆盖 _cardList（否则下一次搜索只在上一次命中的子集里找，会漏卡）
   const hit=_cardList.filter(c=>(c.text||'').toLowerCase().includes(q));
+  _cardHits=hit;
   _cardRenderN=Math.min(hit.length,60);
   box.innerHTML=hit.slice(0,_cardRenderN).map(cardHtml).join('');
   if(hit.length>_cardRenderN){
-    _cardList=hit;
     setTimeout(maybeCardLoadMore,80);
   }
 }

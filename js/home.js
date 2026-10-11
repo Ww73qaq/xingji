@@ -253,7 +253,7 @@ function editNote(id){
     :'';
   const moods=MOOD_POOL.concat(Array.isArray(state.moodPool)?state.moodPool:[]);
   const moodsHtml='<div style="display:flex;flex-wrap:wrap;gap:5px;margin-top:8px">'
-    +moods.map(m=>`<span class="mood-chip${m===noteMood?' on':''}" onclick="toggleNoteMood(this,'${esc(m)}')">${esc(m)}</span>`).join('')
+    +moods.map((m,i)=>`<span class="mood-chip${m===noteMood?' on':''}" onclick="toggleNoteMood(this,${i})">${esc(m)}</span>`).join('')
     +'<span class="mood-chip add" onclick="addCustomMood()">＋ 新增</span></div>';
   /* v3.6.9：便签提醒（闹钟式：时间 + 频次） */
   const alarmFreqs=[['','不提醒'],['once','仅一次'],['daily','每天'],['weekly','每周']];
@@ -272,10 +272,16 @@ function toggleNoteAlarmFreq(el,f){
   document.querySelectorAll('#note-alarm-time~.mood-chip').forEach(x=>x.classList.remove('on'));
   el.classList.add('on');
 }
-function toggleNoteMood(el,m){
-  if(noteMood===m){noteMood='';document.querySelectorAll('.mood-chip.on').forEach(x=>x.classList.remove('on'));return;}
+/* v3.9.5：入参改成心情下标——原来把心情文案拼进 inline onclick，esc 挡不住引号逃逸
+   （&#39; 会被 HTML 解析器还原成 ' 再进 JS 编译 → 语法错误），带引号的心情点不动、也取消不掉；
+   选择范围同时收窄到心情这一行，避免把同一弹窗里的提醒频次 chip 也一起清掉。 */
+function toggleNoteMood(el,idx){
+  const row=el?el.parentNode:null;
+  const moods=MOOD_POOL.concat(Array.isArray(state.moodPool)?state.moodPool:[]);
+  const m=moods[idx];if(m===undefined)return;
+  if(noteMood===m){noteMood='';if(row)row.querySelectorAll('.mood-chip.on').forEach(x=>x.classList.remove('on'));return;}
   noteMood=m;
-  document.querySelectorAll('.mood-chip').forEach(x=>x.classList.remove('on'));
+  if(row)row.querySelectorAll('.mood-chip').forEach(x=>x.classList.remove('on'));
   el.classList.add('on');
 }
 function addCustomMood(){

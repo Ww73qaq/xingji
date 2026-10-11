@@ -3,7 +3,7 @@
    ========================================================= */
 
 /* ===== DIARY ===== */
-let diaryReqAt=0;
+let diaryReqAt=0;let taDiaryReqTimers={};   // v3.9.5：按日记 id 记录「30 分钟未答复自动同意」定时器，用户一旦答复（同意/拒绝）必须撤销
 function fmtDiaryFull(t){
   const d=new Date(t);
   const wd=['日','一','二','三','四','五','六'][d.getDay()];
@@ -95,10 +95,10 @@ function maybeTaRequestDiary(recId){
   showModal((state.other.name||'TA')+' 想看看你的日记',
     `<div style="font-size:13px;line-height:1.9">TA 在意识空间里感应到你今天写了日记，想读一读。</div>`,
     '<div class="modal-btn-row"><button class="modal-btn" onclick="closeModal();taDiaryDecide('+recId+',0)">拒绝</button><button class="modal-btn primary" onclick="closeModal();taDiaryDecide('+recId+',1)">同意</button></div>');
-  setTimeout(()=>taDiaryAutoGrant(recId),30*60000);   // v3.7.0：30 分钟自动同意逻辑保留，但不再上屏倒计时/数字
+  if(taDiaryReqTimers[recId])clearTimeout(taDiaryReqTimers[recId]);taDiaryReqTimers[recId]=setTimeout(()=>{delete taDiaryReqTimers[recId];taDiaryAutoGrant(recId);},30*60000);   // v3.7.0：30 分钟自动同意逻辑保留（不答复=默认同意），但不再上屏倒计时/数字
 }
 async function taDiaryDecide(id,ok){
-  if(!ok){state.myDiaryReqCoolAt=Date.now()+2*3600000;saveKey('myDiaryReqCoolAt');showToast('TA 收回了目光');return;}
+  if(taDiaryReqTimers[id]){clearTimeout(taDiaryReqTimers[id]);delete taDiaryReqTimers[id];}if(!ok){state.myDiaryReqCoolAt=Date.now()+2*3600000;saveKey('myDiaryReqCoolAt');showToast('TA 收回了目光');return;}   // v3.9.5：已答复即撤销自动同意，拒绝后不会再被 30 分钟定时器放行
   await grantTaDiary(id);
 }
 /* v3.7.0：回复轻读日记内容——含疲惫/用眼/失眠/难受等关键词时偏向安抚、医生语气（R4）；

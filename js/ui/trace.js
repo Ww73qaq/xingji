@@ -175,8 +175,8 @@ async function renderTrace(){
     const tl=String(t.getHours()).padStart(2,'0')+':'+String(t.getMinutes()).padStart(2,'0');
     return `<div class="tr-node"><span class="tr-node-dot" style="background:${c}"></span><div class="tr-node-main"><span class="tr-node-time">${tl}</span><div class="tr-node-text">${esc(n.text||'')}</div></div></div>`;
   };
-  // 选中当天 00:00~24:00 的节点
-  const dayStart=new Date(_traceDay).getTime();
+  // 选中当天 00:00~24:00 的节点（v3.9.5：必须补 'T00:00:00'，否则日期串按 UTC 解析，负时区会漏进前一天）
+  const dayStart=new Date(_traceDay+'T00:00:00').getTime();
   const dayEnd=dayStart+86400000;
   const dayNodes=nodes.filter(n=>n.time>=dayStart&&n.time<dayEnd);
   const meNodes=dayNodes.filter(n=>n.who==='me').slice(0,20);

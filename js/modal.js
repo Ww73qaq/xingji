@@ -38,6 +38,14 @@ function appConfirmOk(){
    未传 opts（或未给 showClose）时沿用旧逻辑——actions 文案含「取消」即隐藏 ✕，
    保证所有既有调用向后兼容、不破坏弹窗行为。 */
 function showModal(title,body,actions,position,opts){
+  const m=document.getElementById('modal');
+  /* v3.9.5：强制更新层是「只能按按钮」的独占态。此前 closeModal() 会因
+     dataset.forceUpdate==='1' 永久失效，而 showModal 既不检查也不清除该标记——
+     若强更弹窗未走「稍后再刷新」就被任何 showModal 覆盖，整个弹窗将再也关不上。
+     这里让 showModal 接管该态：控制权已转移给普通弹窗，就清掉守卫并恢复 ✕ 显示，
+     保证「守卫存活」与「当前显示的是强更弹窗」始终一致（不变量不再悬空）。 */
+  const forced=!!(m&&m.dataset.forceUpdate==='1');
+  if(forced)m.dataset.forceUpdate='';
   document.getElementById('modal-title').textContent=title;
   document.getElementById('modal-body').innerHTML=body;
   const ma=document.getElementById('modal-actions');
@@ -47,12 +55,14 @@ function showModal(title,body,actions,position,opts){
   }
   const mc=document.getElementById('modal-close');
   if(mc){
-    let closeVisible;
-    if(opts&&typeof opts==='object'&&typeof opts.showClose==='boolean')closeVisible=opts.showClose;
-    else closeVisible=!(actions&&/取消/.test(actions));
-    mc.style.display=closeVisible?'block':'none';
+    if(forced){mc.style.display='';}
+    else{
+      let closeVisible;
+      if(opts&&typeof opts==='object'&&typeof opts.showClose==='boolean')closeVisible=opts.showClose;
+      else closeVisible=!(actions&&/取消/.test(actions));
+      mc.style.display=closeVisible?'block':'none';
+    }
   }
-  const m=document.getElementById('modal');
   m.classList.toggle('bottom',position==='bottom');
   m.classList.add('show');
 }

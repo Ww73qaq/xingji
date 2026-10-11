@@ -29,6 +29,24 @@ function companionSceneIcon(scn,size){
   }
 }
 let companionSession=null,companionTick=null;
+/* v3.9.5 陪伴结算：把这一次的时长落进 companionTime 并清掉 companionStart——
+   app.js 心跳只认 companionStart（真值时把挂钟差累加进去并重新盖章），
+   所以会话结束后不清它，「已陪伴」就会一直涨。
+   顺带维护「第 N 天」：同一自然日只算 1 天；上次陪伴不是昨天则从 1 重新开始（断档重置）。 */
+function settleCompanion(){
+  if(state.stats.companionStart){
+    state.stats.companionTime=(state.stats.companionTime||0)+(Date.now()-state.stats.companionStart);
+    state.stats.companionStart=0;
+  }
+  const cpDay=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+  const today=cpDay(new Date());
+  if(state.stats.companionLastDay!==today){
+    const y=new Date();y.setDate(y.getDate()-1);
+    state.stats.companionStreak=(state.stats.companionLastDay===cpDay(y))?(Number(state.stats.companionStreak)||0)+1:1;
+    state.stats.companionLastDay=today;
+  }
+  saveKey('stats');
+}
 function renderCompanion(){
   const body=document.getElementById('companion-body');body.innerHTML='';
   if(companionSession){renderCompanionTiming(body);return;}
@@ -60,7 +78,8 @@ function renderCompanionTiming(body){
 function startCompanion(sc,minutes){
   companionSession={scene:sc.id,endAt:Date.now()+minutes*60000,total:minutes*60000};
   state.me.status=sc.name;saveKey('me');
-  if(!state.stats.companionStart)state.stats.companionStart=Date.now();saveKey('stats');
+  // v3.9.5：会话起点一律重新盖章——旧数据/刷新残留的 companionStart 不能再把空闲时间算进来
+  state.stats.companionStart=Date.now();saveKey('stats');
   pushSys(`你和 ${state.other.name} 开始了「${sc.name}」，共 ${minutes} 分钟`);
   renderCompanion();
   if(companionTick)clearInterval(companionTick);
@@ -68,7 +87,7 @@ function startCompanion(sc,minutes){
     if(!companionSession)return;
     if(Date.now()>=companionSession.endAt){
       clearInterval(companionTick);companionTick=null;
-      companionSession=null;renderCompanion();
+      companionSession=null;settleCompanion();renderCompanion();
       pushSys('陪伴时间到，这次陪得刚刚好');
       setTimeout(()=>pushReply('陪你到时间刚好，下次继续。'),2500);
       showToast('本次陪伴结束');
@@ -83,7 +102,7 @@ function startCompanion(sc,minutes){
 }
 function endCompanion(){
   if(companionTick)clearInterval(companionTick);companionTick=null;
-  companionSession=null;renderCompanion();showToast('已结束陪伴');
+  companionSession=null;settleCompanion();renderCompanion();showToast('已结束陪伴');
 }
 function enterCompanion(id){
   const sc=allCompanionScenes().find(x=>x.id===id);if(!sc)return;

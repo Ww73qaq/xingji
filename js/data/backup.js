@@ -4,11 +4,83 @@
 
 /* pokeGroups 不在 IndexedDB：存于 state.stats.pokeGroups（localStorage），导出/导入特殊读写
    v3.4.0：以 {分组名:[字卡…]} 结构读写，分组名不再被拍平成 gxxxxx */
+/* ---- v3.9.5 新增：books 的二进制携带 + settings 深合并 + 备份内容白名单 ----
+   books 记录里的 blob 是二进制，JSON.stringify(Blob) 会得到 {}，所以必须转成 dataURL 才能随备份走；
+   单本超过 BOOK_BACKUP_LIMIT 的直接跳过（base64 还要再膨胀 33%，体积与内存都不可控），
+   但绝不因此让整份备份失败。 */
+const BOOK_BACKUP_LIMIT=8*1024*1024;
+function _bkBlobToDataURL(blob){
+  return new Promise(res=>{
+    try{
+      const fr=new FileReader();
+      fr.onload=()=>res(typeof fr.result==='string'?fr.result:'');
+      fr.onerror=()=>res('');
+      fr.readAsDataURL(blob);
+    }catch(e){res('');}
+  });
+}
+function _bkDataURLToBlob(dataURL,mime){
+  try{
+    const i=dataURL.indexOf(',');
+    if(i<0)return null;
+    const head=dataURL.slice(0,i),body=dataURL.slice(i+1);
+    const bin=/;base64/i.test(head)?atob(body):decodeURIComponent(body);
+    const bytes=new Uint8Array(bin.length);
+    for(let k=0;k<bin.length;k++)bytes[k]=bin.charCodeAt(k);
+    return new Blob([bytes],{type:mime||'application/octet-stream'});
+  }catch(e){return null;}
+}
+/* 只对「纯对象」递归合并，数组整体替换。用于 settings 每个键的值：
+   避免覆盖导入时把备份里没有的字段抹成 undefined（典型：stats.taNoteLastAt → TA 便签冷却失效）。 */
+function _deepMerge(cur,inc){
+  if(!cur||typeof cur!=='object'||Array.isArray(cur))return inc;
+  if(!inc||typeof inc!=='object'||Array.isArray(inc))return inc;
+  const out={...cur};
+  for(const k of Object.keys(inc)){
+    const a=cur[k],b=inc[k];
+    out[k]=(a&&b&&typeof a==='object'&&typeof b==='object'&&!Array.isArray(a)&&!Array.isArray(b))?_deepMerge(a,b):b;
+  }
+  return out;
+}
+/* 备份内容白名单化：只接受本应用已知的 store 且形状正确（数组；pokeGroups 为对象）。
+   此前只要顶层有个真值 .stores 就放行，任意第三方 JSON（例如 {"stores":{"questions":[...]}}）
+   都能通过校验并在覆盖导入时把库洗成空的（v3.9.5 修）。 */
+function _backupStores(data){
+  if(!data||typeof data!=='object')return null;
+  const raw=(data.stores&&typeof data.stores==='object'&&!Array.isArray(data.stores))?data.stores:data;
+  if(!raw||typeof raw!=='object')return null;
+  const out={};
+  for(const k of Object.keys(raw)){
+    if(STORES.indexOf(k)<0)continue;                 // 不认识的键一律丢弃
+    const v=raw[k];
+    if(k==='pokeGroups'){if(v&&typeof v==='object'&&!Array.isArray(v))out[k]=v;continue;}
+    if(Array.isArray(v))out[k]=v;                    // 形状不对（对象/字符串/数字）一律丢弃
+  }
+  return Object.keys(out).length?out:null;
+}
+
 async function _readStoreData(name){
   if(name==='pokeGroups'){
     const g=(state.stats&&state.stats.pokeGroups)||{};
     const out={};
     for(const k of Object.keys(g))out[k]=Array.isArray(g[k])?g[k].slice():[];
+    return out;
+  }
+  if(name==='books'){
+    const list=await dbGetAll('books');
+    const out=[];let skipped=0;
+    for(const rec of list){
+      const r={...rec};
+      const blob=r.blob;delete r.blob;
+      if(blob&&blob.size!==undefined){
+        if(blob.size>BOOK_BACKUP_LIMIT){skipped++;continue;}
+        const d=await _bkBlobToDataURL(blob);
+        if(!d){skipped++;continue;}
+        r.blobData=d;
+      }
+      out.push(r);
+    }
+    if(skipped)try{showToast(skipped+' 本超过 8MB 的书未写入备份');}catch(e){}
     return out;
   }
   return await dbGetAll(name);
@@ -26,6 +98,38 @@ async function _writeStoreData(name,items,mode){
       for(const k of Object.keys(items))obj[k]=Array.isArray(items[k])?items[k].slice():[];
     }
     state.stats.pokeGroups=obj;saveKey('stats');return;
+  }
+  /* v3.9.5：settings 一律「按键深合并」，绝不整段替换。
+     备份里缺失的字段保留现值，否则用旧备份覆盖导入会把 stats.taNoteLastAt 之类字段抹成 undefined
+     （表现为 TA 便签 90 分钟冷却失效、导入后立刻又写一张）。 */
+  if(name==='settings'){
+    for(const item of items){
+      if(!item||item.key===undefined)continue;
+      const cur=await dbGet('settings',item.key);
+      await dbPut('settings',{key:item.key,value:_deepMerge(cur&&cur.value,item.value)});
+    }
+    return;
+  }
+  /* v3.9.5：books 含二进制文件本体，需把 dataURL 还原成 Blob。
+     合并导入按「书名 + 大小」去重；覆盖/完整导入保留原 id。 */
+  if(name==='books'){
+    if(mode!=='merge'){
+      const cur=await dbGetAll('books');
+      for(const it of cur)await dbDelete('books',dbPrimaryKey('books',it));
+    }
+    const existing=mode==='merge'?await dbGetAll('books'):[];
+    for(const item of items){
+      const rec={...item};
+      const data=rec.blobData;delete rec.blobData;
+      if(data){const b=_bkDataURLToBlob(data,rec.mime);if(b)rec.blob=b;}
+      if(!rec.blob)continue;                       // 备份里没有文件本体，恢复这条记录没有意义
+      if(mode==='merge'){
+        if(existing.some(x=>x&&x.name===rec.name&&x.size===rec.size))continue;
+        delete rec.id;
+      }
+      await dbPut('books',rec);
+    }
+    return;
   }
   if(mode!=='merge'){const cur=await dbGetAll(name);for(const it of cur)await dbDelete(name,dbPrimaryKey(name,it));}
   const existing=mode==='merge'?await dbGetAll(name):[];
@@ -140,8 +244,8 @@ async function importBackupText(){
   const el=document.getElementById('paste-backup-text'),txt=el&&el.value?el.value.trim():'';
   if(!txt){showToast('请先粘贴备份文本');return;}
   try{
-    const data=JSON.parse(txt),stores=(data&&data.stores)||(data&&data.messages?data:{messages:data});
-    if(!stores||typeof stores!=='object'||Object.keys(stores).length===0)throw new Error('empty');
+    const data=JSON.parse(txt),stores=_backupStores(data);
+    if(!stores)throw new Error('invalid');   // v3.9.5：白名单校验，非星迹备份/形状不对直接拒绝
     const sel=importMode==='overwrite'?[...importSel]:(importMode==='full'?STORES:Object.keys(stores));
     const dirty=sel.filter(s=>_storeHasPayload(stores[s]));
     if(!dirty.length){showToast('备份里没有可恢复的数据');return;}
@@ -174,8 +278,8 @@ function pickImportFile(mode){
     const file=e.target.files[0];if(!file)return;
     try{
       const data=JSON.parse(await file.text());
-      const stores=(data&&data.stores)||(data.messages?data:{messages:data});
-      if(!stores||typeof stores!=='object'||Object.keys(stores).length===0){showToast('不是有效的星迹备份文件');return;}
+      const stores=_backupStores(data);   // v3.9.5：白名单校验，避免第三方 JSON 洗库
+      if(!stores){showToast('不是有效的星迹备份文件');return;}
       const sel=importMode==='overwrite'?[...importSel]:(importMode==='full'?STORES:Object.keys(stores));
       const dirty=sel.filter(s=>_storeHasPayload(stores[s]));
       if(!dirty.length){showToast('文件中没有所选类别的数据');return;}
@@ -197,17 +301,29 @@ function pickImportFile(mode){
   };
   input.click();
 }
+/* v3.9.5：恢复出厂 / 清空全部数据统一走这里。
+   此前两处都遍历 STORES 硬编码列表 → events / books 清不掉；只 removeItem('xingji-room')
+   → xingji-book-settings / xjLastVer / xingji-ver 等键残留；且都没有打「已清空」标记，
+   于是 app.js 的 ensureTaDiary 会立刻重新生成 1~2 条 TA 加密日记（交接文档记过的老 bug）。 */
+async function _wipeAllLocalData(){
+  for(const s of dbStoreNames()){
+    const all=await dbGetAll(s);
+    for(const item of all)await dbDelete(s,dbPrimaryKey(s,item));
+    dbMemoInvalidate(s);
+  }
+  if(state.stats)state.stats.pokeGroups={};          // 内存态一并归零（settings 行已被清掉，无需再 saveKey）
+  try{Object.keys(localStorage).filter(k=>/^xingji-|^xj/.test(k)).forEach(k=>localStorage.removeItem(k));}catch(e){}
+  try{sessionStorage.setItem('xingji-cleared','1');}catch(e){}
+}
 async function factoryReset(){
   appConfirm('恢复出厂设置','将清空全部数据并恢复默认设置，且会清除所有自定义配置。<b>此操作不可恢复！</b>建议先导出备份。',async()=>{
-    for(const s of STORES){if(s==='pokeGroups'){state.stats.pokeGroups={};saveKey('stats');continue;}const all=await dbGetAll(s);for(const item of all)await dbDelete(s,dbPrimaryKey(s,item));}
-    try{localStorage.removeItem('xingji-room');}catch(e){}
+    await _wipeAllLocalData();
     location.reload();
   });
 }
 function nukeDB(){
   appConfirm('清空全部数据','确定要清空所有数据吗？<b>此操作不可恢复！</b>建议先导出备份。',async()=>{
-    for(const s of STORES){if(s==='pokeGroups'){state.stats.pokeGroups={};saveKey('stats');continue;}const all=await dbGetAll(s);for(const item of all)await dbDelete(s,dbPrimaryKey(s,item));}
-    try{localStorage.removeItem('xingji-room');}catch(e){}
+    await _wipeAllLocalData();
     showToast('所有数据已清空，正在重启…');
     setTimeout(()=>location.reload(),700);
   });

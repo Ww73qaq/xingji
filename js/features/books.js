@@ -13,13 +13,19 @@
    仅本文件 + index.html 引入，不改其他逻辑文件；传统脚本，函数声明即挂全局。
    ========================================================= */
 
-/* PDF.js worker（文件开头配置一次，与 cdnjs 3.11.174 同版本） */
-try {
-  if (typeof pdfjsLib !== 'undefined') {
-    pdfjsLib.GlobalWorkerOptions.workerSrc =
-      'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
-  }
-} catch (e) {}
+/* PDF.js worker。
+   v3.9.5：pdf.js 改成自托管 + defer 加载（index.html），而本文件是非 defer 的传统脚本，
+   执行时机早于 pdfjsLib —— 所以「文件开头配置一次」会落空（旧版是从 cdnjs 同步加载才成立）。
+   改为按需设置：真正用之前调 bkPdfWorkerSrc()，worker 与 pdf.min.js 同版本同目录。 */
+const BK_PDF_WORKER = 'js/vendor/pdf.worker.min.js';
+function bkPdfWorkerSrc() {
+  try {
+    if (typeof pdfjsLib === 'undefined') return false;
+    const o = pdfjsLib.GlobalWorkerOptions;
+    if (o && (!o.workerSrc || o.workerSrc.indexOf('cdnjs') >= 0)) o.workerSrc = BK_PDF_WORKER;
+    return true;
+  } catch (e) { return false; }
+}
 
 /* 模块初始化：一次性清理旧拼写残留 */
 try { localStorage.removeItem('xingji-spelling'); } catch (e) {}
@@ -195,6 +201,7 @@ async function bkImportOne(file) {
 /* PDF 第 1 页小缩略图 → dataURL */
 async function bkMakePdfThumb(buffer) {
   if (typeof pdfjsLib === 'undefined') return '';
+  bkPdfWorkerSrc();
   let pdf = null;
   try {
     pdf = await pdfjsLib.getDocument({ data: new Uint8Array(buffer) }).promise;
@@ -234,6 +241,13 @@ function bkMakeTxtCover(name) {
    ========================================================= */
 function decodeBookText(buffer, enc) {
   const bytes = new Uint8Array(buffer || new ArrayBuffer(0));
+  /* UTF-16（记事本「Unicode」保存的 txt）：先认 BOM。
+     不认 BOM 的话 auto 会拿 UTF-16 字节去解 GB18030 得到乱码，而手动选项只有 UTF-8/GBK，
+     用户怎么切都救不回来（v3.9.4 修）。 */
+  if (enc === 'auto') {
+    const u16 = bkSniffUtf16(bytes);
+    if (u16) return new TextDecoder(u16).decode(bytes.subarray(2));
+  }
   let start = 0;
   if (bytes.length >= 3 && bytes[0] === 0xEF && bytes[1] === 0xBB && bytes[2] === 0xBF) start = 3; // UTF-8 BOM
   const body = bytes.subarray(start);
@@ -244,14 +258,30 @@ function decodeBookText(buffer, enc) {
   catch (e) { return new TextDecoder('gb18030').decode(body); }
 }
 
+/* UTF-16 嗅探（返回 'utf-16le' / 'utf-16be' / ''）：
+   BOM 优先；无 BOM 时看零字节的奇偶分布 —— 纯 ASCII 的 UTF-16 文本恰好一半字节是 0，
+   而 UTF-8/GBK 中文文本里几乎不出现 0x00，所以阈值卡紧后不会误判。 */
+function bkSniffUtf16(bytes) {
+  if (bytes.length < 2) return '';
+  if (bytes[0] === 0xFF && bytes[1] === 0xFE) return 'utf-16le';
+  if (bytes[0] === 0xFE && bytes[1] === 0xFF) return 'utf-16be';
+  const n = Math.min(bytes.length, 4096);
+  if (n < 8) return '';
+  let evenZero = 0, oddZero = 0;
+  for (let i = 0; i < n; i++) { if (bytes[i] === 0) { if (i % 2) oddZero++; else evenZero++; } }
+  const half = n / 2;
+  if (oddZero > half * 0.45 && evenZero < half * 0.05) return 'utf-16le';
+  if (evenZero > half * 0.45 && oddZero < half * 0.05) return 'utf-16be';
+  return '';
+}
+
 /* =========================================================
    三、书架视图
    ========================================================= */
 async function renderBookshelf() {
   bkInjectStyle();
-  /* 进入书架即重置可能残留的阅读会话与返回键 */
-  try { if (_bk && _bk.pdfDoc) _bk.pdfDoc.destroy().catch(() => {}); } catch (e) {}
-  _bk = null;
+  /* 进入书架即收掉可能残留的阅读会话（顺带把挂起的进度落库），并复位返回键 */
+  bkTeardownSession();
   bkSetBack(false);
   bkUnbindResize();
 
@@ -318,10 +348,35 @@ function bkSetBack(onReader) {
   if (back) back.onclick = onReader ? closeReader : goBack;  // 覆盖内联 onclick，不改动 index.html
 }
 
+/* 收掉当前阅读会话：把挂起的进度落库、作废动画与防抖计时器、销毁 PDF 文档、释放整本 buffer。
+   离开阅读页（返回书架/重开一本）都必须走这里，否则 PDF 文档与 ArrayBuffer 会一直挂着（v3.9.4 修）。 */
+function bkTeardownSession() {
+  const s = _bk;
+  if (s) {
+    /* bkSaveProgress 在首个 await 前就同步取走了 _bk，因此先调用再置空也能正常写入 */
+    if (s.rec) { try { bkSaveProgress(); } catch (e) {} }
+    bkCancelPageAnim();
+    try { if (s.pdfDoc && s.pdfDoc.destroy) s.pdfDoc.destroy().catch(function () {}); } catch (e) {}
+    s.pdfDoc = null;
+    s.buffer = null;
+    s.text = null;
+    s.paras = null;
+    s._pageParas = null;
+  }
+  clearTimeout(_bkSaveTimer);
+  clearTimeout(_bkRelayoutTimer);
+  _bk = null;
+}
+
+let _bkOpenSeq = 0;   // 打开序号：连点两张书卡时作废先发起的那次，避免两次打开互相覆盖 DOM / 状态
+
 async function openBook(id) {
   bkInjectStyle();
+  const seq = ++_bkOpenSeq;
+  bkTeardownSession();
   let rec = null;
   try { rec = await dbGet('books', id); } catch (e) {}
+  if (seq !== _bkOpenSeq) return;                      // 读取期间已被后一次打开接管
   if (!rec) { showToast('书不存在或已删除'); renderBookshelf(); return; }
 
   const prog = rec.progress || {};
@@ -357,6 +412,7 @@ async function openBook(id) {
 async function bkOpenTxt(body) {
   const s = _bk;
   try { s.buffer = await s.rec.blob.arrayBuffer(); } catch (e) {}
+  if (_bk !== s) return;                                 // 读取期间已被另一次打开接管
   s.text = decodeBookText(s.buffer, s.encoding);
 
   /* 预切行 + 章节探测（字符偏移统一以「行 + \n」累计，与渲染解耦） */
@@ -442,8 +498,13 @@ function bkLayoutPages() {
   const stage = document.getElementById('bk-stage');
   const flow = document.getElementById('bk-pageflow');
   if (!stage || !flow) return;
+  /* 重排会抢占进行中的翻页动画：先作废旧动画回调并清掉克隆层（v3.9.4） */
+  bkCancelPageAnim();
 
   const W = stage.clientWidth, H = stage.clientHeight;
+  /* 隐藏中的阅读页（上滑回桌面/系统返回后 _bk 仍在）尺寸为 0：此时分页会把 fraction 算成 0
+     并防抖写回库，等于抹掉阅读进度。直接跳过（v3.9.4 修）。 */
+  if (!W || !H) return;
   flow.style.boxSizing = 'border-box';
   flow.style.width = W + 'px';
   flow.style.height = H + 'px';
@@ -454,16 +515,20 @@ function bkLayoutPages() {
   flow.style.columnGap = BK_COL_GAP + 'px';
   flow.style.transform = 'translateX(0)';
 
-  /* 实测步长：取前两段不同 offsetLeft 的差值（= 列宽+栏间距），杜绝任何舍入/计算口径不一致 */
+  /* 步长基准 = 内容区宽 + 栏间距（精确浮点，offsetLeft 是取整整数，直接拿它当步长会逐页累积误差）。
+     实测校验只能用「相邻两段 offsetLeft 的最小正差值」：
+     绝不能拿 kids[0] 当基准 —— 首段跨多栏时（如整本书第一行就是超长段落）该差值会被放大成整数倍，
+     v3.9.3 实测就被算成 1632 = 4×408，导致总页数 55→16、翻页跳字、进度错乱（v3.9.4 修）。 */
   let period = cw + BK_COL_GAP;
   const kids = flow.children;
-  if (kids.length > 1) {
-    const first = kids[0].offsetLeft;
-    for (let k = 1; k < kids.length; k++) {
-      const d = kids[k].offsetLeft - first;
-      if (d > cw * 0.5) { period = d; break; }
-    }
+  let measured = 0;
+  for (let k = 1; k < kids.length; k++) {
+    const d = kids[k].offsetLeft - kids[k - 1].offsetLeft;
+    if (d > cw * 0.5 && (!measured || d < measured)) measured = d;
   }
+  /* 仅当实测明显小于基准（≥2px，排除整数舍入噪声）才采信实测：
+     用于兜底极窄窗口下栏宽被钳制、理论值与浏览器实际列宽不一致的情况。 */
+  if (measured > 0 && measured < period - 2) period = measured;
   s._pageUnit = period;
   s._padLeft = parseFloat(cs.paddingLeft) || 0;
 
@@ -530,6 +595,20 @@ function bkPageByChar(charPos) {
   return ans;
 }
 
+/* 作废进行中的翻页动画：递增动画序号让旧 finish 回调失效，并清掉克隆层、解锁输入。
+   重排（resize/改排版）与直跳（进度滑条/章节目录）都会抢占动画；
+   不作废的话，旧回调 330ms 后会用「旧页号 × 旧步长」把位移写回去，翻页与页脚/进度就此对不上（v3.9.4 修）。 */
+function bkCancelPageAnim() {
+  const s = _bk; if (!s) return;
+  s.animSeq = (s.animSeq || 0) + 1;
+  const stage = document.getElementById('bk-stage');
+  if (stage) {
+    const ovs = stage.querySelectorAll('.bk-pageov');
+    for (let i = 0; i < ovs.length; i++) ovs[i].remove();
+  }
+  s.animLock = false;
+}
+
 function bkGoPage(pg) {
   const s = _bk; if (!s || s.type !== 'txt') return;
   const flow = document.getElementById('bk-pageflow');
@@ -549,22 +628,26 @@ function bkGoPage(pg) {
   const unit = s._pageUnit || (stage.clientWidth + BK_COL_GAP);   // 必须用 bkLayoutPages 实测的步长，否则翻页累积偏移
 
   if (s._jumpNoAnim || anim === 'none' || pg === prev || !s._pageParas) {
+    bkCancelPageAnim();                    // 直跳/无动画抢占动画，作废其回调，避免过期位移回写
     flow.style.transition = 'none';
     flow.style.transform = 'translateX(' + (-pg * unit) + 'px)';
     return;
   }
 
   /* 克隆页面动画层：新页/旧页都带真实文字，动画中不再出现"空白页" */
+  bkCancelPageAnim();                      // 兜底清掉任何残留动画层（正常路径由 animLock 挡住重入）
   s.animLock = true;
+  const seq = s.animSeq = (s.animSeq || 0) + 1;   // 本次动画序号，被抢占后 finish 直接作废
   const newOv = bkMakePageOverlay(pg);
+  let oldOv = null;
   const finish = () => {
+    if (seq !== s.animSeq) return;         // 期间发生了重排/直跳：位移已由新的分页结果决定，不再回写
     flow.style.transition = 'none';
     flow.style.transform = 'translateX(' + (-pg * unit) + 'px)';
     newOv.remove();
     if (oldOv) oldOv.remove();
     s.animLock = false;
   };
-  let oldOv = null;
 
   if (anim === 'slide') {
     /* 滑动：旧页滑出 + 新页滑入，同步等速，中间无空隙 */
@@ -597,6 +680,7 @@ function bkMakePageOverlay(pg) {
   const cs = getComputedStyle(flow);
   const bg = (bkBgList()[s.settings.bg] || bkBgList().paper);
   const ov = document.createElement('div');
+  ov.className = 'bk-pageov';               // 供 bkCancelPageAnim 统一清理
   ov.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;overflow:hidden;z-index:6;'
     + 'background:' + bg[0] + ';color:' + bg[1] + ';';
   const paras = (s._pageParas || [])[pg];
@@ -1038,6 +1122,10 @@ function bkSetEnc(e2) {
 /* ---------- 旋转/窗口变化：保持进度重排 ---------- */
 function bkOnResize() {
   const s = _bk; if (!s || s.type !== 'txt') return;
+  /* 已离开阅读页（上滑回桌面/系统返回后 _bk 与监听都还在）时不要重排：
+     隐藏页尺寸为 0，重排会把 fraction 算成 0 并写回，等于抹掉阅读进度（v3.9.4 修）。 */
+  const stage = document.getElementById('bk-stage');
+  if (!stage || !stage.clientWidth || !stage.clientHeight) return;
   clearTimeout(_bkRelayoutTimer);
   _bkRelayoutTimer = setTimeout(() => {
     if (s.settings.mode === 'page') bkLayoutPages();
@@ -1058,17 +1146,21 @@ function bkUnbindResize() {
 async function bkOpenPdf(body) {
   const s = _bk;
   showToast('正在打开 PDF…');
+  bkPdfWorkerSrc();                        // defer 加载下 pdfjsLib 可能刚就绪，worker 地址在这里兜底设置
   try {
     s.buffer = await s.rec.blob.arrayBuffer();
     s.pdfDoc = await pdfjsLib.getDocument({ data: new Uint8Array(s.buffer) }).promise;  // 直接用字节，不依赖 objectURL
+    if (_bk !== s) { try { s.pdfDoc.destroy(); } catch (e) {} return; }   // 已被另一次打开接管：别泄漏文档
     s.totalPages = s.pdfDoc.numPages;
     s.pageNum = Math.max(1, Math.min(s.pageNum, s.totalPages));
+    s.buffer = null;                       // 文档已持有数据，释放整本 ArrayBuffer
   } catch (e) {
     showToast('PDF 打开失败');
     console.error(e);
     renderBookshelf();
     return;
   }
+  if (_bk !== s) return;                   // 打开 PDF 期间已被另一次打开接管，别覆盖新会话的 DOM
 
   body.innerHTML = `
     <div class="bk-toolbar">
@@ -1085,10 +1177,21 @@ async function bkOpenPdf(body) {
   await bkRenderPdfPage();
 }
 
-async function bkRenderPdfPage() {
+/* PDF 渲染排队执行：PDF.js 禁止同一个 canvas 并发 render（连点「下一页/上一页」会抛
+   "Cannot use the same canvas during multiple render() operations" 并被静默吞掉，
+   表现为点了没反应、页脚与画面不一致）。过期请求在队列里自行退出，同一时刻只有一个 render。 */
+function bkRenderPdfPage() {
+  const s = _bk;
+  if (!s || !s.pdfDoc || s.type !== 'pdf') return Promise.resolve();
+  const token = ++s.pdfToken;
+  const run = () => (token !== s.pdfToken) ? Promise.resolve() : bkRenderPdfPageNow(token);
+  s.pdfChain = (s.pdfChain || Promise.resolve()).then(run, run);
+  return s.pdfChain;
+}
+
+async function bkRenderPdfPageNow(token) {
   const s = _bk;
   if (!s || !s.pdfDoc || s.type !== 'pdf') return;
-  const token = ++s.pdfToken;
   try {
     const page = await s.pdfDoc.getPage(s.pageNum);
     if (token !== s.pdfToken) return;   // 快速翻页时丢弃过期渲染
@@ -1111,7 +1214,11 @@ async function bkRenderPdfPage() {
     const sc = document.getElementById('bk-pdf-scroll');
     if (sc) sc.scrollTop = 0;
     bkSaveProgress();
-  } catch (e) { console.error(e); }
+  } catch (e) {
+    if (e && e.name === 'RenderingCancelledException') return;   // 正常取消，不打扰用户
+    console.error(e);
+    if (token === s.pdfToken) showToast('PDF 渲染失败，请重试');
+  }
 }
 
 /* PDF 翻页/缩放（TXT 的 bkNextPage/bkPrevPageTxt 在第五节；命名区分避免覆盖） */

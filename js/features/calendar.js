@@ -227,7 +227,7 @@ function renderCalendarDay(body,items,pset,allItems){
   const oldPeriod=items.find(x=>x.type==='period');
   const dayLevel=pInfo.inPeriod?pInfo.level:(oldPeriod?(oldPeriod.level||1):0);
   const plv=dayLevel?CAL_PERIOD[dayLevel]:null;
-  const dayTag=pInfo.inPeriod?('经期 · 第 '+pInfo.inPeriod+' 天'):(pInfo.ovu?'排卵期':'');
+  const dayTag=pInfo.inPeriod?('经期 · 第 '+pInfo.inPeriod+' 天'):(pInfo.ovu?'排卵期':(dayLevel?'经期':''));   // v3.9.5：无周期设置时回退旧单天记录（dayLevel 已含兼容），日视图不再丢标签
   body.innerHTML=`
     ${calTabsHtml()}
     <div class="cal-head">
@@ -379,6 +379,7 @@ function maybeTodoAlarm(){
       }
     });
     todayTpl.forEach(it=>{
+      if(it.alarm.time!==hm)return;   // v3.9.5：模板待办（每天/每周）同样要等到设定时间才提醒，此前一打开应用就弹
       const dkey=it.id+':'+key;
       const instDone=(state.todoDoneByDay||{})[dkey];
       if(instDone)return;
@@ -574,7 +575,7 @@ function calPeriodClear(date){
 
 /* ---------- 视图切换 ---------- */
 function calShift(dir){
-  calCursor.setMonth(calCursor.getMonth()+dir);
+  calCursor=new Date(calCursor.getFullYear(),calCursor.getMonth()+dir,1);   // v3.9.5：先归一到 1 号再换月，避免 31 日跨到没有 31 号的月份时跳月
   calView='month';calDaySel=null;
   renderCalendar();
 }

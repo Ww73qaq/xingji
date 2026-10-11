@@ -27,7 +27,7 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'%3E%3Crect width='180' height='180' rx='40' fill='%23f7f6f3'/%3E%3Ctext x='90' y='122' font-size='96' text-anchor='middle' fill='%231a1a1a' font-family='serif'%3E%E2%97%86%3C/text%3E%3C/svg%3E">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23f7f6f3'/%3E%3Ctext x='32' y='45' font-size='34' text-anchor='middle' fill='%231a1a1a' font-family='serif'%3E%E2%97%86%3C/text%3E%3C/svg%3E">
-<link rel="stylesheet" href="css/styles.css?v=3.9.3">
+<link rel="stylesheet" href="css/styles.css?v=3.9.5">
 </head>
 <body>
 <div id="phone">
@@ -47,7 +47,7 @@
   <div class="pin-dots" id="pin-dots">
     <div class="pin-dot"></div><div class="pin-dot"></div><div class="pin-dot"></div><div class="pin-dot"></div>
   </div>
-  <div class="pin-error" id="pin-error">密码错误</div>
+  <div class="pin-error" id="pin-error" aria-live="polite" aria-hidden="true">密码错误</div>
   <div class="pin-pad">
     <button class="pin-btn" onclick="pinInput(1)">1</button>
     <button class="pin-btn" onclick="pinInput(2)">2</button>
@@ -96,8 +96,8 @@
   </div>
   <!-- 便签两张（A=我的 / B=TA 的；点击编辑，长按出菜单；TA 可低频留言，开关在「我的」） -->
   <div style="display:flex;gap:10px;padding:0 calc(var(--sal) + 10px);margin-top:14px;flex-shrink:0" id="note-cards">
-    <div class="note-card" data-note="a" onclick="editNote('a')"><div class="note-head" id="note-head-a">我的便签</div><div class="note-body" id="note-a">${''}</div></div>
-    <div class="note-card" data-note="b" onclick="editNote('b')"><div class="note-head" id="note-head-b">他的便签</div><div class="note-body" id="note-b">${''}</div></div>
+    <div class="note-card" data-note="a" onclick="editNote('a')"><div class="note-head" id="note-head-a">我的便签</div><div class="note-body" id="note-a">写点什么…</div></div>
+    <div class="note-card" data-note="b" onclick="editNote('b')"><div class="note-head" id="note-head-b">他的便签</div><div class="note-body" id="note-b">写点什么…</div></div>
   </div>
   <!-- 桌面心跳轨迹组件：当天我/TA 轨迹折线（按各自时间单位），点击进轨迹页 -->
   <div class="trace-card" id="trace-widget" onclick="openApp('trace')">
@@ -410,41 +410,41 @@
 
 </div>
 
-<script src="js/config.js?v=3.9.3"></script>
-<script src="js/utils.js?v=3.9.3"></script>
-<script src="js/db.js?v=3.9.3"></script>
-<script src="js/state.js?v=3.9.3"></script>
-<script src="js/modal.js?v=3.9.3"></script>
-<script src="js/nav.js?v=3.9.3"></script>
-<script src="js/features/theme-editor.js?v=3.9.3"></script>
-<script src="js/home.js?v=3.9.3"></script>
-<script src="js/ui/lock.js?v=3.9.3"></script>
-<script src="js/ui/version.js?v=3.9.3"></script>
-<script src="js/ui/action-bar.js?v=3.9.3"></script>
-<script src="js/ui/chat.js?v=3.9.3"></script>
-<script src="js/features/poll.js?v=3.9.3"></script>
-<script src="js/features/call.js?v=3.9.3"></script>
-<script src="js/ui/moments.js?v=3.9.3"></script>
-<script src="js/ui/mailbox.js?v=3.9.3"></script>
-<script src="js/features/envelope.js?v=3.9.3"></script>
-<script src="js/ui/diary.js?v=3.9.3"></script>
-<script src="js/ui/profile.js?v=3.9.3"></script>
-<script src="js/features/mood.js?v=3.9.3"></script>
-<script src="js/features/stickers.js?v=3.9.3"></script>
-<script src="js/ui/memory.js?v=3.9.3"></script>
-<!-- PDF.js（cdnjs 官方 pdf-dist 3.11.174，经典 UMD 全局 pdfjsLib；workerSrc 在 books.js 配置同版本） -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
-<script src="js/features/books.js?v=3.9.3"></script>
-<script src="js/ui/companion.js?v=3.9.3"></script>
-<script src="js/ui/probability.js?v=3.9.3"></script>
-<script src="js/features/reply-library.js?v=3.9.3"></script>
-<script src="js/features/calendar.js?v=3.9.3"></script>
-<script src="js/features/group-chat.js?v=3.9.3"></script>
-<script src="js/ui/room.js?v=3.9.3"></script>
-<script src="js/ui/trace.js?v=3.9.3"></script>
-<script src="js/data/backup.js?v=3.9.3"></script>
-<script src="js/scheduler.js?v=3.9.3"></script>
-<script src="js/engine.js?v=3.9.3"></script>
-<script src="js/app.js?v=3.9.3"></script>
+<script src="js/config.js?v=3.9.5"></script>
+<script src="js/utils.js?v=3.9.5"></script>
+<script src="js/db.js?v=3.9.5"></script>
+<script src="js/state.js?v=3.9.5"></script>
+<script src="js/modal.js?v=3.9.5"></script>
+<script src="js/nav.js?v=3.9.5"></script>
+<script src="js/features/theme-editor.js?v=3.9.5"></script>
+<script src="js/home.js?v=3.9.5"></script>
+<script src="js/ui/lock.js?v=3.9.5"></script>
+<script src="js/ui/version.js?v=3.9.5"></script>
+<script src="js/ui/action-bar.js?v=3.9.5"></script>
+<script src="js/ui/chat.js?v=3.9.5"></script>
+<script src="js/features/poll.js?v=3.9.5"></script>
+<script src="js/features/call.js?v=3.9.5"></script>
+<script src="js/ui/moments.js?v=3.9.5"></script>
+<script src="js/ui/mailbox.js?v=3.9.5"></script>
+<script src="js/features/envelope.js?v=3.9.5"></script>
+<script src="js/ui/diary.js?v=3.9.5"></script>
+<script src="js/ui/profile.js?v=3.9.5"></script>
+<script src="js/features/mood.js?v=3.9.5"></script>
+<script src="js/features/stickers.js?v=3.9.5"></script>
+<script src="js/ui/memory.js?v=3.9.5"></script>
+<!-- PDF.js 3.11.174（自托管经典 UMD 全局 pdfjsLib；defer=解析不阻塞、解析完成后才执行，因此 books.js 顶部不能再配置 workerSrc，改由 books.js 的 bkPdfWorkerSrc() 在使用前设置；worker 自托管于 js/vendor/pdf.worker.min.js） -->
+<script defer src="js/vendor/pdf.min.js"></script>
+<script src="js/features/books.js?v=3.9.5"></script>
+<script src="js/ui/companion.js?v=3.9.5"></script>
+<script src="js/ui/probability.js?v=3.9.5"></script>
+<script src="js/features/reply-library.js?v=3.9.5"></script>
+<script src="js/features/calendar.js?v=3.9.5"></script>
+<script src="js/features/group-chat.js?v=3.9.5"></script>
+<script src="js/ui/room.js?v=3.9.5"></script>
+<script src="js/ui/trace.js?v=3.9.5"></script>
+<script src="js/data/backup.js?v=3.9.5"></script>
+<script src="js/scheduler.js?v=3.9.5"></script>
+<script src="js/engine.js?v=3.9.5"></script>
+<script src="js/app.js?v=3.9.5"></script>
 </body>
 </html>

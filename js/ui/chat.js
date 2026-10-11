@@ -55,10 +55,23 @@ function giftHue(text,shift){
   for(let i=0;i<s.length;i++)h=(h*31+s.charCodeAt(i))>>>0;
   return (h+(shift||0))%6;
 }
+/* v3.9.5：自定义礼物 icon 的唯一清洗出口（giftIconHtml / pcStampEmoji 都会把它拼进 innerHTML；
+   icon 存在 state.customGifts、也会随消息的 sub 落库，导入备份即可注入 → 存储型 XSS）。
+   只有 data:image / http(s) 地址才当图片（属性值仍要转义），其余一律当文本转义。 */
+function giftIconSafe(icon){
+  const s=String(icon==null?'':icon).trim();
+  if(/^data:image\//i.test(s)||/^https?:\/\//i.test(s))return '<img src="'+esc(s)+'" style="width:100%;height:100%;object-fit:cover">';
+  return giftIconText(s);
+}
+/* 只当文本的清洗：内置礼物图标是数字实体（如 &#128140;），esc 之后要把实体还原，
+   否则格子/邮票上会显示成 "&#128140;" 字面量；实体在文本里只会解码成字符，不会变成标签。 */
+function giftIconText(icon){
+  return esc(String(icon==null?'':icon)).replace(/&amp;#(\d+);/g,'&#$1;').replace(/&amp;([a-zA-Z][a-zA-Z0-9]*);/g,'&$1;');
+}
 /* 邮票图案：GIFTS 用的是数字实体（如&#9749;），默认按文字字形渲染成黑白，
    补一个 U+FE0F 变体选择符才会显示为彩色 emoji。 */
 function pcStampEmoji(ch,fallback){
-  const s=String(ch||'').trim();
+  const s=giftIconText(ch).trim();   // v3.9.5：先清洗再拼进 innerHTML（消息 sub 里的自定义礼物图标同样不可信）
   if(!s)return fallback||'&#127873;';
   return /\uFE0F/.test(s)?s:s+'\uFE0F';
 }
@@ -256,6 +269,7 @@ function appendMsgRow(m,stick){
   if(stick||atBottom)requestAnimationFrame(()=>{el.scrollTop=el.scrollHeight;});
 }
 let chatPageSize=100;   // 聊天窗口化：默认只渲染最近 100 条，历史按 50 条加载
+let chatJumpTimer=null;   // v3.9.5：跳转定位的 1 秒重定位定时器（新跳转先取消旧的，避免两次跳转互相拉扯）
 async function renderChat(scrollBottom){
   const el=document.getElementById('chat-content');if(!el)return;
   const msgs=(await dbGetAll('messages')).filter(m=>!m.deleted).sort((a,b)=>a.time-b.time);
@@ -268,6 +282,11 @@ async function renderChat(scrollBottom){
   el.innerHTML='';
   const start=msgs.length>chatPageSize?msgs.length-chatPageSize:0;
   const slice=msgs.slice(start);
+  /* v3.9.5：未读分割线只能画在「真正的第一条未读」上。渲染的是窗口（如最近 100 条），
+     若第一条未读落在窗口之外（300 条未读只看得到后 100 条），以前会把分割线画在窗口顶部，
+     位置完全不对，而且 markRead 推进 lastReadAt 后下一次渲染就消失。 */
+  const unreadIdx=msgs.findIndex(m=>m.sender!=='sys'&&m.sender==='other'&&m.time>(state.chat.lastReadAt||0));
+  const unreadInSlice=unreadIdx>=start;
   if(start>0){
     const btn=document.createElement('div');btn.className='chat-date load-more';
     btn.textContent='查看更早消息';
@@ -275,7 +294,7 @@ async function renderChat(scrollBottom){
     el.appendChild(btn);
   }
   for(const m of slice){
-    if(m.sender!=='sys'&&!chatUnreadShown&&m.sender==='other'&&m.time>(state.chat.lastReadAt||0)){
+    if(unreadInSlice&&m.sender!=='sys'&&!chatUnreadShown&&m.sender==='other'&&m.time>(state.chat.lastReadAt||0)){
       chatUnreadShown=true;
       const u=document.createElement('div');u.className='chat-unread';u.textContent='以下为新消息';u.onclick=()=>{el.scrollTop=u.offsetTop-60;};
       el.appendChild(u);
@@ -291,6 +310,8 @@ async function renderChat(scrollBottom){
     }
     el.appendChild(buildMsgRow(m));
   }
+  // v3.9.5：边界在窗口外则本次不画，并把「已确定」置上，避免随后 appendMsgRow 在窗口底部补画一条错位的分割线
+  if(unreadIdx>=0&&!unreadInSlice)chatUnreadShown=true;
   if(!msgs.length)el.innerHTML='<div class="msg-sys">还没有消息，说点什么吧</div>';
   if(stick)requestAnimationFrame(()=>{el.scrollTop=el.scrollHeight;});
   else if(oldH>0&&el.scrollHeight>oldH)el.scrollTop=oldTop+(el.scrollHeight-oldH);
@@ -411,20 +432,27 @@ function reeditMessage(ref){
 }
 function jumpToMsg(id,ev){
   ev&&ev.stopPropagation();
+  /* v3.9.5：① 取消上一次跳转遗留的 1 秒重定位，否则两次引用/搜索跳转会在 1 秒内互相拉扯；
+     ② 只为本次定位临时扩窗，跳完恢复原窗口大小——以前扩到 99999 后就再也不还原，
+        之后每次 renderChat（删除/收藏/撤回/markRead/切前台）都要重建整段历史的 DOM。 */
+  clearTimeout(chatJumpTimer);
+  const prevSize=chatPageSize>=99999?100:chatPageSize;   // 别的入口（memory.js 收藏跳转）会先把窗口设成全量，这里按默认 100 兜底
   const find=()=>document.querySelector(`.msg-row[data-mid="${id}"]`);
   const jump=()=>{
     let row=find();
     if(!row){
       // 消息在窗口外（历史消息）：扩窗到全量再定位（搜索定位 / 引用跳转）
       chatPageSize=99999;
-      renderChat(false).then(()=>{if(find())jump();else showToast('消息不存在');});
+      renderChat(false).then(()=>{if(find())jump();else{chatPageSize=prevSize;showToast('消息不存在');}});
       return;
     }
     row.scrollIntoView({block:'center',inline:'nearest',behavior:'auto'});
     // v3.6.14：先瞬时定位到大致位置，等渲染稳定（1s 缓冲区）后再精确重定位，
     // 抵消固定顶栏 / 头像图片加载 / smooth 动画过冲造成的 UI 偏移
-    setTimeout(()=>{
-      const rr=find();if(!rr)return;
+    chatJumpTimer=setTimeout(()=>{
+      const rr=find();
+      chatPageSize=prevSize;
+      if(!rr)return;
       rr.scrollIntoView({block:'center',inline:'nearest',behavior:'auto'});
       rr.classList.add('flash');setTimeout(()=>rr.classList.remove('flash'),1500);
     },1000);
@@ -638,7 +666,7 @@ async function playVoiceMsg(id,sec,isMe){
   voicePlayingId=id;
   const icon=document.getElementById('vicon-'+id);if(icon)icon.classList.add('playing');
   const msgs=await dbGetAll('messages');const m=msgs.find(x=>x.id===id);
-  if(isMe===false){m.unread=0;await dbPut('messages',m);}
+  if(isMe===false&&m){m.unread=0;await dbPut('messages',m);}   // v3.9.5：播放期间这条被删掉时 m 为 undefined，直接读 m.unread 会抛错、async 静默 reject，红点/播放态再也清不掉
   if(m&&m.audio){
     stopVoiceAudio();
     voiceAudioEl=new Audio(m.audio);
@@ -780,22 +808,31 @@ function giftPool(){
 }
 function giftIconHtml(icon){
   if(!icon)return '🎁';
-  if(icon.indexOf('<svg')===0||icon.indexOf('<img')===0)return icon;
-  if(icon.indexOf('data:')===0||icon.indexOf('http')===0)return '<img src="'+icon+'" style="width:100%;height:100%;object-fit:cover">';
-  return icon;
+  // v3.9.5：不再原样透传 <svg / <img 开头的 icon（那是注入载荷的直达通道），一律走 giftIconSafe 清洗
+  return giftIconSafe(icon)||'🎁';
 }
 function sendGift(){
   const pool=giftPool();
-  const cell=(g)=>`<div class="plus-item" style="padding:14px 0;position:relative" onclick="closeModal();doSendGift('${esc(g.name).replace(/'/g,"\\'")}','${esc(g.icon).replace(/'/g,"\\'")}')">
-    ${!g.builtin?'<span style="position:absolute;top:2px;right:8px;font-size:11px;color:#c0392b;cursor:pointer" onclick="event.stopPropagation();delCustomGift('+g.id+')">&#10005;</span>':''}
+  const cell=(g,i)=>`<div class="plus-item gift-cell" data-gi="${i}" style="padding:14px 0;position:relative">
+    ${!g.builtin?'<span class="gift-del" style="position:absolute;top:2px;right:8px;font-size:11px;color:#c0392b;cursor:pointer">&#10005;</span>':''}
     <div style="width:46px;height:46px;border-radius:14px;background:var(--input);display:flex;align-items:center;justify-content:center;font-size:26px;overflow:hidden">${giftIconHtml(g.icon)}</div>
     <div class="plus-label">${esc(g.name)}</div>
   </div>`;
   const grid='<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;padding:8px 2px">'
-    +pool.map(g=>cell(g)).join('')
+    +pool.map((g,i)=>cell(g,i)).join('')
     +'<div class="plus-item" style="padding:14px 0" onclick="addCustomGift()"><div style="width:46px;height:46px;border-radius:14px;background:var(--input);display:flex;align-items:center;justify-content:center;font-size:22px;color:var(--accent,#4a7dcf)">＋</div><div class="plus-label">自定义</div></div>'
     +'</div>';
   showModal('送礼物',grid,'<div class="modal-btn-row"><button class="modal-btn" onclick="closeModal()">取消</button></div>');
+  // v3.9.5：礼物名/图标不再拼进 inline onclick——esc 挡不住引号逃逸（&#39; 会被 HTML 解析器还原成 ' 再进 JS 编译），
+  // 名字带 ' 的自定义礼物点一下就能执行任意代码；改为渲染后按 index 事件绑定。
+  const body=document.getElementById('modal-body');
+  if(!body)return;
+  body.querySelectorAll('.gift-cell').forEach(el=>{
+    const g=pool[Number(el.dataset.gi)];if(!g)return;
+    el.onclick=()=>{closeModal();doSendGift(g.name,g.icon);};
+    const del=el.querySelector('.gift-del');
+    if(del)del.onclick=e=>{e.stopPropagation();delCustomGift(g.id);};
+  });
 }
 function doSendGift(name,icon){
   sendMessageObject({type:'gift',content:name,sub:icon||'🎁'});
@@ -1075,6 +1112,10 @@ function applyChatBg(){
 }
 
 /* ===== 聊天记录搜索 ===== */
+/* v3.9.5：TYPE_LABEL（config.js）没有 gift/heart/transfer/redpacket/survey/poke，
+   搜索列表里这些消息的类型标签会是空的；config.js 不归本文件改，这里放一份本地兜底。 */
+const CHAT_TYPE_LABEL={gift:'[礼物]',heart:'[心意卡]',transfer:'[转账]',redpacket:'[红包]',survey:'[问卷]',poke:'[拍一拍]'};
+function chatTypeLabel(t){return TYPE_LABEL[t]||CHAT_TYPE_LABEL[t]||'';}
 /* 索引页（方案 §3）：未输入关键词时，只显示 TA 的消息索引（日期分组+时间+内容，点击定位高亮）；输入关键词后搜索全部记录 */
 function renderChatSearch(){
   const box=document.getElementById('chat-search-result');
@@ -1091,13 +1132,15 @@ function renderChatSearch(){
         const day=list.filter(m=>fmtChatDate(m.time)===d);
         return `<div class="chat-date" style="margin:16px auto">${d} · ${day.length} 条</div>`
           +day.map(m=>`<div class="search-result" onclick="goSearchMsg(${m.id})">
-              <div class="sr-sender">${esc(who(m.sender))}${m.sender==='me'?'（我）':''}${m.type==='text'?'':`<span style="color:var(--hint)"> · ${TYPE_LABEL[m.type]||''}</span>`}</div>
+              <div class="sr-sender">${esc(who(m.sender))}${m.sender==='me'?'（我）':''}${m.type==='text'?'':`<span style="color:var(--hint)"> · ${chatTypeLabel(m.type)}</span>`}</div>
               <div class="sr-text">${esc(msgPreviewText(m)||'（空）')}</div>
               <div class="sr-time">${fmtChatTimeSec(m.time)}</div></div>`).join('');
       }).join('');
   });
 }
-function goSearchMsg(id){saveScrollTop();navStack=['chat'];navRoot='chat';renderNav();enterPage('chat');setTimeout(()=>{chatFirstPaint=false;chatPageSize=99999;renderChat(false).then(()=>jumpToMsg(id));},120);}
+/* v3.9.5：不再在这里把 chatPageSize 设成 99999（设了就再没人还原，之后每次渲染都重建整段历史）；
+   目标不在窗口内时由 jumpToMsg 临时扩窗定位，定位完成自动恢复原窗口。 */
+function goSearchMsg(id){saveScrollTop();navStack=['chat'];navRoot='chat';renderNav();enterPage('chat');setTimeout(()=>{chatFirstPaint=false;renderChat(false).then(()=>jumpToMsg(id));},120);}
 function onChatSearch(q){
   const box=document.getElementById('chat-search-result');
   q=(q||'').trim();

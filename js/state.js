@@ -54,17 +54,22 @@ let state = {
   taMuteCycleSkip:false,taCallCycleSkip:false,taMuteReason:'',taStatusLockMin:10,
   // v3.6.8：TA 主动感应冷却；日记申请冷却（TA 申请看我的 / 我申请 TA 的）
   taSenseCoolAt:0,myDiaryReqCoolAt:0,taDiaryDenied:{},
+  // v3.9.5：最近一次感应方位（room.js 写入；轨迹页的「方位」此前永远显示「附近」，因为没人写过它）
+  lastSenseDir:'',
   // v3.6.9：便签闹钟已触发标记（once/daily/weekly 去重）
   noteAlarmDone:{},
   // v3.6.11：TA 排班偏好（意识自动排班概率/休息日概率）+ 待办闹钟已触发标记
   taSchedSettings:{prob:85,restProb:20},todoAlarmDone:{},
+  // v3.9.5：周期待办「按天完成」标记。此前只有 saveKey 在写、既没进持久化键表也没有初值，
+  // 所以刷新后恒为 undefined，勾选跨天状态直接丢失（并连带让当天的提醒抑制失效）。
+  todoDoneByDay:{},
   // v3.6.13：TA 世界时间时差偏移（持久化——断开连接也不重置，两个世界时间连续）
   taTimeOffset:0
 };
 
 async function loadSettings(){
   // v3.7.2 性能：原 43 次 dbGet 串行事务 → 一次 dbGetAll 全表读（settings 按 key 索引）
-  const keys=['me','other','skin','pin','prob','meetTime','quote','splashText','stats','chat','muteEndTime','muteRequest','surveySettings','notify','notes','taMuteMeEndTime','taMuteReqCoolAt','diaryReqAt','taMuteLastEnd','taMuteReqAt','statusPool','moodPool','taStatusUntil','taStatusCoolAt','taMuteCycleSkip','taCallCycleSkip','taMuteReason','taStatusLockMin','calLastSnapDate','customGifts','taSenseCoolAt','myDiaryReqCoolAt','taDiaryDenied','noteAlarmDone','taSchedSettings','todoAlarmDone','taTimeOffset'];
+  const keys=['me','other','skin','pin','prob','meetTime','quote','splashText','stats','chat','muteEndTime','muteRequest','surveySettings','notify','notes','taMuteMeEndTime','taMuteReqCoolAt','diaryReqAt','taMuteLastEnd','taMuteReqAt','statusPool','moodPool','taStatusUntil','taStatusCoolAt','taMuteCycleSkip','taCallCycleSkip','taMuteReason','taStatusLockMin','calLastSnapDate','customGifts','taSenseCoolAt','myDiaryReqCoolAt','taDiaryDenied','noteAlarmDone','taSchedSettings','todoAlarmDone','todoDoneByDay','lastSenseDir','taTimeOffset'];
   const map={};
   try{
     const all=await dbGetAll('settings');
@@ -136,6 +141,14 @@ function migrateProb(){
     if(!sp.proactiveFreq){const m=Number(sp.proactiveMinIntervalMin);sp.proactiveFreq=(Number.isFinite(m)&&m<=15)?'frequent':(m>=90?'rare':'occasional');}
     if(!sp.cardRatio){const c=Number(sp.customRatio);sp.cardRatio=c>=75?'mine':((Number.isFinite(c)&&c>=35)?'half':'free');}
   })();
+  /* v3.9.5：相处节奏的四个开关曾以数字 0/1 落库，而读侧一律用 `!==false` 判断，
+     于是 0 被当成「开」→ 主动来消息关掉后再也开不回来，分几次说/把话连成一句则完全无效。
+     这里统一归一化成布尔（读侧仍兼容 false），幂等且不丢用户已表达的偏好。 */
+  ['multiBubbleEnabled','cardConcatEnabled','readIgnoreEnabled','proactiveEnabled'].forEach(k=>{
+    const v=state.prob[k];
+    if(v===0||v===false)state.prob[k]=false;
+    else if(v===1||v===true)state.prob[k]=true;
+  });
   saveKey('prob');
   // surveySettings / notify / notes 默认补齐（对象级深合并已在 loadSettings 完成，这里补缺省键）
   if(!state.surveySettings||!state.surveySettings.deadlineSec)state.surveySettings={deadlineSec:60,earlySubmitProb:30,multiMin:1,multiMax:6};

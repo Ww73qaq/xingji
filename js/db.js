@@ -13,6 +13,11 @@ function _markDbReady(){if(_dbReadyResolve){const r=_dbReadyResolve;_dbReadyReso
 /* 主键：settings 用 keyPath:'key'，其余 store 用 autoIncrement 的 id */
 function dbPrimaryKey(store,rec){return store==='settings'?(rec&&rec.key):(rec&&rec.id);}
 
+/* 真实存在的 store 列表：清库/遍历一律以库本身为准，不再依赖硬编码列表
+   ——历史上正因为硬编码，settings 的键（keyPath 是 key 不是 id）删不掉，
+   且 events / books 两个 store 被「清除全部数据 / 恢复出厂」整体漏掉（v3.9.5 修）。 */
+function dbStoreNames(){try{return DB?Array.from(DB.objectStoreNames):[];}catch(e){return [];}}
+
 /* v1 → v2 迁移要点：
      - settings 由 {keyPath:'id',autoIncrement} 改为 {keyPath:'key'}，需重建并搬行
      - messages / letters / diaries / moments 补 time 索引
@@ -110,6 +115,7 @@ function dbGetAllM(store,ttl){
 function dbMemoInvalidate(store){delete _dbMemo[store];}
 function dbDelete(store,id){
   const memo=_dbMemo[store];
-  if(memo&&memo.v){const i=memo.v.findIndex(x=>String(x&&x.id)===String(id));if(i>=0)memo.v.splice(i,1);}
+  /* v3.9.5：与 dbPut 口径对齐——settings 的键在 .key 上，只按 .id 找会让缓存里留下已删除的行 */
+  if(memo&&memo.v){const i=memo.v.findIndex(x=>String(x&&(x.id!==undefined?x.id:x.key))===String(id));if(i>=0)memo.v.splice(i,1);}
   return new Promise((res,rej)=>{const tx=DB.transaction(store,'readwrite');const req=tx.objectStore(store).delete(id);req.onsuccess=res;req.onerror=rej;});}
 function dbGetByKey(store,key){return dbGetAll(store).then(all=>all.find(x=>x.key===key)||null);}

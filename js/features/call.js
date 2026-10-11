@@ -23,7 +23,7 @@ function toggleCamera(){
     startLocalCamera();
   }else{
     if(mediaStream)mediaStream.getVideoTracks().forEach(t=>t.stop());
-    if(v){v.style.display='none';}
+    if(v){v.style.display='none';v.srcObject=null;}   // v3.9.5：关闭时同时清空 srcObject，否则再开仍绑定在已 stop 的轨道上（黑屏）
     if(ph)ph.style.display='flex';
   }
   renderCallActions(callActionsHtml());
@@ -33,8 +33,17 @@ async function startLocalCamera(){
   if(!v||!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){showToast('当前环境不支持摄像头');return;}
   try{
     // v3.7.0：「摄像头」按钮只取 video，不再顺带申请麦克风（麦克风由独立静音开关控制）
-    if(!mediaStream)mediaStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'user'},audio:false});
-    else{const tr=mediaStream.getVideoTracks()[0];if(tr)tr.enabled=true;}
+    const tr=mediaStream?mediaStream.getVideoTracks()[0]:null;
+    if(tr&&tr.readyState==='live'){tr.enabled=true;}
+    else{
+      // v3.9.5：旧视频轨已 stop（关摄像头后再开）→ 重新取一条视频轨；只换视频轨、保留原流里的音频轨，避免整条流被替换后静音
+      const fresh=await navigator.mediaDevices.getUserMedia({video:{facingMode:'user'},audio:false});
+      const nt=fresh.getVideoTracks()[0];
+      if(mediaStream){
+        mediaStream.getVideoTracks().forEach(t=>{try{mediaStream.removeTrack(t);}catch(e){}});
+        if(nt)mediaStream.addTrack(nt);
+      }else{mediaStream=fresh;}
+    }
     v.srcObject=mediaStream;
     v.style.display='block';
     if(ph)ph.style.display='none';
@@ -290,8 +299,7 @@ function initCallFloat(){
     f.style.left=x+'px';f.style.top=y+'px';f.style.right='auto';
     f.classList.remove('edge');
   });
-  f.addEventListener('pointerup',e=>{
-    if(!dragging)return;dragging=false;
+  const endDrag=()=>{
     const p=document.getElementById('phone').getBoundingClientRect();
     const r=f.getBoundingClientRect();
     if(moved){  // 拖动过 → 松手自动靠边（漏一半头像 + 半透明）
@@ -304,7 +312,12 @@ function initCallFloat(){
     }else{      // 未拖动 = 点击 → 恢复全屏
       expandCall();
     }
-  });
+  };
+  f.addEventListener('pointerup',()=>{if(!dragging)return;dragging=false;endDrag();});
+  // v3.9.5：pointerup 是原先唯一复位点；setPointerCapture 失败且在元素外松手就收不到 pointerup → dragging 卡死（浮窗跟着指针跑）
+  f.addEventListener('pointercancel',()=>{dragging=false;});        // 指针被系统取消（来电 / 手势打断）
+  f.addEventListener('lostpointercapture',()=>{dragging=false;});   // 捕获丢失兜底
+  window.addEventListener('pointerup',()=>{if(!dragging)return;dragging=false;endDrag();});   // window 级松手兜底
 }
 /* v3.7.0：删除未挂载的死函数 miniCallHangup（浮窗已无 × 按钮引用） */
 function toggleMute(){callMuted=!callMuted;if(mediaStream)mediaStream.getAudioTracks().forEach(t=>t.enabled=!callMuted);renderCallActions(callActionsHtml());}

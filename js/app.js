@@ -120,6 +120,12 @@ openDB().then(async()=>{
   checkVersion();
   await loadSettings();
   migrateProb();                 // 旧概率结构 → 新独立概率结构（迁移一次）
+  /* v3.9.5：刷新页面会丢掉内存里的陪伴会话（companion.js 的 companionSession），
+     但 state.stats.companionStart 是持久化的 —— 于是下面 %60 的心跳会把「离开的这段挂钟时间」
+     当成陪伴时长一直累加。启动时若没有活动会话，直接把残留的起点清掉，不再虚增。 */
+  if(state.stats.companionStart&&typeof companionSession!=='undefined'&&!companionSession){
+    state.stats.companionStart=0;saveKey('stats');
+  }
   if(Date.now()<state.muteEndTime)showMuteBanner(Math.ceil((state.muteEndTime-Date.now())/1000));
   if(Date.now()<state.taMuteMeEndTime)showTaMuteBanner();
   applySkinVars();                 // 主题变量（浮层/反色令牌）由 state.skin 驱动

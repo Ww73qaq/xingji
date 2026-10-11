@@ -23,12 +23,15 @@ function initRoom(){
 }
 function showLayoutMenu(){
   const names=Object.keys(roomPresets);
-  const rows=names.map(n=>`<div class="modal-item" onclick="loadLayout('${esc(n)}')">${esc(n)}${n===roomState.preset?' <span style="color:var(--hint)">（当前）</span>':''}</div>`).join('');
+  const rows=names.map(n=>`<div class="modal-item" data-layout="${esc(n)}">${esc(n)}${n===roomState.preset?' <span style="color:var(--hint)">（当前）</span>':''}</div>`).join('');
   showModal('布局',`<div style="font-size:11px;color:var(--hint);padding:0 2px 6px">房间只是默认布局，可新增/切换/保存/删除</div>${rows}
     <div class="modal-item" onclick="closeModal();newLayout()">＋ 新增布局</div>
     <div class="modal-item" onclick="closeModal();saveRoom();showToast('已保存当前布局')">保存当前布局</div>
     <div class="modal-item" style="color:#c0392b" onclick="closeModal();delLayoutMenu()">删除布局…</div>`,
     '<div class="modal-btn-row"><button class="modal-btn" onclick="closeModal()">取消</button></div>');
+  /* v3.9.5：布局名不再拼进 inline onclick——esc() 只做 HTML 转义，
+     引号会被 HTML 解析器还原成 ' 后打断内联 JS（「It's」点不动，构造串可注入），改绑事件 */
+  document.querySelectorAll('#modal-body [data-layout]').forEach(el=>{el.onclick=()=>loadLayout(el.dataset.layout);});
 }
 function loadLayout(name){
   const p=roomPresets[name];if(!p)return;
@@ -50,12 +53,16 @@ function newLayout(){
 function delLayoutMenu(){
   const names=Object.keys(roomPresets).filter(n=>n!=='房间');
   if(!names.length){showToast('只有默认「房间」布局，不能删除');return;}
-  showModal('删除布局',names.map(n=>`<div class="modal-item" onclick="closeModal();confirmDelLayout('${esc(n)}')">${esc(n)}</div>`).join(''),
+  showModal('删除布局',names.map(n=>`<div class="modal-item" data-del-layout="${esc(n)}">${esc(n)}</div>`).join(''),
     '<div class="modal-btn-row"><button class="modal-btn" onclick="closeModal()">取消</button></div>');
+  /* v3.9.5：同 showLayoutMenu——名称走 dataset，不进内联 JS */
+  document.querySelectorAll('#modal-body [data-del-layout]').forEach(el=>{el.onclick=()=>{closeModal();confirmDelLayout(el.dataset.delLayout);};});
 }
 function confirmDelLayout(name){
   showModal('删除布局「'+name+'」？','<div style="padding:6px 2px 4px;font-size:13px;color:var(--sub)">删除后该布局的家具摆放不可恢复。</div>',
-    '<div class="modal-btn-row"><button class="modal-btn" onclick="closeModal()">取消</button><button class="modal-btn primary" style="color:#fff;background:#c0392b" onclick="doDelLayout(\''+name+'\')">确认删除</button></div>');
+    '<div class="modal-btn-row"><button class="modal-btn" onclick="closeModal()">取消</button><button class="modal-btn primary" id="layout-del-ok" style="color:#fff;background:#c0392b">确认删除</button></div>');
+  /* v3.9.5：原先把 name 直接拼进 onclick（未转义）→ 改为按钮绑事件，name 只作为闭包参数 */
+  document.getElementById('layout-del-ok').onclick=()=>doDelLayout(name);
 }
 function doDelLayout(name){
   if(!roomPresets[name])return;
@@ -217,6 +224,8 @@ function pickSenseDir(){
 }
 /* 记录一次感应事件（供心念轨迹 / TA 记得） */
 async function pushSenseEvent(who,dir,text){
+  state.lastSenseDir=dir;   // v3.9.5：轨迹页「方位」读这个字段，原先全项目只读不写 → 恒为「附近」
+  saveKey('lastSenseDir');
   await dbPut('events',{who,type:'sense',dir,text,time:Date.now()});
 }
 /* v3.5.9：感应 TA——点击后「正在感应…」，10~15 秒延迟才出结果（防连点/防瞬变）
