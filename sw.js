@@ -28,7 +28,7 @@
    ================================================================
    本网站为个人字卡传讯作品，专属于「我」（本站主人）本人。
    ================================================================ */
-const SW_VERSION = '3.9.5';
+const SW_VERSION = '3.10.0';
 const SHELL_CACHE = 'xingji-shell-' + SW_VERSION;     // 外壳缓存：随发版整体换新
 const RUNTIME_CACHE = 'xingji-runtime-' + SW_VERSION; // 运行期同源资源：带条数上限
 const RUNTIME_MAX = 40;

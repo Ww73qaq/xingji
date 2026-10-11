@@ -80,7 +80,7 @@ async function _readStoreData(name){
       }
       out.push(r);
     }
-    if(skipped)try{showToast(skipped+' 本超过 8MB 的书未写入备份');}catch(e){}
+    if(skipped)try{showToast(skipped+' 本超过 8MB 的书未写入备份，可在书架页单独导出');}catch(e){}
     return out;
   }
   return await dbGetAll(name);

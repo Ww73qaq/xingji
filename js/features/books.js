@@ -1,14 +1,22 @@
 /* =========================================================
-   星迹 · 本地阅读书架（TXT + PDF，v3.9.0）
+   星迹 · 本地阅读书架（TXT + PDF，v3.10.0）
    - 书的文件本体（Blob）存入 IndexedDB `books` store（db.js v5 已就绪，勿改 db）
-   - TXT：UTF-8 / GBK(GB18030) 自动探测 + 手动切换；分段插入防卡顿
+   - TXT：UTF-8 / GBK(GB18030) 自动探测 + 手动切换
          v3.9.0：翻页模式（CSS 分栏分页，覆盖/滑动/无动画三种翻页动画）
                  + 原滚动模式保留；点按左/中/右分区；阅读菜单（章节/进度条/目录/界面）
                  + 设置面板（字号/字距/行距/段距/边距/缩进/背景/动画/编码）
                  + 章节目录探测（第X章/卷/回 等正则）
                  + 进度统一存字符偏移比例 fraction，翻页/滚动互通、跨机型不丢
-   - PDF：PDF.js 按需渲染当前页，不一次渲染全部
-   - 进度：TXT 存 fraction（字符偏移比例），PDF 存页码 page；自动防抖保存
+         v3.10.0：分块虚拟分页——全书不再整本挂 DOM，段落按 BK_CHUNK_PARAS 切块，
+                 multicol 容器里永远只有当前块；页映射由后台测量器逐块量出
+                 （离屏同规格容器），并缓存进书籍记录（rec.pageCache，按排版参数
+                 + 视口尺寸做 key，换字号/旋转屏自动失效重测）。滚动模式同样只挂
+                 邻近 2~3 块（无限滚动 + 顶部裁剪补偿）。20MB 大书与 2MB 一个体验。
+   - PDF：v3.10.0 重做，对标 WPS 阅读器：连续滚动 + 页虚拟化（可见页前后各留缓冲，
+                 离屏销毁 canvas）+ 双指捏合缩放沙盒（实时 transform，松手重排重渲染
+                 并锚定捏合中心）+ 适应宽度重置 + PDF 书签目录 + 夜间模式（反色滤镜）；
+                 点按分区/菜单/页脚样式与 TXT 阅读统一。
+   - 进度：TXT 存 fraction（字符偏移比例），PDF 存页码 page + 缩放倍率 scale；自动防抖保存
    - 阅读偏好存 localStorage `xingji-book-settings`
    仅本文件 + index.html 引入，不改其他逻辑文件；传统脚本，函数声明即挂全局。
    ========================================================= */
@@ -37,6 +45,7 @@ let _bkRelayoutTimer = null;
 let _bkStyleInjected = false;
 const BK_SETTINGS_KEY = 'xingji-book-settings';
 const BK_COL_GAP = 48;          // 分栏分页的栏间距（翻页步长 = 页宽 + 48）
+const BK_CHUNK_PARAS = 700;     // v3.10.0 分块虚拟分页：每块段落数（约 1.5~2.5 万字/块）
 const BK_CHAPTER_RE = /^\s*(第\s*[0-9〇零一二两三四五六七八九十百千万]+\s*[章节卷回部集幕]|序\s*章|序言|楔子|前言|后记|尾声|终\s*章|番外)/;
 
 /* ---------- 阅读偏好（localStorage 全局） ---------- */
@@ -44,7 +53,7 @@ function bkLoadSettings() {
   const def = {
     fontSize: 19, lineHeight: 1.9, paraSpacing: 0.55, letterSpacing: 0,
     indent: true, margin: 20,
-    bg: 'paper', mode: 'page', anim: 'cover', scale: 1.1   // scale 供 PDF 用
+    bg: 'paper', mode: 'page', anim: 'cover', scale: 1   // scale：PDF 相对「适应宽度」的倍率（v3.10.0 语义）
   };
   try {
     const raw = JSON.parse(localStorage.getItem(BK_SETTINGS_KEY) || '{}');
@@ -80,14 +89,23 @@ function bkInjectStyle() {
   .bk-reader-scroll{flex:1;overflow:auto;-webkit-overflow-scrolling:touch}
   .bk-txt-text{max-width:720px;margin:0 auto}
   .bk-p{margin:0 0 .55em;white-space:pre-wrap;word-break:break-word;overflow-wrap:break-word}
-  .bk-pdf-wrap{min-height:100%;display:flex;align-items:flex-start;justify-content:center;padding:14px}
-  .bk-pdf-canvas{box-shadow:0 3px 14px rgba(0,0,0,.18);background:#fff;border-radius:2px}
+  /* ===== PDF 阅读舞台（v3.10.0 重做：连续滚动 + 页虚拟化 + 缩放沙盒） ===== */
+  .bk-pdf-scroll{position:absolute;inset:0;overflow:auto;-webkit-overflow-scrolling:touch;touch-action:pan-x pan-y}
+  .bk-pdf-flow{position:relative;margin:0 auto}
+  .bk-pdf-page{position:relative;margin:10px auto;background:#fff;box-shadow:0 3px 14px rgba(0,0,0,.18);border-radius:2px;overflow:hidden}
+  .bk-pdf-page canvas{display:block;width:100%;height:100%}
+  .bk-pdf-page .bk-pdf-loading{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#c9c2b4;font-size:12px}
+  /* 夜间模式：反色滤镜（白底 PDF 变暗底亮字），只作用于页面画布 */
+  .bk-night .bk-pdf-page{background:#1f2024;box-shadow:0 3px 14px rgba(0,0,0,.5)}
+  .bk-night .bk-pdf-page canvas{filter:invert(.92) hue-rotate(180deg)}
+  .bk-night .bk-pdf-page .bk-pdf-loading{color:#6d6a62}
   .bk-shelf{display:grid;grid-template-columns:repeat(3,1fr);gap:16px 12px;padding:4px 2px}
   .bk-card{cursor:pointer;position:relative}
   .bk-cover{position:relative;width:100%;aspect-ratio:3/4;border-radius:9px;overflow:hidden;box-shadow:0 3px 10px rgba(80,60,30,.14);background:#ece7db;display:flex;align-items:center;justify-content:center}
   .bk-cover img{width:100%;height:100%;object-fit:cover;display:block}
   .bk-no-cover{color:#b3a98f}
   .bk-del{position:absolute;top:5px;right:5px;width:24px;height:24px;border-radius:50%;background:rgba(0,0,0,.32);color:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer}
+  .bk-exp{position:absolute;top:5px;left:5px;width:24px;height:24px;border-radius:50%;background:rgba(0,0,0,.32);color:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer}
   .bk-name{font-size:12px;margin-top:7px;color:var(--text,#1a1a1a);line-height:1.3;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
   .bk-prog{font-size:11px;color:var(--hint,#b8b8b8);margin-top:2px}
 
@@ -170,6 +188,9 @@ async function bkOnFiles(e) {
     catch (err) { console.error('导入失败', f.name, err); }
   }
   showToast(ok ? '已导入 ' + ok + ' 本' : '导入失败，请重试');
+  /* v3.10.0：大书不进总备份（base64 会撑爆备份文件），提醒走书架单独导出 */
+  const big = files.filter(f => f.size > 8 * 1024 * 1024).length;
+  if (big) setTimeout(() => showToast('其中 ' + big + ' 本超过 8MB：不随总备份走，可在书架页点封面左上角导出按钮单独备份'), 2600);
   renderBookshelf();
 }
 
@@ -310,11 +331,30 @@ async function renderBookshelf() {
           ? `<img src="${rec.thumb}" alt="">`
           : `<span class="bk-no-cover">${ICO.book}</span>`}
         <div class="bk-del" title="删除" onclick="event.stopPropagation();bkDeleteBook(${rec.id})">${ICO_DEL}</div>
+        <div class="bk-exp" title="导出原文件" onclick="event.stopPropagation();bkExportBook(${rec.id})"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11"/><path d="M7 10l5 5 5-5"/><path d="M4 19h16"/></svg></div>
       </div>
       <div class="bk-name">${esc(rec.name)}</div>
-      <div class="bk-prog">${bkProgressText(rec)}</div>
+      <div class="bk-prog">${[bkFmtSize(rec.size), bkProgressText(rec)].filter(Boolean).join(' · ')}</div>
     </div>`).join('');
   body.innerHTML = `<div class="bk-shelf">${cards}</div>`;
+}
+
+/* 字节数 → 展示体积（书卡用；size 缺失时返回空串不占位） */
+function bkFmtSize(n) {
+  if (typeof n !== 'number' || n <= 0) return '';
+  if (n >= 1024 * 1024) return (n / 1048576).toFixed(1) + 'MB';
+  if (n >= 1024) return Math.round(n / 1024) + 'KB';
+  return n + 'B';
+}
+
+/* 单本导出：原文件 Blob 原样下载/分享（v3.10.0，大书不进总备份的替代通道） */
+function bkExportBook(id) {
+  dbGet('books', id).then(rec => {
+    if (!rec || !rec.blob) { showToast('书不存在或文件已丢失'); return; }
+    const ext = rec.type === 'pdf' || /pdf/i.test(rec.mime || '') ? '.pdf' : '.txt';
+    const name = (rec.name || 'book') + ext;
+    confirmDownload(name, async () => ({ blob: rec.blob, name }));
+  }).catch(() => showToast('导出失败，请重试'));
 }
 
 function bkProgressText(rec) {
@@ -356,6 +396,8 @@ function bkTeardownSession() {
     /* bkSaveProgress 在首个 await 前就同步取走了 _bk，因此先调用再置空也能正常写入 */
     if (s.rec) { try { bkSaveProgress(); } catch (e) {} }
     bkCancelPageAnim();
+    bkStopMapper();                          // v3.10.0：停掉后台测量器
+    clearTimeout(_bkMapSaveT); _bkMapSaveT = null;
     try { if (s.pdfDoc && s.pdfDoc.destroy) s.pdfDoc.destroy().catch(function () {}); } catch (e) {}
     s.pdfDoc = null;
     s.buffer = null;
@@ -363,6 +405,7 @@ function bkTeardownSession() {
     s.paras = null;
     s._pageParas = null;
   }
+  _bkPinchActive = false;
   clearTimeout(_bkSaveTimer);
   clearTimeout(_bkRelayoutTimer);
   _bk = null;
@@ -394,7 +437,14 @@ async function openBook(id) {
     /* TXT 翻页相关 */
     lines: null, paras: null, chapters: null,
     pageIndex: 0, txtPages: 0, pageChars: null,
-    animLock: false
+    animLock: false,
+    /* v3.10.0 分块虚拟分页 */
+    chunkSize: BK_CHUNK_PARAS,
+    blockMap: null,        // 每块 {chars:[各页首字符], pages:n}，null=未量
+    curChunk: -1, curLocal: 0, curChar: 0,
+    mountSeq: 0, mapSeq: 0, mapAllDone: false,
+    _pageParas: null, _prevPageParas: null, _pageUnit: 0, _padLeft: 0,
+    scrollFirst: -1, scrollLast: -1
   };
 
   const body = document.getElementById('books-body');
@@ -414,31 +464,76 @@ async function bkOpenTxt(body) {
   try { s.buffer = await s.rec.blob.arrayBuffer(); } catch (e) {}
   if (_bk !== s) return;                                 // 读取期间已被另一次打开接管
   s.text = decodeBookText(s.buffer, s.encoding);
-
-  /* 预切行 + 章节探测（字符偏移统一以「行 + \n」累计，与渲染解耦） */
-  s.lines = (s.text || '').split(/\r?\n/);
-  let off = 0;
-  s.paras = s.lines.map(t => {
-    const o = { text: t, charStart: off };
-    off += t.length + 1;
-    return o;
-  });
-  s.totalChars = Math.max(1, off);
-  s.chapters = [];
-  s.lines.forEach((t, i) => {
-    if (t.trim() && BK_CHAPTER_RE.test(t)) s.chapters.push({ title: t.trim().slice(0, 40), charStart: s.paras[i].charStart, paraIndex: i });
-  });
+  bkBuildParas();
+  /* v3.10.0 内存止血：分段完成后正文只需要 paras 里那一份字符串引用，
+     buffer / text / lines 三份大引用立刻松手（重编码时按需从 blob 重读，见 bkEnsureBuffer）。
+     20MB 书这一下少占 30~40MB 堆内存。 */
+  s.buffer = null; s.text = null; s.lines = null;
 
   body.innerHTML = `<div class="bk-stage" id="bk-stage"></div>`;
   bkBindResize();
   bkBuildTxtReader();
 }
 
-/* 按当前模式搭建阅读区（切模式时重建） */
+/* 从 s.text 建段落索引 + 章节探测（打开与重编码共用；字符偏移以「行 + \n」累计，与渲染解耦） */
+function bkBuildParas() {
+  const s = _bk;
+  let off = 0;
+  s.paras = (s.text || '').split(/\r?\n/).map(t => {
+    const o = { text: t, charStart: off };
+    off += t.length + 1;
+    return o;
+  });
+  s.totalChars = Math.max(1, off);
+  s.chapters = [];
+  for (let i = 0; i < s.paras.length; i++) {
+    const t = s.paras[i].text;
+    if (t.trim() && BK_CHAPTER_RE.test(t)) s.chapters.push({ title: t.trim().slice(0, 40), charStart: s.paras[i].charStart, paraIndex: i });
+  }
+}
+
+/* 重编码时需要整本字节：buffer 在打开后被止血释放，这里按需从 blob 重读 */
+async function bkEnsureBuffer() {
+  const s = _bk; if (!s) return null;
+  if (!s.buffer) { try { s.buffer = await s.rec.blob.arrayBuffer(); } catch (e) {} }
+  return s.buffer;
+}
+
+/* ---------- 分块虚拟分页：块几何工具 ---------- */
+function bkChunkCount() {
+  const s = _bk; if (!s || !s.paras) return 0;
+  return Math.max(1, Math.ceil(s.paras.length / s.chunkSize));
+}
+function bkChunkParaRange(b) {
+  const s = _bk;
+  const a = b * s.chunkSize;
+  return [a, Math.min((b + 1) * s.chunkSize, s.paras.length)];
+}
+/* 第 b 块覆盖的字符数（下一块起点 − 本块起点） */
+function bkChunkChars(b) {
+  const s = _bk;
+  const start = s.paras[b * s.chunkSize] ? s.paras[b * s.chunkSize].charStart : s.totalChars;
+  const nextStart = (b + 1) * s.chunkSize < s.paras.length ? s.paras[(b + 1) * s.chunkSize].charStart : s.totalChars;
+  return Math.max(1, nextStart - start);
+}
+function bkChunkOfChar(charPos) {
+  const s = _bk; if (!s || !s.paras || !s.paras.length) return 0;
+  let lo = 0, hi = s.paras.length - 1, ans = 0;
+  while (lo <= hi) {
+    const mid = (lo + hi) >> 1;
+    if (s.paras[mid].charStart <= charPos) { ans = mid; lo = mid + 1; }
+    else hi = mid - 1;
+  }
+  return Math.min(bkChunkCount() - 1, Math.floor(ans / s.chunkSize));
+}
+
+/* 按当前模式搭建阅读区（切模式/改编码/旋转后重建）。
+   v3.10.0：两种模式都只挂「当前块附近」的段落，不再整本进 DOM。 */
 function bkBuildTxtReader() {
   const s = _bk; if (!s || s.type !== 'txt') return;
   const stage = document.getElementById('bk-stage');
   if (!stage) return;
+  bkHideMenu();
 
   if (s.settings.mode === 'page') {
     stage.innerHTML = `
@@ -447,78 +542,72 @@ function bkBuildTxtReader() {
       ${bkMenuHTML()}
     `;
     bkApplyTxtStyle();
-    bkRenderParas(document.getElementById('bk-pageflow'), () => bkLayoutPages());
+    bkMapHydrate();                                     // 命中缓存则页映射直接可用
+    const target = (s.fraction || 0) * s.totalChars;
+    s._jumpNoAnim = true;
+    bkMountChunk(bkChunkOfChar(target), target);
+    s._jumpNoAnim = false;
+    bkStartMapper();                                    // 后台把其余块量完（写缓存）
   } else {
     stage.innerHTML = `
       <div class="bk-reader-scroll" id="bk-txt-scroll"><div class="bk-txt-text" id="bk-txt-text"></div></div>
       ${bkMenuHTML()}
     `;
     bkApplyTxtStyle();
-    bkRenderParas(document.getElementById('bk-txt-text'), () => bkRestoreTxtScroll());
-    const sc = document.getElementById('bk-txt-scroll');
-    sc.onscroll = () => {
-      const max = sc.scrollHeight - sc.clientHeight;
-      s.fraction = max > 0 ? sc.scrollTop / max : 0;
-      bkUpdateMenuSlider();
-      clearTimeout(_bkSaveTimer);
-      _bkSaveTimer = setTimeout(bkSaveProgress, 500);
-    };
+    bkBuildScrollReader((s.fraction || 0) * s.totalChars);
   }
-  bkHideMenu();
 }
 
-/* 段落渲染（分段插入防超大文本卡顿；每段记录 charStart 供翻页/目录/进度换算） */
-function bkRenderParas(host, done) {
-  if (!host) return;
-  host.innerHTML = '';
+/* 把第 b 块段落插到 host（末尾或 insertBefore 之前）；块 ≤ BK_CHUNK_PARAS 段，一次 fragment 插入无卡顿 */
+function bkFillChunk(host, b, insertBefore) {
+  const s = _bk; if (!host) return;
+  const [a, z] = bkChunkParaRange(b);
+  const frag = document.createDocumentFragment();
+  for (let i = a; i < z; i++) {
+    const p = document.createElement('p');
+    p.className = 'bk-p' + (BK_CHAPTER_RE.test(s.paras[i].text) ? ' bk-h' : '');
+    p.textContent = s.paras[i].text.length ? s.paras[i].text : ' ';   // 空行占一行
+    p._charStart = s.paras[i].charStart;
+    frag.appendChild(p);
+  }
+  if (insertBefore) host.insertBefore(frag, insertBefore);
+  else host.appendChild(frag);
+}
+
+/* ---------- 翻页模式：分块虚拟分页（v3.10.0） ---------- */
+/* 设定 multicol 容器规格（与阅读流/离屏测量器共用）。沿用 v3.9.1 的口径：
+   分栏宽度 = 内容区宽（扣左右边距），翻页步长以浏览器实测为准。 */
+function bkPrepareFlow(flow) {
   const s = _bk;
-  const set = s.settings;
-  const CHUNK = 1500;
-  let i = 0;
-  (function step() {
-    if (!_bk || _bk.type !== 'txt' || !host.isConnected) return;
-    const frag = document.createDocumentFragment();
-    const end = Math.min(i + CHUNK, s.paras.length);
-    for (; i < end; i++) {
-      const p = document.createElement('p');
-      p.className = 'bk-p' + (BK_CHAPTER_RE.test(s.paras[i].text) ? ' bk-h' : '');
-      p.textContent = s.paras[i].text.length ? s.paras[i].text : ' ';   // 空行占一行
-      p._charStart = s.paras[i].charStart;
-      frag.appendChild(p);
-    }
-    host.appendChild(frag);
-    if (i < s.paras.length) { requestAnimationFrame(step); }
-    else { requestAnimationFrame(done); }
-  })();
-}
-
-/* ---------- 翻页模式：分栏分页 ---------- */
-function bkLayoutPages() {
-  const s = _bk; if (!s || s.type !== 'txt') return;
   const stage = document.getElementById('bk-stage');
-  const flow = document.getElementById('bk-pageflow');
-  if (!stage || !flow) return;
-  /* 重排会抢占进行中的翻页动画：先作废旧动画回调并清掉克隆层（v3.9.4） */
-  bkCancelPageAnim();
-
   const W = stage.clientWidth, H = stage.clientHeight;
-  /* 隐藏中的阅读页（上滑回桌面/系统返回后 _bk 仍在）尺寸为 0：此时分页会把 fraction 算成 0
-     并防抖写回库，等于抹掉阅读进度。直接跳过（v3.9.4 修）。 */
-  if (!W || !H) return;
   flow.style.boxSizing = 'border-box';
   flow.style.width = W + 'px';
   flow.style.height = H + 'px';
-  /* 分栏宽度 = 内容区宽（扣除左右边距），翻页步长以浏览器实际列间距实测为准 */
   const cs = getComputedStyle(flow);
   const cw = Math.max(120, W - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight));
   flow.style.columnWidth = cw + 'px';
   flow.style.columnGap = BK_COL_GAP + 'px';
   flow.style.transform = 'translateX(0)';
+  return cs;
+}
 
-  /* 步长基准 = 内容区宽 + 栏间距（精确浮点，offsetLeft 是取整整数，直接拿它当步长会逐页累积误差）。
-     实测校验只能用「相邻两段 offsetLeft 的最小正差值」：
-     绝不能拿 kids[0] 当基准 —— 首段跨多栏时（如整本书第一行就是超长段落）该差值会被放大成整数倍，
-     v3.9.3 实测就被算成 1632 = 4×408，导致总页数 55→16、翻页跳字、进度错乱（v3.9.4 修）。 */
+function bkChunkEndChar(b) {
+  const s = _bk;
+  const p = s.paras[b * s.chunkSize];
+  const start = p ? p.charStart : s.totalChars;
+  return Math.min(s.totalChars, start + bkChunkChars(b));
+}
+
+/* 量一个已装填、已定规格的 multicol 容器：逐页首字符 + 页数 + 步长 + 页段落引用。
+   与 v3.9.x 整本量法同一套不变量，只是作用域从「整本」缩到「当前块」：
+   - 步长基准 = 内容区宽 + 栏间距（精确浮点）；实测校验取「相邻两段 offsetLeft 的最小正差值」，
+     绝不能拿首段当基准 —— 首段跨多栏时差值会被放大成整数倍（v3.9.4 修）；
+   - 总页数由段落实测列号推导（WebKit 的 scrollWidth 不含 multicol 溢出宽度，不可用，v3.9.2 修）；
+   - 无段落开头的页（长段落跨页）线性插值 + 尾部外推到块末字符，进度不出现 0%/断链（v3.9.4/##150）。 */
+function bkMeasureFlow(flow, endChar) {
+  const cs = getComputedStyle(flow);
+  const cw = Math.max(120, flow.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight));
   let period = cw + BK_COL_GAP;
   const kids = flow.children;
   let measured = 0;
@@ -526,73 +615,185 @@ function bkLayoutPages() {
     const d = kids[k].offsetLeft - kids[k - 1].offsetLeft;
     if (d > cw * 0.5 && (!measured || d < measured)) measured = d;
   }
-  /* 仅当实测明显小于基准（≥2px，排除整数舍入噪声）才采信实测：
-     用于兜底极窄窗口下栏宽被钳制、理论值与浏览器实际列宽不一致的情况。 */
   if (measured > 0 && measured < period - 2) period = measured;
-  s._pageUnit = period;
-  s._padLeft = parseFloat(cs.paddingLeft) || 0;
+  const padLeft = parseFloat(cs.paddingLeft) || 0;
 
-  const unit = period;
-  /* 总页数由段落实测列号推导（WebKit 的 scrollWidth 不含 multicol 溢出宽度，不可用） */
   let maxPg = 0;
-  for (const p of flow.children) {
-    const pg = Math.round((p.offsetLeft - s._padLeft) / unit);
+  for (const p of kids) {
+    const pg = Math.round((p.offsetLeft - padLeft) / period);
     if (pg > maxPg) maxPg = pg;
   }
-  const totalMap = maxPg + 1;
-  const totalSW = Math.round((flow.scrollWidth - s._padLeft) / unit);
-  const total = Math.max(1, totalMap, totalSW || 0);
-  s.txtPages = total;
-  s.pageChars = new Array(total).fill(-1);
-  s._pageParas = new Array(total);   // 每页的段落实引用（动画克隆用）
-  for (const p of flow.children) {
-    const pg = Math.max(0, Math.round((p.offsetLeft - s._padLeft) / unit));
-    if (pg >= 0 && pg < total) {
-      if (s.pageChars[pg] < 0) s.pageChars[pg] = p._charStart;
-      (s._pageParas[pg] || (s._pageParas[pg] = [])).push(p);
+  const totalSW = Math.round((flow.scrollWidth - padLeft) / period);
+  const total = Math.max(1, maxPg + 1, totalSW || 0);
+  const chars = new Array(total).fill(-1);
+  const pageParas = new Array(total);
+  for (const p of kids) {
+    const pg = Math.max(0, Math.round((p.offsetLeft - padLeft) / period));
+    if (pg < total) {
+      if (chars[pg] < 0) chars[pg] = p._charStart;
+      (pageParas[pg] || (pageParas[pg] = [])).push(p);
     }
   }
-  /* 页间无段落开头的页（长段落跨页）线性插值字符偏移，避免进度显示 0% */
   let lastPg = -1, lastChar = 0;
   for (let i = 0; i < total; i++) {
-    if (s.pageChars[i] >= 0) {
+    if (chars[i] >= 0) {
       if (lastPg >= 0 && i - lastPg > 1) {
         for (let j = lastPg + 1; j < i; j++) {
-          s.pageChars[j] = Math.round(lastChar + (s.pageChars[i] - lastChar) * (j - lastPg) / (i - lastPg));
+          chars[j] = Math.round(lastChar + (chars[i] - lastChar) * (j - lastPg) / (i - lastPg));
         }
       }
-      lastPg = i; lastChar = s.pageChars[i];
+      lastPg = i; lastChar = chars[i];
     }
   }
   if (lastPg >= 0 && lastPg < total - 1) {
     for (let j = lastPg + 1; j < total; j++) {
-      s.pageChars[j] = Math.round(lastChar + (s.totalChars - lastChar) * (j - lastPg) / (total - 1 - lastPg));
+      chars[j] = Math.round(lastChar + (endChar - lastChar) * (j - lastPg) / (total - 1 - lastPg));
     }
   }
   let last = 0;
   for (let i = 0; i < total; i++) {
-    if (s.pageChars[i] < 0) s.pageChars[i] = last;
-    else last = s.pageChars[i];
+    if (chars[i] < 0) chars[i] = last;
+    else last = chars[i];
   }
-
-  /* 按字符比例恢复进度 */
-  const target = (s.fraction || 0) * s.totalChars;
-  let pg = bkPageByChar(target);
-  s._jumpNoAnim = true;
-  bkGoPage(pg);
-  s._jumpNoAnim = false;
+  return { chars, pages: total, unit: period, padLeft, pageParas };
 }
 
-function bkPageByChar(charPos) {
-  const s = _bk;
-  const arr = s.pageChars || [0];
-  let lo = 0, hi = arr.length - 1, ans = 0;
-  while (lo <= hi) {
-    const mid = (lo + hi) >> 1;
-    if (arr[mid] <= charPos) { ans = mid; lo = mid + 1; }
-    else hi = mid - 1;
+/* 挂载第 b 块并定位到 targetChar 所在页。同步完成（一次 fragment 插入 + 一次重排）。
+   隐藏页守卫沿用 v3.9.4：舞台尺寸为 0（上滑回桌面/系统返回后）直接返回，绝不把进度写成 0。 */
+function bkMountChunk(b, targetChar) {
+  const s = _bk; if (!s || s.type !== 'txt') return;
+  const stage = document.getElementById('bk-stage');
+  const flow = document.getElementById('bk-pageflow');
+  if (!stage || !flow) return;
+  if (!stage.clientWidth || !stage.clientHeight) return;
+  bkCancelPageAnim();
+  b = Math.max(0, Math.min(bkChunkCount() - 1, b));
+  if (s.curChunk !== b) {
+    s._prevPageParas = (s._pageParas && s._pageParas[s.curLocal]) || null;   // 跨块动画的旧页快照
+    flow.innerHTML = '';
+    bkFillChunk(flow, b);
+    s.curChunk = b;
+    s._pageParas = null;
   }
-  return ans;
+  bkApplyTxtStyleTo(flow);
+  bkPrepareFlow(flow);
+  const m = bkMeasureFlow(flow, bkChunkEndChar(b));
+  s._pageUnit = m.unit; s._padLeft = m.padLeft; s._pageParas = m.pageParas;
+  s.blockMap = s.blockMap || [];
+  s.blockMap[b] = { chars: m.chars, pages: m.pages };
+
+  let local = 0;
+  for (let i = 0; i < m.chars.length; i++) { if (m.chars[i] <= targetChar) local = i; else break; }
+  s.curLocal = local;
+  s.curChar = m.chars[local] != null ? m.chars[local] : targetChar;
+  flow.style.transition = 'none';
+  flow.style.transform = 'translateX(' + (-local * s._pageUnit) + 'px)';
+  bkUpdatePageFoot();
+  bkUpdateMenuSlider();
+}
+
+/* ---------- 后台测量器：逐块量页映射（离屏同规格容器，不碰阅读流；块间让帧，交互优先） ---------- */
+function bkStartMapper() {
+  const s = _bk; if (!s || s.type !== 'txt' || s.mapAllDone) return;
+  const stage = document.getElementById('bk-stage'); if (!stage) return;
+  const seq = ++s.mapSeq;
+  let holder = document.getElementById('bk-measure');
+  if (!holder) {
+    holder = document.createElement('div');
+    holder.id = 'bk-measure';
+    holder.style.cssText = 'position:absolute;left:-99999px;top:0;width:100%;height:100%;visibility:hidden;pointer-events:none;overflow:hidden';
+    stage.appendChild(holder);
+  }
+  const flow = document.createElement('div');
+  flow.className = 'bk-flow bk-paged';
+  holder.appendChild(flow);
+
+  (async () => {
+    const n = bkChunkCount();
+    for (let b = 0; b < n; b++) {
+      if (seq !== s.mapSeq || _bk !== s) { holder.remove(); return; }
+      if (s.blockMap && s.blockMap[b]) continue;
+      await new Promise(r => requestAnimationFrame(r));
+      if (seq !== s.mapSeq || _bk !== s || s.type !== 'txt') { holder.remove(); return; }
+      flow.innerHTML = '';
+      bkFillChunk(flow, b);
+      bkApplyTxtStyleTo(flow);
+      bkPrepareFlow(flow);
+      const m = bkMeasureFlow(flow, bkChunkEndChar(b));
+      if (seq !== s.mapSeq || _bk !== s) { holder.remove(); return; }
+      s.blockMap = s.blockMap || [];
+      s.blockMap[b] = { chars: m.chars, pages: m.pages };
+      bkMapSaveDebounce();
+      bkUpdatePageFoot();     // 总页数估计随测量进度收敛
+    }
+    s.mapAllDone = true;
+    holder.remove();
+    bkMapSave();
+    bkUpdatePageFoot();
+  })();
+}
+
+function bkStopMapper() {
+  const s = _bk; if (!s) return;
+  s.mapSeq++;
+  const holder = document.getElementById('bk-measure');
+  if (holder) holder.remove();
+}
+
+/* ---------- 页映射缓存（存 rec.pageCache；key = 排版参数 + 视口 + 文件规模，变了自动失效） ---------- */
+function bkMapKey() {
+  const s = _bk;
+  const stage = document.getElementById('bk-stage');
+  return ['v1', s.chunkSize, s.encoding, s.settings.fontSize, s.settings.lineHeight, s.settings.letterSpacing,
+    s.settings.paraSpacing, s.settings.margin, s.settings.indent ? 1 : 0, BK_COL_GAP,
+    stage ? stage.clientWidth : 0, stage ? stage.clientHeight : 0, s.rec.size || 0].join('|');
+}
+let _bkMapSaveT = null;
+function bkMapSaveDebounce() {
+  clearTimeout(_bkMapSaveT);
+  _bkMapSaveT = setTimeout(bkMapSave, 3000);
+}
+function bkMapSave() {
+  const s = _bk; if (!s || !s.blockMap || s.type !== 'txt') return;
+  clearTimeout(_bkMapSaveT); _bkMapSaveT = null;
+  s.rec.pageCache = { k: bkMapKey(), size: s.chunkSize, blocks: s.blockMap.map(m => m ? { c: m.chars, p: m.pages } : null) };
+  try { dbPut('books', s.rec).catch(() => {}); } catch (e) {}
+}
+function bkMapHydrate() {
+  const s = _bk;
+  const pc = s.rec && s.rec.pageCache;
+  if (!pc || pc.size !== s.chunkSize || pc.k !== bkMapKey() || !pc.blocks || !pc.blocks.length) return false;
+  s.blockMap = pc.blocks.map(x => x ? { chars: x.c, pages: x.p } : null);
+  s.mapAllDone = s.blockMap.every(Boolean);
+  return true;
+}
+function bkInvalidateMap() {
+  const s = _bk; if (!s) return;
+  bkStopMapper();
+  s.blockMap = null; s.mapAllDone = false;
+}
+
+/* 当前页的全局展示页号（x/y）：已量块用实测，未量块按「平均每字符页数」估计，量完即精确 */
+function bkPageLabel() {
+  const s = _bk;
+  const n = bkChunkCount();
+  let mPages = 0, mChars = 0;
+  for (let b = 0; b < n; b++) {
+    const m = s.blockMap && s.blockMap[b];
+    if (m) { mPages += m.pages; mChars += bkChunkChars(b); }
+  }
+  const perChar = mChars > 0 ? mPages / mChars : 0;
+  const est = b => perChar > 0
+    ? Math.max(1, Math.round(bkChunkChars(b) * perChar))
+    : Math.max(1, Math.ceil(bkChunkChars(b) / 1200));
+  let before = 0, total = 0;
+  for (let b = 0; b < n; b++) {
+    const m = s.blockMap && s.blockMap[b];
+    const p = m ? m.pages : est(b);
+    if (b < s.curChunk) before += p;
+    total += p;
+  }
+  return { x: before + s.curLocal + 1, y: total, exact: !!(s.blockMap && n > 0 && s.blockMap.length === n && s.blockMap.every(Boolean)) };
 }
 
 /* 作废进行中的翻页动画：递增动画序号让旧 finish 回调失效，并清掉克隆层、解锁输入。
@@ -609,15 +810,19 @@ function bkCancelPageAnim() {
   s.animLock = false;
 }
 
-function bkGoPage(pg) {
+/* ---------- 翻页：块内动画 / 跨块换装（v3.10.0） ---------- */
+/* 块内翻到 local 页：基座仍是旧页，动画结束才提交位移（v3.9.3 克隆页面层方案原样保留） */
+function bkTurnTo(local, dir) {
   const s = _bk; if (!s || s.type !== 'txt') return;
   const flow = document.getElementById('bk-pageflow');
-  if (!flow || !s.txtPages) return;
-  pg = Math.max(0, Math.min(s.txtPages - 1, pg));
-  const prev = s.pageIndex;
-  const dir = pg >= prev ? 1 : -1;
-  s.pageIndex = pg;
-  s.fraction = (s.pageChars[pg] || 0) / s.totalChars;
+  const blk = s.blockMap && s.blockMap[s.curChunk];
+  if (!flow || !blk) return;
+  local = Math.max(0, Math.min(blk.pages - 1, local));
+  const prev = s.curLocal;
+  if (local === prev) return;
+  s.curLocal = local;
+  s.curChar = blk.chars[local] != null ? blk.chars[local] : s.curChar;
+  s.fraction = Math.min(1, Math.max(0, s.curChar / s.totalChars));
   bkUpdatePageFoot();
   bkUpdateMenuSlider();
   clearTimeout(_bkSaveTimer);
@@ -625,25 +830,25 @@ function bkGoPage(pg) {
 
   const anim = s.settings.anim || 'cover';
   const stage = document.getElementById('bk-stage');
-  const unit = s._pageUnit || (stage.clientWidth + BK_COL_GAP);   // 必须用 bkLayoutPages 实测的步长，否则翻页累积偏移
+  const unit = s._pageUnit || (stage.clientWidth + BK_COL_GAP);   // 必须用 bkMountChunk 实测的步长，否则翻页累积偏移
 
-  if (s._jumpNoAnim || anim === 'none' || pg === prev || !s._pageParas) {
+  if (s._jumpNoAnim || anim === 'none') {
     bkCancelPageAnim();                    // 直跳/无动画抢占动画，作废其回调，避免过期位移回写
     flow.style.transition = 'none';
-    flow.style.transform = 'translateX(' + (-pg * unit) + 'px)';
+    flow.style.transform = 'translateX(' + (-local * unit) + 'px)';
     return;
   }
+  if (s.animLock) return;
 
-  /* 克隆页面动画层：新页/旧页都带真实文字，动画中不再出现"空白页" */
   bkCancelPageAnim();                      // 兜底清掉任何残留动画层（正常路径由 animLock 挡住重入）
   s.animLock = true;
   const seq = s.animSeq = (s.animSeq || 0) + 1;   // 本次动画序号，被抢占后 finish 直接作废
-  const newOv = bkMakePageOverlay(pg);
+  const newOv = bkMakePageOverlay(local, null);
   let oldOv = null;
   const finish = () => {
     if (seq !== s.animSeq) return;         // 期间发生了重排/直跳：位移已由新的分页结果决定，不再回写
     flow.style.transition = 'none';
-    flow.style.transform = 'translateX(' + (-pg * unit) + 'px)';
+    flow.style.transform = 'translateX(' + (-local * unit) + 'px)';
     newOv.remove();
     if (oldOv) oldOv.remove();
     s.animLock = false;
@@ -651,7 +856,7 @@ function bkGoPage(pg) {
 
   if (anim === 'slide') {
     /* 滑动：旧页滑出 + 新页滑入，同步等速，中间无空隙 */
-    oldOv = bkMakePageOverlay(prev);
+    oldOv = bkMakePageOverlay(prev, null);
     oldOv.style.zIndex = '5';
     newOv.style.zIndex = '6';
     newOv.style.transform = 'translateX(' + (dir > 0 ? '100%' : '-100%') + ')';
@@ -672,24 +877,76 @@ function bkGoPage(pg) {
   setTimeout(finish, 330);
 }
 
-/* 克隆某一页的段落为一个全屏覆盖层（无段落开头的跨页用纯色兜底） */
-function bkMakePageOverlay(pg) {
+/* 跨块翻页：挂载新块后基座已换装，旧页只能靠快照克隆垫底，再让新页滑入 */
+function bkTurnChunk(b, dir) {
+  const s = _bk; if (!s || s.type !== 'txt') return;
+  if (b < 0 || b >= bkChunkCount()) return;
+  const wasNoAnim = !!s._jumpNoAnim;
+  const anim = s.settings.anim || 'cover';
+  const prevParas = (s._pageParas && s._pageParas[s.curLocal]) || null;
+  const targetChar = dir > 0
+    ? (s.paras[b * s.chunkSize] ? s.paras[b * s.chunkSize].charStart : s.totalChars)
+    : (s.totalChars - 1);                 // 反向：取块内最后一页
+  bkMountChunk(b, targetChar);
+  if (wasNoAnim || anim === 'none' || s.animLock) return;
+
+  const stage = document.getElementById('bk-stage');
+  if (!stage) return;
+  bkCancelPageAnim();
+  s.animLock = true;
+  const seq = s.animSeq = (s.animSeq || 0) + 1;
+  const newOv = bkMakePageOverlay(s.curLocal, null);
+  let oldOv = null, under = null;
+  const finish = () => {
+    if (seq !== s.animSeq) return;
+    newOv.remove();
+    if (oldOv) oldOv.remove();
+    if (under) under.remove();
+    s.animLock = false;
+  };
+  if (anim === 'slide') {
+    oldOv = bkMakePageOverlay(-1, prevParas);
+    oldOv.style.zIndex = '5';
+    newOv.style.zIndex = '6';
+    newOv.style.transform = 'translateX(' + (dir > 0 ? '100%' : '-100%') + ')';
+    void newOv.offsetWidth;
+    const trans = 'transform .3s ease';
+    oldOv.style.transition = trans; newOv.style.transition = trans;
+    oldOv.style.transform = 'translateX(' + (dir > 0 ? '-100%' : '100%') + ')';
+    newOv.style.transform = 'translateX(0)';
+  } else {
+    /* 覆盖：旧页快照全程垫底，新页从行进方向滑入盖住 */
+    under = bkMakePageOverlay(-1, prevParas);
+    under.style.zIndex = '5';
+    newOv.style.zIndex = '6';
+    newOv.style.transform = 'translateX(' + (dir > 0 ? '100%' : '-100%') + ')';
+    newOv.style.boxShadow = dir > 0 ? '-8px 0 20px rgba(0,0,0,.18)' : '8px 0 20px rgba(0,0,0,.18)';
+    void newOv.offsetWidth;
+    newOv.style.transition = 'transform .3s ease';
+    newOv.style.transform = 'translateX(0)';
+  }
+  setTimeout(finish, 330);
+}
+
+/* 克隆某一页的段落为一个全屏覆盖层（paras 传 null 取当前块第 pg 页；无段落时纯色兜底） */
+function bkMakePageOverlay(pg, paras) {
   const s = _bk;
   const stage = document.getElementById('bk-stage');
   const flow = document.getElementById('bk-pageflow');
-  const cs = getComputedStyle(flow);
+  if (!stage) return document.createElement('div');
+  const cs = flow ? getComputedStyle(flow) : null;
   const bg = (bkBgList()[s.settings.bg] || bkBgList().paper);
   const ov = document.createElement('div');
   ov.className = 'bk-pageov';               // 供 bkCancelPageAnim 统一清理
   ov.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;overflow:hidden;z-index:6;'
     + 'background:' + bg[0] + ';color:' + bg[1] + ';';
-  const paras = (s._pageParas || [])[pg];
-  if (paras && paras.length) {
+  const list = paras || ((s._pageParas || [])[pg]);
+  if (list && list.length && cs) {
     const inner = document.createElement('div');
     inner.style.cssText = 'height:100%;overflow:hidden;'
       + 'padding:' + cs.paddingTop + ' ' + cs.paddingRight + ' ' + cs.paddingBottom + ' ' + cs.paddingLeft + ';'
       + 'font-size:' + cs.fontSize + ';line-height:' + cs.lineHeight + ';letter-spacing:' + cs.letterSpacing + ';';
-    for (const p of paras) inner.appendChild(p.cloneNode(true));
+    for (const p of list) inner.appendChild(p.cloneNode(true));
     ov.appendChild(inner);
   }
   stage.appendChild(ov);
@@ -699,28 +956,58 @@ function bkMakePageOverlay(pg) {
 function bkNextPage() {
   const s = _bk;
   if (!s || s.type !== 'txt' || s.settings.mode !== 'page' || s.animLock) return;
-  if (s.pageIndex >= s.txtPages - 1) { showToast('已经是最后一页'); return; }
-  bkGoPage(s.pageIndex + 1);
+  const blk = s.blockMap && s.blockMap[s.curChunk];
+  if (!blk) return;
+  if (s.curLocal >= blk.pages - 1) {
+    if (s.curChunk >= bkChunkCount() - 1) { showToast('已经是最后一页'); return; }
+    bkTurnChunk(s.curChunk + 1, 1);
+    return;
+  }
+  bkTurnTo(s.curLocal + 1, 1);
 }
 function bkPrevPageTxt() {
   const s = _bk;
   if (!s || s.type !== 'txt' || s.settings.mode !== 'page' || s.animLock) return;
-  if (s.pageIndex <= 0) { showToast('已经是第一页'); return; }
-  bkGoPage(s.pageIndex - 1);
+  if (s.curLocal <= 0) {
+    if (s.curChunk <= 0) { showToast('已经是第一页'); return; }
+    bkTurnChunk(s.curChunk - 1, -1);
+    return;
+  }
+  bkTurnTo(s.curLocal - 1, -1);
 }
 
-/* 页脚：章节名 · x/y · 百分比 */
+/* 字符定位统一入口：滑条/目录/章节跳转/进度恢复全走这里（v3.10.0） */
+function bkSeekChar(charPos, noAnim) {
+  const s = _bk; if (!s || s.type !== 'txt') return;
+  charPos = Math.max(0, Math.min((s.totalChars || 1) - 1, charPos));
+  if (s.settings.mode !== 'page') { bkScrollSeek(charPos); return; }
+  const b = bkChunkOfChar(charPos);
+  if (b === s.curChunk && s.blockMap && s.blockMap[b]) {
+    const chars = s.blockMap[b].chars;
+    let local = 0;
+    for (let i = 0; i < chars.length; i++) { if (chars[i] <= charPos) local = i; else break; }
+    if (noAnim) s._jumpNoAnim = true;
+    bkTurnTo(local, local >= s.curLocal ? 1 : -1);
+    s._jumpNoAnim = false;
+  } else {
+    if (noAnim) s._jumpNoAnim = true;
+    bkMountChunk(b, charPos);
+    s._jumpNoAnim = false;
+  }
+}
+
+/* 页脚：章节名 · x/y · 百分比（x/y 由页映射合成，未量完的块按平均页密度估计）
+   百分比按页计算（长段落跨页时字符偏移会失真），尾页恰为 100% */
 function bkUpdatePageFoot() {
   const s = _bk;
   const foot = document.getElementById('bk-pagefoot');
-  if (!foot || !s || s.type !== 'txt') return;
-  const charNow = s.pageChars ? (s.pageChars[s.pageIndex] || 0) : 0;
-  const ch = bkChapterByChar(charNow);
-  /* 百分比按页计算（长段落跨页时字符偏移会失真），尾页恰为 100% */
-  const pct = s.txtPages > 1 ? (s.pageIndex / (s.txtPages - 1) * 100) : 100;
+  if (!foot || !s || s.type !== 'txt' || s.curChunk < 0) return;
+  const ch = bkChapterByChar(s.curChar || 0);
+  const L = bkPageLabel();
+  const pct = L.y > 1 ? ((L.x - 1) / (L.y - 1) * 100) : 100;
   const pctStr = (pct >= 99.95 ? 100 : pct).toFixed(1);
   foot.innerHTML = `<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:52%">${esc(ch ? ch.title : '')}</span>
-    <span>${s.pageIndex + 1}/${s.txtPages} · ${pctStr}%</span>`;
+    <span>${L.x}/${L.y} · ${pctStr}%</span>`;
   foot.style.color = (bkBgList()[s.settings.bg] || bkBgList().paper)[2];
 }
 
@@ -736,24 +1023,97 @@ function bkChapterByChar(charPos) {
   return ans;
 }
 
-/* ---------- 滚动模式恢复进度 ---------- */
-function bkRestoreTxtScroll() {
+/* ---------- 滚动模式：无限滚动 + 顶部裁剪（窗口里最多 3 块，v3.10.0 虚拟化） ---------- */
+function bkBuildScrollReader(targetChar) {
+  const s = _bk; if (!s || s.type !== 'txt') return;
   const sc = document.getElementById('bk-txt-scroll');
-  if (!sc || !_bk) return;
-  const target = (_bk.fraction || 0) * _bk.totalChars;
   const host = document.getElementById('bk-txt-text');
-  if (host && host.children.length) {
-    let el = host.children[0];
-    for (const p of host.children) {
-      if (p._charStart <= target) el = p; else break;
-    }
-    sc.scrollTop = el.offsetTop - 8;
-  } else {
-    sc.scrollTop = (_bk.fraction || 0) * (sc.scrollHeight - sc.clientHeight);
+  if (!sc || !host) return;
+  s.scrollFirst = s.scrollLast = -1;
+  const b0 = bkChunkOfChar(targetChar || 0);
+  bkScrollMount(b0);
+  let el = null;
+  for (const p of host.children) { if (p._charStart <= (targetChar || 0)) el = p; else break; }
+  sc.scrollTop = el ? Math.max(0, el.offsetTop - 8) : 0;
+  sc.onscroll = bkOnTxtScroll;
+  /* 初始窗口：目标块之后先垫一块，往下滚才有余量 */
+  if (s.scrollLast < bkChunkCount() - 1) bkScrollMount(s.scrollLast + 1);
+}
+function bkScrollMount(b) {
+  const s = _bk;
+  const host = document.getElementById('bk-txt-text');
+  if (!host || b < 0 || b >= bkChunkCount()) return;
+  if (s.scrollFirst < 0) s.scrollFirst = b;
+  bkFillChunk(host, b);
+  s.scrollLast = b;
+}
+function bkScrollPrepend(b) {
+  const s = _bk;
+  const host = document.getElementById('bk-txt-text');
+  const sc = document.getElementById('bk-txt-scroll');
+  if (!host || !sc || b < 0 || b >= bkChunkCount()) return;
+  const h0 = host.offsetHeight, top0 = sc.scrollTop;
+  bkFillChunk(host, b, host.firstChild);
+  s.scrollFirst = b;
+  sc.scrollTop = top0 + (host.offsetHeight - h0);   // 顶部插入后补偿，视觉不动
+}
+function bkScrollTrimTop() {
+  const s = _bk;
+  const sc = document.getElementById('bk-txt-scroll');
+  const host = document.getElementById('bk-txt-text');
+  if (!sc || !host || s.scrollLast - s.scrollFirst < 3) return;
+  const cnt = bkChunkParaRange(s.scrollFirst)[1] - bkChunkParaRange(s.scrollFirst)[0];
+  const kids = host.children;
+  if (kids.length <= cnt) return;
+  const delta = kids[cnt].offsetTop - kids[0].offsetTop;   // 第一块的流高度（含外边距）
+  if (sc.scrollTop < delta + 800) return;                   // 还没滚出第一块就不裁
+  for (let i = 0; i < cnt; i++) kids[0].remove();
+  s.scrollFirst++;
+  sc.scrollTop = Math.max(0, sc.scrollTop - delta);
+}
+function bkScrollTrimBottom() {
+  const s = _bk;
+  const host = document.getElementById('bk-txt-text');
+  if (!host || s.scrollLast - s.scrollFirst < 3) return;
+  const cnt = bkChunkParaRange(s.scrollLast)[1] - bkChunkParaRange(s.scrollLast)[0];
+  for (let i = 0; i < cnt; i++) { if (host.lastChild) host.lastChild.remove(); }
+  s.scrollLast--;
+}
+function bkOnTxtScroll() {
+  const s = _bk; if (!s || s.type !== 'txt') return;
+  const sc = document.getElementById('bk-txt-scroll');
+  const host = document.getElementById('bk-txt-text');
+  if (!sc || !host) return;
+  const max = sc.scrollHeight - sc.clientHeight;
+  s.fraction = max > 0 ? Math.min(1, Math.max(0, sc.scrollTop / max)) : 0;
+  bkUpdateMenuSlider();
+  clearTimeout(_bkSaveTimer);
+  _bkSaveTimer = setTimeout(bkSaveProgress, 500);
+  /* 虚拟窗口维护：近底补下一块；近顶补上一块并裁尾；滚出第一块后裁头 */
+  if (sc.scrollTop + sc.clientHeight > host.offsetHeight - 1400 && s.scrollLast < bkChunkCount() - 1) {
+    bkScrollMount(s.scrollLast + 1);
   }
+  if (sc.scrollTop < 800 && s.scrollFirst > 0) {
+    bkScrollPrepend(s.scrollFirst - 1);
+    bkScrollTrimBottom();
+  }
+  bkScrollTrimTop();
+}
+function bkScrollSeek(charPos) {
+  const s = _bk;
+  const host = document.getElementById('bk-txt-text');
+  const sc = document.getElementById('bk-txt-scroll');
+  if (!host || !sc) { bkBuildTxtReader(); return; }
+  const tChunk = bkChunkOfChar(charPos);
+  if (tChunk >= s.scrollFirst && tChunk <= s.scrollLast) {
+    let el = null;
+    for (const p of host.children) { if (p._charStart <= charPos) el = p; else break; }
+    if (el) { sc.scrollTop = Math.max(0, el.offsetTop - 8); return; }
+  }
+  bkBuildScrollReader(charPos);   // 目标在挂载窗口外：重建窗口
 }
 
-/* ---------- 样式应用（翻页/滚动共用） ---------- */
+/* ---------- 样式应用（翻页/滚动/离屏测量共用） ---------- */
 function bkApplyTxtStyle() {
   const s = _bk; if (!s || s.type !== 'txt') return;
   const set = s.settings;
@@ -765,12 +1125,7 @@ function bkApplyTxtStyle() {
     stage.style.color = b[1];
     stage.style.fontFamily = 'inherit';
   }
-  if (host) {
-    host.style.fontSize = set.fontSize + 'px';
-    host.style.lineHeight = set.lineHeight;
-    host.style.letterSpacing = (set.letterSpacing || 0) + 'px';
-    host.style.padding = set.margin + 'px ' + set.margin + 'px ' + (set.margin + 26) + 'px';
-  }
+  bkApplyTxtStyleTo(host);
   /* 段距 / 缩进用动态 style 标签（避免逐段改） */
   let dyn = document.getElementById('bk-dyn-style');
   if (!dyn) { dyn = document.createElement('style'); dyn.id = 'bk-dyn-style'; document.head.appendChild(dyn); }
@@ -779,6 +1134,15 @@ function bkApplyTxtStyle() {
     .bk-p.bk-h{text-indent:0!important}
   `;
   bkUpdatePageFoot();
+}
+/* 只排正文容器本身（bkMountChunk/后台测量器对任意流容器复用） */
+function bkApplyTxtStyleTo(host) {
+  const s = _bk; if (!s || !host) return;
+  const set = s.settings;
+  host.style.fontSize = set.fontSize + 'px';
+  host.style.lineHeight = set.lineHeight;
+  host.style.letterSpacing = (set.letterSpacing || 0) + 'px';
+  host.style.padding = set.margin + 'px ' + set.margin + 'px ' + (set.margin + 26) + 'px';
 }
 
 /* ---------- 点按分区：左翻上 / 右翻下 / 中呼出菜单 ---------- */
@@ -852,7 +1216,7 @@ function bkShowMenu() {
   m.classList.remove('bk-hide');
   bkUpdateMenuSlider();
   const s = _bk;
-  const ch = bkChapterByChar(s.type === 'txt' && s.pageChars ? (s.pageChars[s.pageIndex] || 0) : 0);
+  const ch = bkChapterByChar(s.type === 'txt' ? (s.curChar || (s.fraction || 0) * s.totalChars) : 0);
   const el = document.getElementById('bk-menu-ch');
   if (el) el.textContent = ch ? ch.title : '';
   const enc = document.getElementById('bk-menu-enc-t');
@@ -866,29 +1230,21 @@ function bkHideMenu() {
   bkHidePanel();
   bkToggleToc(false);
 }
+/* v3.10.0：滑条两种模式统一为字符比例（0~1000），与进度存储口径一致，也不再依赖
+   「全局总页数已量完」——大书测量未完成时照样能拖。 */
 function bkUpdateMenuSlider() {
   const sl = document.getElementById('bk-menu-slider');
   const s = _bk; if (!sl || !s || s.type !== 'txt') return;
-  const max = s.settings.mode === 'page' ? Math.max(1, s.txtPages - 1) : 1000;
-  sl.max = max;
-  sl.value = s.settings.mode === 'page' ? s.pageIndex : Math.round((s.fraction || 0) * 1000);
+  sl.max = 1000;
+  sl.value = Math.round(Math.min(1, Math.max(0, s.fraction || 0)) * 1000);
 }
 function bkMenuSeek(v) {
   const s = _bk; if (!s || s.type !== 'txt') return;
-  if (s.settings.mode === 'page') {
-    s._jumpNoAnim = true;
-    bkGoPage(parseInt(v, 10) || 0);
-    s._jumpNoAnim = false;
-  } else {
-    const sc = document.getElementById('bk-txt-scroll');
-    if (sc) sc.scrollTop = (parseFloat(v) / 1000) * (sc.scrollHeight - sc.clientHeight);
-  }
+  bkSeekChar((parseFloat(v) / 1000) * (s.totalChars - 1), true);
 }
 function bkMenuChapter(dir) {
   const s = _bk; if (!s || s.type !== 'txt' || !s.chapters.length) { showToast('未识别到章节'); return; }
-  const charNow = s.type === 'txt' && s.pageChars && s.settings.mode === 'page'
-    ? (s.pageChars[s.pageIndex] || 0)
-    : (s.fraction || 0) * s.totalChars;
+  const charNow = s.settings.mode === 'page' ? (s.curChar || 0) : (s.fraction || 0) * s.totalChars;
   if (dir > 0) {
     const next = s.chapters.find(c => c.charStart > charNow);
     if (!next) { showToast('已经是最后一章'); return; }
@@ -902,18 +1258,7 @@ function bkMenuChapter(dir) {
 }
 function bkJumpChar(charStart) {
   const s = _bk; if (!s || s.type !== 'txt') return;
-  if (s.settings.mode === 'page') {
-    s._jumpNoAnim = true;
-    bkGoPage(bkPageByChar(charStart));
-    s._jumpNoAnim = false;
-  } else {
-    const host = document.getElementById('bk-txt-text');
-    const sc = document.getElementById('bk-txt-scroll');
-    if (!host || !sc) return;
-    for (const p of host.children) {
-      if (p._charStart === charStart) { sc.scrollTop = p.offsetTop - 8; break; }
-    }
-  }
+  bkSeekChar(charStart, true);
   bkHideMenu();
 }
 function bkMenuMode() {
@@ -926,20 +1271,7 @@ function bkCycleEnc() {
   const s = _bk; if (!s || s.type !== 'txt') return;
   const order = ['auto', 'utf-8', 'gbk'];
   s.encoding = order[(order.indexOf(s.encoding) + 1) % order.length];
-  s.text = decodeBookText(s.buffer, s.encoding);
-  let off = 0;
-  s.paras = (s.text || '').split(/\r?\n/).map(t => {
-    const o = { text: t, charStart: off }; off += t.length + 1; return o;
-  });
-  s.totalChars = Math.max(1, off);
-  s.chapters = [];
-  s.lines = (s.text || '').split(/\r?\n/);
-  s.lines.forEach((t, i) => {
-    if (t.trim() && BK_CHAPTER_RE.test(t)) s.chapters.push({ title: t.trim().slice(0, 40), charStart: s.paras[i].charStart, paraIndex: i });
-  });
-  s.fraction = 0;
-  bkSaveProgress();
-  bkBuildTxtReader();
+  bkReencode();
   showToast('编码：' + (s.encoding === 'gbk' ? 'GBK' : (s.encoding === 'utf-8' ? 'UTF-8' : '自动')));
 }
 
@@ -957,7 +1289,7 @@ function bkToggleToc(show) {
   }
   const list = document.getElementById('bk-toc-list');
   if (show && list && !list.children.length) {
-    const charNow = s.settings.mode === 'page' && s.pageChars ? (s.pageChars[s.pageIndex] || 0) : (s.fraction || 0) * s.totalChars;
+    const charNow = s.settings.mode === 'page' ? (s.curChar || 0) : (s.fraction || 0) * s.totalChars;
     const n = document.getElementById('bk-toc-n');
     if (n) n.textContent = s.chapters.length ? s.chapters.length + ' 章' : '（未识别到章节，可继续滚动/翻页阅读）';
     list.innerHTML = s.chapters.length
@@ -1048,18 +1380,27 @@ function bkPersistApply(relayout) {
   const s = _bk; if (!s) return;
   bkSaveSettings(s.settings);
   bkApplyTxtStyle();
-  if (s.settings.mode === 'page' && relayout) {
-    clearTimeout(_bkRelayoutTimer);
-    _bkRelayoutTimer = setTimeout(() => {
-      const f = s.fraction;
-      bkLayoutPagesKeep(f);
-    }, 160);
-  }
+  if (!relayout) return;
+  clearTimeout(_bkRelayoutTimer);
+  _bkRelayoutTimer = setTimeout(() => { if (_bk === s) bkRelayoutNow(); }, 160);
 }
-function bkLayoutPagesKeep(f) {
+/* 排版参数或视口变化后的重排：翻页模式换块重量（页映射作废重测），滚动模式重建窗口 */
+function bkRelayoutNow() {
   const s = _bk; if (!s) return;
-  s.fraction = f;
-  bkLayoutPages();
+  if (s.type === 'txt') {
+    if (s.settings.mode === 'page') {
+      bkInvalidateMap();                       // 排版参数已变：旧映射全部作废
+      s.curChunk = -1;                         // 强制重插当前块
+      s._jumpNoAnim = true;
+      bkMountChunk(bkChunkOfChar(s.curChar || 0), s.curChar || 0);
+      s._jumpNoAnim = false;
+      bkStartMapper();
+    } else {
+      bkBuildScrollReader((s.fraction || 0) * s.totalChars);
+    }
+  } else if (s.type === 'pdf') {
+    bkPdfRelayout();
+  }
 }
 function bkSetProp(k, v) {
   const s = _bk; if (!s) return;
@@ -1104,33 +1445,32 @@ function bkSetMode(m) {
 function bkSetEnc(e2) {
   const s = _bk; if (!s || s.encoding === e2) return;
   s.encoding = e2;
+  bkReencode();
+  bkShowPanel();
+}
+/* 重编码共用：buffer 被止血释放过就从 blob 重读；重建段落索引并作废全部页映射 */
+async function bkReencode() {
+  const s = _bk; if (!s || s.type !== 'txt') return;
+  await bkEnsureBuffer();
   s.text = decodeBookText(s.buffer, s.encoding);
-  let off = 0;
-  s.paras = (s.text || '').split(/\r?\n/).map(t => { const o = { text: t, charStart: off }; off += t.length + 1; return o; });
-  s.totalChars = Math.max(1, off);
-  s.lines = (s.text || '').split(/\r?\n/);
-  s.chapters = [];
-  s.lines.forEach((t, i) => {
-    if (t.trim() && BK_CHAPTER_RE.test(t)) s.chapters.push({ title: t.trim().slice(0, 40), charStart: s.paras[i].charStart, paraIndex: i });
-  });
+  bkBuildParas();
+  s.buffer = null; s.text = null; s.lines = null;
+  bkInvalidateMap();
+  s.curChunk = -1; s.curLocal = 0; s.curChar = 0;
   s.fraction = 0;
   bkSaveProgress();
   bkBuildTxtReader();
-  bkShowPanel();
 }
 
 /* ---------- 旋转/窗口变化：保持进度重排 ---------- */
 function bkOnResize() {
-  const s = _bk; if (!s || s.type !== 'txt') return;
+  const s = _bk; if (!s) return;
   /* 已离开阅读页（上滑回桌面/系统返回后 _bk 与监听都还在）时不要重排：
      隐藏页尺寸为 0，重排会把 fraction 算成 0 并写回，等于抹掉阅读进度（v3.9.4 修）。 */
   const stage = document.getElementById('bk-stage');
   if (!stage || !stage.clientWidth || !stage.clientHeight) return;
   clearTimeout(_bkRelayoutTimer);
-  _bkRelayoutTimer = setTimeout(() => {
-    if (s.settings.mode === 'page') bkLayoutPages();
-    else bkRestoreTxtScroll();
-  }, 220);
+  _bkRelayoutTimer = setTimeout(() => { if (_bk === s) bkRelayoutNow(); }, 220);
 }
 function bkBindResize() {
   window.addEventListener('resize', bkOnResize);
@@ -1141,15 +1481,27 @@ function bkUnbindResize() {
 }
 
 /* =========================================================
-   六、PDF 阅读：按需渲染当前页
+   六、PDF 阅读：连续滚动 + 页虚拟化 + 缩放沙盒（v3.10.0 重做，对标 WPS 阅读器）
+   - 所有页先铺占位框（先按首页宽高比），滚动到可见区才渲染 canvas（当前页前后各留缓冲），
+     离开窗口即销毁 canvas 释放内存；单页真实尺寸回填后自动修正占位高度
+   - 缩放语义：settings.scale = 相对「适应宽度」的倍率（0.5~4，1.0 = 适应宽度）
+     · 双指捏合：手势期间只做实时 transform（不重排），松手提交倍率并重渲染（等比缩放，
+       滚动位原样保留即锚定，见 bkBindPdfPinch 尾注）
+     · 菜单「适应宽度」一键回 1.0；界面面板有缩放滑条；桌面 Ctrl+滚轮；中间双击放大/还原
+   - 点按分区与 TXT 一致：左/右翻页（滚动定位），中间呼出菜单
+   - 目录 = PDF 书签（getOutline，两级展开）；无书签时提示走滑条
+   - 夜间模式：反色滤镜只作用于页面画布（.bk-night）
    ========================================================= */
+let _bkPinchActive = false;   // 捏合进行中抑制点按/渲染
+let _bkPinchEndAt = 0;        // 捏合结束时刻：结束后紧接着的 pointerup 不是点按
+
 async function bkOpenPdf(body) {
   const s = _bk;
   showToast('正在打开 PDF…');
   bkPdfWorkerSrc();                        // defer 加载下 pdfjsLib 可能刚就绪，worker 地址在这里兜底设置
   try {
     s.buffer = await s.rec.blob.arrayBuffer();
-    s.pdfDoc = await pdfjsLib.getDocument({ data: new Uint8Array(s.buffer) }).promise;  // 直接用字节，不依赖 objectURL
+    s.pdfDoc = await pdfjsLib.getDocument({ data: new Uint8Array(s.buffer) }).promise;
     if (_bk !== s) { try { s.pdfDoc.destroy(); } catch (e) {} return; }   // 已被另一次打开接管：别泄漏文档
     s.totalPages = s.pdfDoc.numPages;
     s.pageNum = Math.max(1, Math.min(s.pageNum, s.totalPages));
@@ -1160,81 +1512,525 @@ async function bkOpenPdf(body) {
     renderBookshelf();
     return;
   }
-  if (_bk !== s) return;                   // 打开 PDF 期间已被另一次打开接管，别覆盖新会话的 DOM
+  if (_bk !== s) return;
 
-  body.innerHTML = `
-    <div class="bk-toolbar">
-      <button class="bk-tb" onclick="bkPdfPrev()">上一页</button>
-      <span class="bk-ind" id="bk-page-ind">-</span>
-      <button class="bk-tb" onclick="bkPdfNext()">下一页</button>
-      <button class="bk-tb" onclick="bkZoom(-0.1)">－</button>
-      <button class="bk-tb" onclick="bkZoom(0.1)">＋</button>
-    </div>
-    <div class="bk-reader-scroll" id="bk-pdf-scroll">
-      <div class="bk-pdf-wrap"><canvas class="bk-pdf-canvas" id="bk-pdf-canvas"></canvas></div>
+  /* 首页尺寸定基准：占位框全按它铺，各页真实尺寸渲染时回填修正 */
+  const p1 = await s.pdfDoc.getPage(1);
+  if (_bk !== s) return;
+  const vp1 = p1.getViewport({ scale: 1 });
+  s.baseW = vp1.width; s.baseH = vp1.height;
+  s.pdfSizes = new Array(s.totalPages).fill(null);
+  s.pdfSizes[0] = { w: vp1.width, h: vp1.height };
+  s.pdfSizeVer = 0; s.pdfHeights = null; s.pdfEff = 0;
+  s.pdfCur = s.pageNum;
+  s.pdfOutline = null;
+  s.pdfNight = !!(s.rec.progress && s.rec.progress.night);
+
+  body.innerHTML = `<div class="bk-stage" id="bk-stage">
+      <div class="bk-pdf-scroll" id="bk-pdf-scroll"><div class="bk-pdf-flow" id="bk-pdf-flow"></div></div>
+      <div class="bk-pagefoot" id="bk-pagefoot"></div>
+      ${bkPdfMenuHTML()}
     </div>`;
+  const stage = document.getElementById('bk-stage');
+  const b = (bkBgList()[s.settings.bg] || bkBgList().paper);
+  stage.style.background = b[0];
+  stage.style.color = b[1];
+  if (s.pdfNight) stage.classList.add('bk-night');
 
-  await bkRenderPdfPage();
+  bkPdfBuildPages();
+  bkBindPdfTap();
+  bkBindPdfPinch();
+  bkBindPdfScroll();
+  bkPdfGoPage(s.pageNum, true);
+  bkPdfLoadOutline();
 }
 
-/* PDF 渲染排队执行：PDF.js 禁止同一个 canvas 并发 render（连点「下一页/上一页」会抛
-   "Cannot use the same canvas during multiple render() operations" 并被静默吞掉，
-   表现为点了没反应、页脚与画面不一致）。过期请求在队列里自行退出，同一时刻只有一个 render。 */
-function bkRenderPdfPage() {
+function bkPdfBuildPages() {
   const s = _bk;
-  if (!s || !s.pdfDoc || s.type !== 'pdf') return Promise.resolve();
-  const token = ++s.pdfToken;
-  const run = () => (token !== s.pdfToken) ? Promise.resolve() : bkRenderPdfPageNow(token);
-  s.pdfChain = (s.pdfChain || Promise.resolve()).then(run, run);
-  return s.pdfChain;
+  const flow = document.getElementById('bk-pdf-flow');
+  if (!flow) return;
+  const frag = document.createDocumentFragment();
+  for (let i = 1; i <= s.totalPages; i++) {
+    const d = document.createElement('div');
+    d.className = 'bk-pdf-page';
+    d.dataset.pg = i;
+    frag.appendChild(d);
+  }
+  flow.innerHTML = '';
+  flow.appendChild(frag);
+  bkPdfApplyScale();
 }
 
-async function bkRenderPdfPageNow(token) {
+/* ---------- 布局：适应宽度基准 × 倍率 ---------- */
+function bkPdfFitScale() {
+  const s = _bk;
+  const sc = document.getElementById('bk-pdf-scroll');
+  if (!sc || !s.baseW) return 1;
+  return Math.max(0.05, (sc.clientWidth - 24) / s.baseW);   // 左右各留 12px
+}
+function bkPdfEffScale() {
+  const s = _bk;
+  return Math.max(0.05, bkPdfFitScale() * (s.settings.scale || 1));
+}
+/* 各页高表（惰性缓存：倍率或尺寸回填版本号变了才重算） */
+function bkPdfHeights() {
+  const s = _bk;
+  const eff = bkPdfEffScale();
+  if (s.pdfHeights && s.pdfEff === eff && s.pdfVer === s.pdfSizeVer) return s.pdfHeights;
+  const hs = new Array(s.totalPages + 1).fill(0);
+  for (let i = 1; i <= s.totalPages; i++) {
+    const sz = s.pdfSizes[i - 1] || { w: s.baseW, h: s.baseH };
+    hs[i] = sz.h * eff;
+  }
+  s.pdfHeights = hs; s.pdfEff = eff; s.pdfVer = s.pdfSizeVer;
+  return hs;
+}
+function bkPdfPageTop(pg) {
+  const hs = bkPdfHeights();
+  let acc = 12;                            // flow 顶部 padding
+  for (let i = 1; i < pg; i++) acc += hs[i] + 20;   // 页间距 margin 10×2
+  return acc;
+}
+function bkPdfPageAt(scrollTop) {
+  const s = _bk;
+  const sc = document.getElementById('bk-pdf-scroll');
+  const hs = bkPdfHeights();
+  const probe = scrollTop + (sc ? sc.clientHeight * 0.35 : 0) - 12;
+  let acc = 0;
+  for (let i = 1; i <= s.totalPages; i++) {
+    if (probe < acc + hs[i] + 20) return i;
+    acc += hs[i] + 20;
+  }
+  return s.totalPages;
+}
+/* 把倍率落到 DOM：flow 宽度 + 每页占位尺寸（不动滚动位——等比缩放下滚动位即锚定） */
+function bkPdfApplyScale() {
+  const s = _bk;
+  const sc = document.getElementById('bk-pdf-scroll');
+  const flow = document.getElementById('bk-pdf-flow');
+  if (!sc || !flow) return;
+  const eff = bkPdfEffScale();
+  flow.style.width = Math.max(sc.clientWidth - 24, s.baseW * eff) + 'px';
+  flow.style.paddingTop = '12px';
+  flow.style.paddingBottom = '24px';
+  for (const d of flow.children) {
+    const pg = +d.dataset.pg;
+    const sz = s.pdfSizes[pg - 1] || { w: s.baseW, h: s.baseH };
+    d.style.width = Math.round(sz.w * eff) + 'px';
+    d.style.height = Math.round(sz.h * eff) + 'px';
+  }
+}
+function bkPdfRelayout(keepPage) {
+  const s = _bk; if (!s || s.type !== 'pdf') return;
+  const sc = document.getElementById('bk-pdf-scroll');
+  const pg = s.pdfCur || 1;
+  const flow = document.getElementById('bk-pdf-flow');
+  if (flow) flow.style.transform = 'none';
+  bkPdfApplyScale();
+  if (flow) {
+    /* 缩放变了：已渲染页的位图是旧倍率的，作废 done 标记让可见页按新倍率重渲染
+       （旧画布先撑着占位框当预览，渲染完无缝替换） */
+    for (const d of flow.children) delete d.dataset.done;
+  }
+  if (keepPage && sc) sc.scrollTop = bkPdfPageTop(pg);
+  bkPdfRenderVisible();
+  bkUpdatePageFootPdf();
+  bkUpdatePdfMenuSlider();
+}
+
+/* ---------- 滚动 → 当前页 + 可见区渲染 ---------- */
+function bkBindPdfScroll() {
+  const sc = document.getElementById('bk-pdf-scroll');
+  if (!sc) return;
+  let ticking = false;
+  sc.onscroll = () => {
+    if (ticking) return;
+    ticking = true;
+    requestAnimationFrame(() => {
+      ticking = false;
+      const s = _bk; if (!s || s.type !== 'pdf') return;
+      const cur = bkPdfPageAt(sc.scrollTop);
+      if (cur !== s.pdfCur) {
+        s.pdfCur = cur; s.pageNum = cur;
+        bkUpdatePageFootPdf();
+        bkUpdatePdfMenuSlider();
+        clearTimeout(_bkSaveTimer);
+        _bkSaveTimer = setTimeout(bkSaveProgress, 600);
+      }
+      bkPdfRenderVisible();
+    });
+  };
+}
+/* 渲染可见页（cur-1 ~ cur+2），离开窗口的页销毁 canvas。
+   捏合手势期间不排渲染（live transform 下的排布不是最终布局，松手统一重渲染） */
+function bkPdfRenderVisible() {
+  const s = _bk; if (!s || !s.pdfDoc || _bkPinchActive) return;
+  const flow = document.getElementById('bk-pdf-flow');
+  if (!flow) return;
+  const cur = s.pdfCur || 1;
+  const want = new Set();
+  for (let p = cur - 1; p <= cur + 2; p++) if (p >= 1 && p <= s.totalPages) want.add(p);
+  for (const p of want) {
+    const d = flow.querySelector('.bk-pdf-page[data-pg="' + p + '"]');
+    if (d && !d.dataset.done) bkPdfRenderPage(p, d);
+  }
+  for (const d of flow.children) {
+    if (!want.has(+d.dataset.pg) && d.firstChild) {
+      delete d.dataset.done;
+      d.innerHTML = '';                    // 释放整页位图
+    }
+  }
+}
+
+/* 渲染排队：每页一个 token 作废过期请求，全局链保证同一时刻只有一个 render 在跑 */
+function bkPdfRenderPage(pg, d) {
+  const s = _bk; if (!s || s.type !== 'pdf') return;
+  const t = (d._renderToken = (d._renderToken || 0) + 1);
+  const run = () => (t !== d._renderToken || !d.isConnected) ? Promise.resolve() : bkPdfRenderPageNow(pg, d);
+  s.pdfChain = (s.pdfChain || Promise.resolve()).then(run, run);
+}
+
+async function bkPdfRenderPageNow(pg, d) {
   const s = _bk;
   if (!s || !s.pdfDoc || s.type !== 'pdf') return;
   try {
-    const page = await s.pdfDoc.getPage(s.pageNum);
-    if (token !== s.pdfToken) return;   // 快速翻页时丢弃过期渲染
-    const vp = page.getViewport({ scale: s.settings.scale || 1.1 });
-    const canvas = document.getElementById('bk-pdf-canvas');
-    if (!canvas) return;
-    const dpr = window.devicePixelRatio || 1;
+    const page = await s.pdfDoc.getPage(pg);
+    if (!d.isConnected || !document.getElementById('bk-pdf-flow')) return;
+    const eff = bkPdfEffScale();
+    const vp = page.getViewport({ scale: eff });
+    /* 单页真实尺寸与首页占位不同：回填尺寸表（页高按真实比例修正） */
+    const vp1 = page.getViewport({ scale: 1 });
+    const sz = s.pdfSizes[pg - 1];
+    if (!sz || Math.abs(sz.h - vp1.height) > 0.5 || Math.abs(sz.w - vp1.width) > 0.5) {
+      s.pdfSizes[pg - 1] = { w: vp1.width, h: vp1.height };
+      s.pdfSizeVer++;
+    }
+    d.style.width = Math.round(vp.width) + 'px';
+    d.style.height = Math.round(vp.height) + 'px';
+    const canvas = document.createElement('canvas');
+    const dpr = Math.min(2.5, window.devicePixelRatio || 1);   // 3x 屏上限 2.5，控制位图内存
     canvas.width = Math.floor(vp.width * dpr);
     canvas.height = Math.floor(vp.height * dpr);
-    canvas.style.width = vp.width + 'px';
-    canvas.style.height = vp.height + 'px';
+    canvas.style.width = '100%'; canvas.style.height = '100%';
+    d.innerHTML = '';
+    d.appendChild(canvas);
     await page.render({
       canvasContext: canvas.getContext('2d'),
       viewport: vp,
       transform: dpr !== 1 ? [dpr, 0, 0, dpr, 0, 0] : null
     }).promise;
-    if (token !== s.pdfToken) return;
-    const ind = document.getElementById('bk-page-ind');
-    if (ind) ind.textContent = s.pageNum + ' / ' + s.totalPages;
-    const sc = document.getElementById('bk-pdf-scroll');
-    if (sc) sc.scrollTop = 0;
-    bkSaveProgress();
+    if (d.isConnected) d.dataset.done = '1';
   } catch (e) {
-    if (e && e.name === 'RenderingCancelledException') return;   // 正常取消，不打扰用户
+    if (e && e.name === 'RenderingCancelledException') return;
     console.error(e);
-    if (token === s.pdfToken) showToast('PDF 渲染失败，请重试');
   }
 }
 
-/* PDF 翻页/缩放（TXT 的 bkNextPage/bkPrevPageTxt 在第五节；命名区分避免覆盖） */
-function bkPdfPrev() {
-  if (!_bk || _bk.type !== 'pdf' || _bk.pageNum <= 1) return;
-  _bk.pageNum--; bkRenderPdfPage();
+/* ---------- 页面跳转 / 翻页 ---------- */
+function bkPdfGoPage(pg, instant) {
+  const s = _bk; if (!s || s.type !== 'pdf') return;
+  pg = Math.max(1, Math.min(s.totalPages || 1, pg));
+  const sc = document.getElementById('bk-pdf-scroll');
+  if (!sc) return;
+  s.pdfCur = pg; s.pageNum = pg;
+  if (instant) sc.scrollTop = bkPdfPageTop(pg);
+  else sc.scrollTo({ top: bkPdfPageTop(pg), behavior: 'smooth' });
+  bkUpdatePageFootPdf();
+  bkUpdatePdfMenuSlider();
+  clearTimeout(_bkSaveTimer);
+  _bkSaveTimer = setTimeout(bkSaveProgress, 600);
+  bkPdfRenderVisible();
 }
-function bkPdfNext() {
-  if (!_bk || _bk.type !== 'pdf' || _bk.pageNum >= _bk.totalPages) return;
-  _bk.pageNum++; bkRenderPdfPage();
+function bkPdfGoPageRel(d) {
+  const s = _bk; if (!s || s.type !== 'pdf') return;
+  bkPdfGoPage((s.pdfCur || 1) + d);
 }
-function bkZoom(d) {
-  if (!_bk || _bk.type !== 'pdf') return;
-  _bk.settings.scale = Math.max(0.6, Math.min(2.6, (_bk.settings.scale || 1.1) + d));
-  bkSaveSettings(_bk.settings);
-  bkRenderPdfPage();
+function bkPdfSlider(v) {
+  bkPdfGoPage(parseInt(v, 10) || 1, true);   // 拖动滑条连续触发，即时跳转比逐帧 smooth 顺
+}
+function bkUpdatePdfMenuSlider() {
+  const sl = document.getElementById('bk-menu-slider');
+  const s = _bk; if (!sl || !s || s.type !== 'pdf') return;
+  sl.max = s.totalPages || 1;
+  sl.value = s.pdfCur || 1;
+}
+
+/* ---------- 缩放沙盒：一切缩放只作用于文档流容器 ---------- */
+function bkPdfCommitScale(nv) {
+  const s = _bk; if (!s || s.type !== 'pdf') return;
+  s.settings.scale = Math.max(0.5, Math.min(4, nv));
+  bkSaveSettings(s.settings);
+  bkPdfRelayout();
+  bkUpdatePageFootPdf();
+  clearTimeout(_bkSaveTimer);
+  _bkSaveTimer = setTimeout(bkSaveProgress, 600);
+}
+/* 带锚点的提交（按钮/双击/Ctrl 滚轮）：保持锚点屏幕位置下的内容不动 */
+function bkPdfSetScale(v, anchorX, anchorY) {
+  const s = _bk; if (!s || s.type !== 'pdf') return;
+  const sc = document.getElementById('bk-pdf-scroll');
+  if (!sc) return;
+  const old = s.settings.scale || 1;
+  const nw = Math.max(0.5, Math.min(4, v));
+  if (Math.abs(nw - old) < 0.001) return;
+  if (anchorX != null) {
+    const r = nw / old;
+    var sx = (sc.scrollLeft + anchorX) * r - anchorX;
+    var sy = (sc.scrollTop + anchorY) * r - anchorY;
+  }
+  bkPdfCommitScale(nw);
+  if (anchorX != null) { sc.scrollLeft = sx; sc.scrollTop = sy; }
+}
+function bkPdfZoom(d) {
+  const s = _bk; if (!s || s.type !== 'pdf') return;
+  bkPdfSetScale((s.settings.scale || 1) + d);
+}
+
+/* 双指捏合：手势期间实时 transform（不重排），松手提交。
+   锚定原理：实时 transform 是把已提交布局整体乘 k=nv/s0，期间滚动位已按 k 平移；
+   松手后提交新倍率，布局同样变 k 倍 —— 同一内容点自然落在同一屏幕位置，滚动位无需再调。 */
+function bkBindPdfPinch() {
+  const sc = document.getElementById('bk-pdf-scroll');
+  if (!sc) return;
+  let pinch = null;
+  sc.addEventListener('touchstart', e => {
+    if (e.touches.length === 2) {
+      const s = _bk; if (!s || s.type !== 'pdf') return;
+      _bkPinchActive = true;
+      pinch = {
+        d0: Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY) || 1,
+        s0: s.settings.scale || 1,
+        sl0: sc.scrollLeft, st0: sc.scrollTop,
+        cx: (e.touches[0].clientX + e.touches[1].clientX) / 2 - sc.getBoundingClientRect().left,
+        cy: (e.touches[0].clientY + e.touches[1].clientY) / 2 - sc.getBoundingClientRect().top,
+        live: null
+      };
+      e.preventDefault();
+    }
+  }, { passive: false });
+  sc.addEventListener('touchmove', e => {
+    if (!pinch || e.touches.length < 2) return;
+    e.preventDefault();
+    const d = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY) || 1;
+    const nv = Math.max(0.5, Math.min(4, pinch.s0 * d / pinch.d0));
+    pinch.live = nv;
+    const flow = document.getElementById('bk-pdf-flow');
+    if (flow) {
+      flow.style.transformOrigin = '0 0';
+      flow.style.transform = 'scale(' + (nv / pinch.s0) + ')';
+    }
+    sc.scrollLeft = (pinch.sl0 + pinch.cx) * (nv / pinch.s0) - pinch.cx;
+    sc.scrollTop = (pinch.st0 + pinch.cy) * (nv / pinch.s0) - pinch.cy;
+  }, { passive: false });
+  const end = () => {
+    if (!pinch) return;
+    const s = _bk;
+    const nv = pinch.live;
+    pinch = null;
+    _bkPinchActive = false;
+    _bkPinchEndAt = Date.now();
+    if (s && s.type === 'pdf' && nv != null) bkPdfCommitScale(nv);
+  };
+  sc.addEventListener('touchend', end);
+  sc.addEventListener('touchcancel', end);
+  /* 桌面：Ctrl+滚轮缩放（锚定光标位置） */
+  sc.addEventListener('wheel', e => {
+    if (!e.ctrlKey) return;
+    e.preventDefault();
+    const s = _bk; if (!s || s.type === 'pdf') return;
+    const r = sc.getBoundingClientRect();
+    bkPdfSetScale((s.settings.scale || 1) * (e.deltaY < 0 ? 1.1 : 0.9), e.clientX - r.left, e.clientY - r.top);
+  }, { passive: false });
+}
+
+/* ---------- 点按分区（与 TXT 一致：左/右翻页，中间呼出菜单，双击缩放） ---------- */
+function bkBindPdfTap() {
+  const stage = document.getElementById('bk-stage');
+  if (!stage) return;
+  let downX = 0, downY = 0, lastCenterTap = 0, tapTimer = null;
+  stage.addEventListener('pointerdown', e => { downX = e.clientX; downY = e.clientY; });
+  stage.addEventListener('pointerup', e => {
+    const s = _bk; if (!s || s.type !== 'pdf' || _bkPinchActive) return;
+    if (Date.now() - _bkPinchEndAt < 350) return;            // 捏合松手余波，不是点按
+    if (Math.abs(e.clientX - downX) > 10 || Math.abs(e.clientY - downY) > 10) return;   // 拖动/捏合不算点按
+    const panel = document.getElementById('bk-panel');
+    const toc = document.getElementById('bk-toc');
+    if (panel && panel.classList.contains('bk-show')) { bkHidePanel(); return; }
+    if (toc && toc.classList.contains('bk-show')) { bkTogglePdfToc(false); return; }
+    const sc = document.getElementById('bk-pdf-scroll');
+    if (!sc) return;
+    const r = sc.getBoundingClientRect();
+    if (e.clientY < r.top || e.clientY > r.bottom) return;    // 页脚/菜单区不算
+    const x = e.clientX - r.left;
+    if (x < r.width * 0.32) bkPdfGoPage((s.pdfCur || 1) - 1);
+    else if (x > r.width * 0.68) bkPdfGoPage((s.pdfCur || 1) + 1);
+    else {
+      /* 中间：单击呼出菜单（延时让位给双击缩放） */
+      const now = Date.now();
+      if (now - lastCenterTap < 300) {
+        clearTimeout(tapTimer); lastCenterTap = 0;
+        const nv = (s.settings.scale || 1) > 1.5 ? 1 : 2.2;
+        bkPdfSetScale(nv, x, e.clientY - r.top);
+      } else {
+        lastCenterTap = now;
+        clearTimeout(tapTimer);
+        tapTimer = setTimeout(() => { if (_bk && _bk.type === 'pdf') bkShowPdfMenu(); }, 290);
+      }
+    }
+  });
+}
+
+/* ---------- 菜单 / 面板 / 目录（样式与 TXT 阅读统一） ---------- */
+function bkPdfMenuHTML() {
+  return `
+  <div class="bk-menu bk-hide" id="bk-menu">
+    <div class="bk-menu-top">
+      <span class="bk-mb" onclick="closeReader()">←</span>
+      <span class="bk-mt">${esc(_bk.rec.name)}</span>
+      <span class="bk-mc" id="bk-menu-ch"></span>
+    </div>
+    <div class="bk-menu-bot">
+      <div class="bk-menu-row">
+        <span class="bk-mb2" onclick="bkPdfGoPageRel(-1)">上一页</span>
+        <input type="range" id="bk-menu-slider" min="1" max="${_bk.totalPages || 1}" value="${_bk.pdfCur || 1}" oninput="bkPdfSlider(this.value)">
+        <span class="bk-mb2" onclick="bkPdfGoPageRel(1)">下一页</span>
+      </div>
+      <div class="bk-menu-tabs">
+        <span class="bk-mb2" onclick="bkTogglePdfToc(true)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h10"/></svg>目录</span>
+        <span class="bk-mb2" onclick="bkPdfSetScale(1)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg>适应宽度</span>
+        <span class="bk-mb2" onclick="bkShowPdfPanel()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h9"/><circle cx="18.5" cy="17" r="1.6"/></svg>界面</span>
+      </div>
+    </div>
+  </div>`;
+}
+function bkShowPdfMenu() {
+  const m = document.getElementById('bk-menu');
+  const s = _bk; if (!m || !s || s.type !== 'pdf') return;
+  bkGuardOverlay(m, true);
+  m.classList.remove('bk-hide');
+  bkUpdatePdfMenuSlider();
+  const el = document.getElementById('bk-menu-ch');
+  if (el) el.textContent = (s.pdfCur || 1) + '/' + s.totalPages + ' 页';
+}
+function bkUpdatePageFootPdf() {
+  const s = _bk;
+  const foot = document.getElementById('bk-pagefoot');
+  if (!foot || !s || s.type !== 'pdf' || !s.totalPages) return;
+  const pct = s.totalPages > 1 ? ((s.pdfCur - 1) / (s.totalPages - 1) * 100) : 100;
+  const pctStr = (pct >= 99.95 ? 100 : pct).toFixed(1);
+  foot.innerHTML = `<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:52%">缩放 ${Math.round((s.settings.scale || 1) * 100)}%</span>
+    <span>${s.pdfCur}/${s.totalPages} · ${pctStr}%</span>`;
+  foot.style.color = (bkBgList()[s.settings.bg] || bkBgList().paper)[2];
+}
+function bkShowPdfPanel() {
+  const s = _bk; if (!s || s.type !== 'pdf') return;
+  bkHideMenu();
+  let panel = document.getElementById('bk-panel');
+  if (!panel) {
+    panel = document.createElement('div');
+    panel.id = 'bk-panel'; panel.className = 'bk-panel';
+    const stage = document.getElementById('bk-stage');
+    if (stage) stage.appendChild(panel);
+    bkGuardOverlay(panel, false);
+  }
+  const set = s.settings;
+  const swatches = Object.entries(bkBgList()).map(([k, v]) =>
+    `<div class="bk-sw ${set.bg === k ? 'bk-on' : ''}" style="background:${v[0]}" title="${k}" onclick="bkPdfSetBg('${k}')"></div>`).join('');
+  panel.innerHTML = `
+    <div class="bk-panel-h"><span class="t">阅读设置</span><span class="x" onclick="bkHidePanel()">✕</span></div>
+    <div class="bk-slider-row"><span class="lb">缩放</span>
+      <button class="pm" onclick="bkPdfZoom(-0.1)">−</button>
+      <input type="range" min="0.5" max="4" step="0.1" value="${set.scale || 1}" oninput="bkPdfScaleInput(this.value)">
+      <button class="pm" onclick="bkPdfZoom(0.1)">＋</button>
+      <span class="val" id="bk-v-scale">${Math.round((set.scale || 1) * 100)}%</span></div>
+    <div class="bk-chips">
+      <button class="bk-chip ${Math.abs((set.scale || 1) - 1) < 0.01 ? 'bk-on' : ''}" onclick="bkPdfSetScale(1);bkShowPdfPanel()">适应宽度</button>
+      <button class="bk-chip ${s.pdfNight ? 'bk-on' : ''}" onclick="bkPdfToggleNight()">夜间模式${s.pdfNight ? '：开' : '：关'}</button>
+    </div>
+    <div class="bk-sec">背景（页面周围）</div>
+    <div class="bk-swatches">${swatches}</div>`;
+  panel.classList.add('bk-show');
+}
+/* 缩放滑条连续拖动：只更新数字，松手（change）才重排 */
+function bkPdfScaleInput(v) {
+  const s = _bk; if (!s || s.type !== 'pdf') return;
+  const nv = Math.max(0.5, Math.min(4, parseFloat(v) || 1));
+  s.settings.scale = nv;
+  const lab = document.getElementById('bk-v-scale');
+  if (lab) lab.textContent = Math.round(nv * 100) + '%';
+}
+function bkPdfToggleNight() {
+  const s = _bk; if (!s || s.type !== 'pdf') return;
+  s.pdfNight = !s.pdfNight;
+  const stage = document.getElementById('bk-stage');
+  if (stage) stage.classList.toggle('bk-night', s.pdfNight);
+  bkShowPdfPanel();
+  clearTimeout(_bkSaveTimer);
+  _bkSaveTimer = setTimeout(bkSaveProgress, 400);
+}
+function bkPdfSetBg(k) {
+  const s = _bk; if (!s || s.type !== 'pdf') return;
+  s.settings.bg = k;
+  bkSaveSettings(s.settings);
+  const stage = document.getElementById('bk-stage');
+  const b = (bkBgList()[k] || bkBgList().paper);
+  if (stage) { stage.style.background = b[0]; stage.style.color = b[1]; }
+  bkUpdatePageFootPdf();
+  bkShowPdfPanel();
+}
+
+/* ---------- 目录 = PDF 书签（getOutline，两级展开；页码异步解析） ---------- */
+async function bkPdfLoadOutline() {
+  const s = _bk; if (!s || !s.pdfDoc) return;
+  try {
+    const o = await s.pdfDoc.getOutline();
+    if (_bk !== s) return;
+    if (!o || !o.length) { s.pdfOutline = null; return; }
+    const flat = [];
+    const walk = (arr, depth) => {
+      for (const it of arr) {
+        flat.push({ title: it.title, dest: it.dest, depth: depth });
+        if (it.items && it.items.length && depth < 2) walk(it.items, depth + 1);
+      }
+    };
+    walk(o, 0);
+    for (const it of flat) {
+      try {
+        let d = it.dest;
+        if (typeof d === 'string') d = await s.pdfDoc.getDestination(d);
+        if (Array.isArray(d) && d[0]) it.page = (await s.pdfDoc.getPageIndex(d[0])) + 1;
+      } catch (e) {}
+      if (_bk !== s) return;
+    }
+    s.pdfOutline = flat.filter(it => it.page);
+  } catch (e) { s.pdfOutline = null; }
+}
+function bkTogglePdfToc(show) {
+  const s = _bk; if (!s || s.type !== 'pdf') return;
+  let toc = document.getElementById('bk-toc');
+  if (!toc) {
+    toc = document.createElement('div');
+    toc.id = 'bk-toc'; toc.className = 'bk-toc';
+    toc.innerHTML = `<div class="bk-toc-h">目录 <span id="bk-toc-n" style="font-weight:400;color:#aaa;font-size:12px"></span></div><div class="bk-toc-list" id="bk-toc-list"></div>`;
+    const stage = document.getElementById('bk-stage');
+    if (stage) stage.appendChild(toc);
+    bkGuardOverlay(toc, false);
+  }
+  const list = document.getElementById('bk-toc-list');
+  if (show && list && !list.children.length) {
+    const n = document.getElementById('bk-toc-n');
+    const items = s.pdfOutline;
+    if (n) n.textContent = items && items.length ? items.length + ' 项' : '';
+    list.innerHTML = (items && items.length)
+      ? items.map((it, i) => `<div class="bk-toc-it" style="${it.depth ? 'padding-left:' + (18 + it.depth * 16) + 'px;font-size:13px;' : ''}" onclick="bkPdfTocGo(${i})">${esc(it.title || ('第 ' + it.page + ' 页'))}</div>`).join('')
+      : `<div style="padding:24px 18px;color:var(--hint,#b8b8b8);font-size:12px;line-height:1.9;text-align:center">该 PDF 没有书签目录<br>可用下方滑条或点按左右翻页</div>`;
+  }
+  toc.classList.toggle('bk-show', !!show);
+}
+function bkPdfTocGo(i) {
+  const s = _bk; if (!s || !s.pdfOutline || !s.pdfOutline[i]) return;
+  bkHideMenu();
+  bkPdfGoPage(s.pdfOutline[i].page);
 }
 
 /* =========================================================
@@ -1249,8 +2045,10 @@ async function bkSaveProgress() {
     p.encoding = s.encoding;
     p.mode = s.settings.mode;   // 记忆上次阅读方式（仅记录，不改全局偏好）
   } else {
-    p.page = s.pageNum;
+    p.page = s.pdfCur || s.pageNum;
     p.totalPages = s.pdfDoc ? s.pdfDoc.numPages : (s.totalPages || p.totalPages || 0);
+    p.scale = s.settings.scale || 1;      // v3.10.0：相对适应宽度的倍率，随书记忆
+    p.night = s.pdfNight ? 1 : 0;
   }
   s.rec.progress = p;
   try { await dbPut('books', s.rec); } catch (e) {}   // rec 已带 id → 更新同一条
@@ -1259,8 +2057,7 @@ async function bkSaveProgress() {
 /* 返回书架（标题栏返回键在阅读期被切到这里） */
 async function closeReader() {
   await bkSaveProgress();
-  try { if (_bk && _bk.pdfDoc) _bk.pdfDoc.destroy().catch(() => {}); } catch (e) {}
-  _bk = null;
+  bkTeardownSession();
   bkSetBack(false);
   bkUnbindResize();
   renderBookshelf();
