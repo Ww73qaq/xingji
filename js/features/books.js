@@ -156,8 +156,8 @@ function bkInjectStyle() {
   .bk-menu-tabs{display:flex;justify-content:space-around;font-size:13px;opacity:.95}
   .bk-menu-tabs .bk-mb2{display:flex;flex-direction:column;align-items:center;gap:3px;padding:2px 10px;cursor:pointer}
   .bk-menu-tabs .bk-mb2 svg{width:20px;height:20px}
-  .bk-toc{position:absolute;top:0;bottom:0;left:0;width:min(78%,340px);z-index:30;background:var(--card,#fff);box-shadow:6px 0 20px rgba(0,0,0,.2);display:flex;flex-direction:column;transform:translateX(-102%);transition:transform .26s ease}
-  .bk-toc.bk-show{transform:translateX(0)}
+  .bk-toc{position:absolute;top:0;bottom:0;left:0;width:min(78%,340px);z-index:30;background:var(--card,#fff);box-shadow:6px 0 20px rgba(0,0,0,.2);display:flex;flex-direction:column;transform:translateX(-102%);visibility:hidden;transition:transform .26s ease,visibility 0s .27s}
+  .bk-toc.bk-show{transform:translateX(0);visibility:visible;transition:transform .26s ease}
   .bk-toc-h{padding:14px 16px;font-size:15px;font-weight:600;border-bottom:1px solid #eee2;color:#444}
   .bk-toc-list{flex:1;overflow:auto;padding:6px 0}
   .bk-toc-it{padding:11px 18px;font-size:14px;color:#555;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -171,7 +171,8 @@ function bkInjectStyle() {
   .bk-toc-it .meta{font-size:11px;color:#b3ab99;flex:none}
   .bk-toc-it .del{flex:none;width:26px;height:26px;line-height:24px;text-align:center;border-radius:50%;color:#c9c2b2;font-size:15px;cursor:pointer}
   .bk-toc-it .del:active{background:#f0ece1;color:#a05a4a}
-  .bk-panel{position:absolute;left:0;right:0;bottom:0;z-index:25;background:var(--card,#fff);color:var(--text,#333);border-radius:16px 16px 0 0;box-shadow:0 -6px 24px rgba(0,0,0,.16);padding:14px 18px calc(env(safe-area-inset-bottom,0px) + 14px);transform:translateY(105%);transition:transform .26s ease;max-height:72%;overflow:auto}
+  .bk-panel{position:absolute;left:0;right:0;bottom:0;z-index:25;background:var(--card,#fff);color:var(--text,#333);border-radius:16px 16px 0 0;box-shadow:0 -6px 24px rgba(0,0,0,.16);padding:14px 18px calc(env(safe-area-inset-bottom,0px) + 14px);transform:translateY(105%);visibility:hidden;transition:transform .26s ease,visibility 0s .27s;max-height:72%;overflow:auto}
+  .bk-panel.bk-show{transform:translateY(0);visibility:visible;transition:transform .26s ease}
   .bk-panel.bk-show{transform:translateY(0)}
   .bk-panel-h{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
   .bk-panel-h .t{font-size:14px;font-weight:600}
@@ -1270,7 +1271,7 @@ function bkMenuHTML() {
       </div>
       <div class="bk-menu-tabs">
         <span class="bk-mb2" onclick="bkToggleToc(true)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h10"/></svg>目录</span>
-        <span class="bk-mb2" onclick="bkBookmarkAdd()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h12v18l-6-4.5L6 21Z"/></svg>加书签</span>
+        <span class="bk-mb2" id="bk-menu-bm" onclick="bkBookmarkAdd()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h12v18l-6-4.5L6 21Z"/></svg><span id="bk-menu-bm-t">加书签</span></span>
         <span class="bk-mb2" onclick="bkMenuMode()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h12M4 8l3-3M4 8l3 3M20 16H8M20 16l-3-3M20 16l-3 3"/></svg><span id="bk-menu-mode-t">滚动</span></span>
         <span class="bk-mb2" onclick="bkShowPanel()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h9"/><circle cx="18.5" cy="17" r="1.6"/></svg>界面</span>
         <span class="bk-mb2" onclick="bkCycleEnc()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 17l6-10M10 7l6 10M6.5 13h7M17 17h3"/></svg><span id="bk-menu-enc-t"></span></span>
@@ -1297,6 +1298,7 @@ function bkShowMenu() {
   if (enc) enc.textContent = s.encoding === 'gbk' ? 'GBK' : (s.encoding === 'utf-8' ? 'UTF-8' : '编码');
   const mt = document.getElementById('bk-menu-mode-t');
   if (mt) mt.textContent = s.settings.mode === 'page' ? '翻页' : '滚动';
+  bkUpdateBmBtn();
 }
 function bkHideMenu() {
   const m = document.getElementById('bk-menu');
@@ -1316,6 +1318,7 @@ function bkUpdateMenuSlider() {
 function bkMenuSeek(v) {
   const s = _bk; if (!s || s.type !== 'txt') return;
   bkSeekChar((parseFloat(v) / 1000) * (s.totalChars - 1), true);
+  bkUpdateBmBtn();
 }
 function bkMenuChapter(dir) {
   const s = _bk; if (!s || s.type !== 'txt' || !s.chapters.length) { showToast('未识别到章节'); return; }
@@ -1398,6 +1401,18 @@ function bkTocGo(i) {
 
 /* ---------- 书签（v3.11.0）：挂 rec.bookmarks 随书持久化（与进度/pageCache 同一 IndexedDB 链路）。
    TXT 条目 {pos:字符位, sn:摘要, ts}；PDF 条目 {pos:页码, sn, ts}。按 pos 升序，上限 200 条。 ---------- */
+/* v3.13.0 书签按钮状态化：当前位置已有书签 → 「已加书签」，否则「加书签」 */
+function bkUpdateBmBtn() {
+  const s = _bk; if (!s || !s.rec) return;
+  const el = document.getElementById('bk-menu-bm-t');
+  if (!el) return;
+  const cur = s.type === 'txt'
+    ? Math.round(s.settings.mode === 'page' ? (s.curChar || 0) : (s.fraction || 0) * s.totalChars)
+    : (s.pdfCur || 1);
+  const has = (s.rec.bookmarks || []).some(b => s.type === 'txt' ? Math.abs((b.pos || 0) - cur) < 400 : b.pos === cur);
+  el.textContent = has ? '已加书签' : '加书签';
+  el.parentElement.style.opacity = has ? '.55' : '';
+}
 async function bkBookmarkAdd() {
   const s = _bk; if (!s || !s.rec) return;
   let pos, sn;
@@ -1416,6 +1431,7 @@ async function bkBookmarkAdd() {
   const bms = s.rec.bookmarks = s.rec.bookmarks || [];
   /* 去重：同页/邻近位置（±400 字符）不重复加 */
   if (bms.some(b => s.type === 'txt' ? Math.abs((b.pos || 0) - pos) < 400 : b.pos === pos)) {
+    bkUpdateBmBtn();
     showToast('这个位置已有书签'); return;
   }
   const item = { pos: pos, sn: sn, ts: Date.now() };
@@ -1424,6 +1440,7 @@ async function bkBookmarkAdd() {
   bms.splice(at, 0, item);
   if (bms.length > 200) bms.shift();
   try { await dbPut('books', s.rec); } catch (e) {}
+  bkUpdateBmBtn();
   showToast(s.type === 'pdf' ? '已加书签（第 ' + pos + ' 页）' : '已加书签');
 }
 async function bkBmSave() {
@@ -1821,30 +1838,38 @@ function bkPdfRenderVisible() {
   for (let p = cur - 1; p <= cur + 2; p++) if (p >= 1 && p <= s.totalPages) want.add(p);
   for (const p of want) {
     const d = flow.querySelector('.bk-pdf-page[data-pg="' + p + '"]');
-    if (d && !d.dataset.done) bkPdfRenderPage(p, d);
+    if (d && !d.dataset.done) bkPdfRenderPage(p, d);          // 先低清（快 5~6 倍）
   }
   for (const d of flow.children) {
     if (!want.has(+d.dataset.pg) && d.firstChild) {
       delete d.dataset.done;
+      d._renderToken = (d._renderToken || 0) + 1;   // v3.13.0：离窗作废未跑完的 hi 排队
       d.innerHTML = '';                    // 释放整页位图
     }
   }
 }
 
-/* 渲染排队：每页一个 token 作废过期请求，全局链保证同一时刻只有一个 render 在跑 */
-function bkPdfRenderPage(pg, d) {
+/* 渲染排队（v3.13.0 两段式）：每页先低清（dpr=1，比全 dpr 快 5~6 倍）立即可见，
+   再自动排高清（全 dpr，画在离屏 canvas 上完成后无缝替换，无闪烁）。
+   每页一个 token 作废过期请求，全局链保证同一时刻只有一个 render 在跑。 */
+function bkPdfRenderPage(pg, d, hi) {
   const s = _bk; if (!s || s.type !== 'pdf') return;
+  if (!hi && d.dataset.done) return;
   const t = (d._renderToken = (d._renderToken || 0) + 1);
-  const run = () => (t !== d._renderToken || !d.isConnected) ? Promise.resolve() : bkPdfRenderPageNow(pg, d);
+  const run = () => (t !== d._renderToken || !d.isConnected) ? Promise.resolve() : bkPdfRenderPageNow(pg, d, false, t);
   s.pdfChain = (s.pdfChain || Promise.resolve()).then(run, run);
+  if (!hi) {
+    const runHi = () => (t !== d._renderToken || !d.isConnected || d.dataset.done === 'hi') ? Promise.resolve() : bkPdfRenderPageNow(pg, d, true, t);
+    s.pdfChain = s.pdfChain.then(runHi, runHi);
+  }
 }
 
-async function bkPdfRenderPageNow(pg, d) {
+async function bkPdfRenderPageNow(pg, d, hi, t) {
   const s = _bk;
   if (!s || !s.pdfDoc || s.type !== 'pdf') return;
   try {
     const page = await s.pdfDoc.getPage(pg);
-    if (!d.isConnected || !document.getElementById('bk-pdf-flow')) return;
+    if (t !== d._renderToken || !d.isConnected || !document.getElementById('bk-pdf-flow')) return;
     const eff = bkPdfEffScale();
     const vp = page.getViewport({ scale: eff });
     /* 单页真实尺寸与首页占位不同：回填尺寸表（页高按真实比例修正） */
@@ -1856,19 +1881,30 @@ async function bkPdfRenderPageNow(pg, d) {
     }
     d.style.width = Math.round(vp.width) + 'px';
     d.style.height = Math.round(vp.height) + 'px';
+    /* 高清：全 dpr；低清：dpr=1（位图像素少 5~6 倍） */
+    const dpr = hi ? Math.min(2.5, window.devicePixelRatio || 1) : 1;
     const canvas = document.createElement('canvas');
-    const dpr = Math.min(2.5, window.devicePixelRatio || 1);   // 3x 屏上限 2.5，控制位图内存
     canvas.width = Math.floor(vp.width * dpr);
     canvas.height = Math.floor(vp.height * dpr);
     canvas.style.width = '100%'; canvas.style.height = '100%';
-    d.innerHTML = '';
-    d.appendChild(canvas);
     await page.render({
       canvasContext: canvas.getContext('2d'),
       viewport: vp,
       transform: dpr !== 1 ? [dpr, 0, 0, dpr, 0, 0] : null
     }).promise;
-    if (d.isConnected) d.dataset.done = '1';
+    if (t !== d._renderToken || !d.isConnected) return;
+    if (hi) {
+      /* 高清在离屏画好后无缝替换低清位图（保留旧图兜底，无闪烁） */
+      if (d.firstChild) d.replaceChild(canvas, d.firstChild);
+      else { d.innerHTML = ''; d.appendChild(canvas); }
+      d.dataset.done = 'hi';
+    } else {
+      if (d.dataset.done !== 'hi') {         // hi 若已抢先完成则不倒退
+        d.innerHTML = '';
+        d.appendChild(canvas);
+        d.dataset.done = 'lo';
+      }
+    }
   } catch (e) {
     if (e && e.name === 'RenderingCancelledException') return;
     console.error(e);
@@ -1896,6 +1932,7 @@ function bkPdfGoPageRel(d) {
 }
 function bkPdfSlider(v) {
   bkPdfGoPage(parseInt(v, 10) || 1, true);   // 拖动滑条连续触发，即时跳转比逐帧 smooth 顺
+  bkUpdateBmBtn();
 }
 function bkUpdatePdfMenuSlider() {
   const sl = document.getElementById('bk-menu-slider');
@@ -2046,7 +2083,7 @@ function bkPdfMenuHTML() {
       </div>
       <div class="bk-menu-tabs">
         <span class="bk-mb2" onclick="bkTogglePdfToc(true)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h10"/></svg>目录</span>
-        <span class="bk-mb2" onclick="bkBookmarkAdd()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h12v18l-6-4.5L6 21Z"/></svg>加书签</span>
+        <span class="bk-mb2" id="bk-menu-bm" onclick="bkBookmarkAdd()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h12v18l-6-4.5L6 21Z"/></svg><span id="bk-menu-bm-t">加书签</span></span>
         <span class="bk-mb2" onclick="bkPdfSetScale(1)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg>适应宽度</span>
         <span class="bk-mb2" onclick="bkShowPdfPanel()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h9"/><circle cx="18.5" cy="17" r="1.6"/></svg>界面</span>
       </div>
@@ -2061,6 +2098,7 @@ function bkShowPdfMenu() {
   bkUpdatePdfMenuSlider();
   const el = document.getElementById('bk-menu-ch');
   if (el) el.textContent = (s.pdfCur || 1) + '/' + s.totalPages + ' 页';
+  bkUpdateBmBtn();
 }
 function bkUpdatePageFootPdf() {
   const s = _bk;
