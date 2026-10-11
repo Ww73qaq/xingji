@@ -112,6 +112,29 @@ async function calMaybeSnap(){
     state.notes=[{id:'a',owner:'me',text:'',mood:''},{id:'b',owner:'me',text:'',mood:''}];
     saveKey('notes');
     state.calLastSnapDate=today;saveKey('calLastSnapDate');
+    /* v3.18.4 自愈：把 date 与「at 所属日」不一致的历史错档便签搬回正确日期
+       （此前 calSyncTodayNotes 在跨天竞态下把昨天的便签错写进今天） */
+    try{
+      const all=await dbGetAll('calendar');
+      const moved={};
+      for(const x of all){
+        if(x.type&&x.type!=='note')continue;
+        if(x.src&&x.src!=='auto')continue;
+        const trueDay=calDateKey(new Date(x.at||0));
+        if(!x.at||trueDay===x.date)continue;
+        moved[x.date]=moved[x.date]||[];
+        moved[x.date].push(x);
+      }
+      for(const wrongDay of Object.keys(moved)){
+        for(const x of moved[wrongDay]){
+          const trueDay=calDateKey(new Date(x.at));
+          if(!all.some(y=>y.date===trueDay&&y.who===x.who&&(!y.type||y.type==='note'))){
+            await dbPut('calendar',{date:trueDay,who:x.who,text:x.text,mood:x.mood,at:x.at,src:x.src||'auto'});
+          }
+          await dbDelete('calendar',x.id);   // store 主键是自增 id（v3.18.4 修正：不能按 date 删）
+        }
+      }
+    }catch(e){console.error('cal misfile repair',e);}
     if(typeof updateHome==='function')try{updateHome();}catch(e){}
   }catch(e){console.error('cal snap',e);}
 }
@@ -122,8 +145,15 @@ let _calSyncCheck=0;
 function calSyncTodayNotes(force){
   if(!force&&Date.now()-_calSyncCheck<15000)return;   // 心跳兜底 15 秒一次
   _calSyncCheck=Date.now();
+  /* v3.18.4 关键守卫：calLastSnapDate!==今天 说明「跨天归档」还没执行，
+     桌面便签内容仍属于昨天——此时绝不能自愈进今天（曾把昨天 14:01 的便签错记到今天）。
+     顺带主动补跑归档。 */
+  const key=calDateKey(new Date());
+  if(state.calLastSnapDate!==key){
+    if(typeof calMaybeSnap==='function')try{calMaybeSnap();}catch(e){}
+    return;
+  }
   try{dbGetAll('calendar').then(all=>{
-    const key=calDateKey(new Date());
     const mine=(state.notes&&state.notes[0])||{};
     const ta=(state.notes&&state.notes[1])||{};
     if(mine&&(mine.text||'').trim()&&!all.some(x=>x.date===key&&x.who==='me'))calUpsertNote('me',mine,'auto');
