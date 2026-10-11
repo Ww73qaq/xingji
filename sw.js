@@ -28,10 +28,11 @@
    ================================================================
    本网站为个人字卡传讯作品，专属于「我」（本站主人）本人。
    ================================================================ */
-const SW_VERSION = '3.10.0';
+const SW_VERSION = '3.11.0';
 const SHELL_CACHE = 'xingji-shell-' + SW_VERSION;     // 外壳缓存：随发版整体换新
 const RUNTIME_CACHE = 'xingji-runtime-' + SW_VERSION; // 运行期同源资源：带条数上限
-const RUNTIME_MAX = 40;
+const RUNTIME_MAX = 300;   // v3.11.0：40→300。霞鹜文楷按需加载的 woff2 子集分片（每个 ~18KB）
+                           // 会经由 runtime 缓存沉淀，40 条会把其他资源挤出去；300 条 ≈ 5MB 上限
 const SCOPE_PATH = new URL('./', self.location).pathname;
 const FETCH_TIMEOUT = 6000;      // 单请求上限
 const WARM_DEADLINE = 15000;     // 预热整体上限（超时即放弃，不影响任何已成立的状态）

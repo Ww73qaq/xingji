@@ -7,6 +7,10 @@
                  + 设置面板（字号/字距/行距/段距/边距/缩进/背景/动画/编码）
                  + 章节目录探测（第X章/卷/回 等正则）
                  + 进度统一存字符偏移比例 fraction，翻页/滚动互通、跨机型不丢
+         v3.11.0：字体三选（默认衬线 / 楷体=霞鹜文楷内嵌 woff2 子集 / 跟随系统；
+                 fontFamily 已纳入 bkMapKey，换字体自动作废页映射）+ 书签（TXT 存
+                 字符位+摘要，PDF 存页码，挂 rec.bookmarks 随书持久化）+ PDF 无
+                 outline 时目录改列页码列表（"页"就是 PDF 的天然章节）。
          v3.10.0：分块虚拟分页——全书不再整本挂 DOM，段落按 BK_CHUNK_PARAS 切块，
                  multicol 容器里永远只有当前块；页映射由后台测量器逐块量出
                  （离屏同规格容器），并缓存进书籍记录（rec.pageCache，按排版参数
@@ -53,7 +57,8 @@ function bkLoadSettings() {
   const def = {
     fontSize: 19, lineHeight: 1.9, paraSpacing: 0.55, letterSpacing: 0,
     indent: true, margin: 20,
-    bg: 'paper', mode: 'page', anim: 'cover', scale: 1   // scale：PDF 相对「适应宽度」的倍率（v3.10.0 语义）
+    bg: 'paper', mode: 'page', anim: 'cover', scale: 1,   // scale：PDF 相对「适应宽度」的倍率（v3.10.0 语义）
+    fontFamily: 'system'   // v3.11.0：serif=默认衬线 | kai=楷体(霞鹜文楷) | system=跟随系统
   };
   try {
     const raw = JSON.parse(localStorage.getItem(BK_SETTINGS_KEY) || '{}');
@@ -66,6 +71,15 @@ function bkSaveSettings(s) {
 }
 
 /* 背景预设：[页面底色, 正文色, 页脚/菜单弱色] */
+/* 字体栈（v3.11.0）：kai 首选内嵌霞鹜文楷（所有设备同一字形），本地楷体作兜底；
+   serif=默认衬线；system=跟随外壳（现状）。注意：换字体改变文字宽度，
+   所以 fontFamily 必须参与 bkMapKey（页映射缓存 key），否则页码错位。 */
+function bkFontStack() {
+  const f = (_bk && _bk.settings && _bk.settings.fontFamily) || 'system';
+  if (f === 'kai') return "'LXGW WenKai','Kaiti SC','STKaiti','KaiTi','BiauKai','DFKai-SB',serif";
+  if (f === 'serif') return "Georgia,'Noto Serif SC','Songti SC',SimSun,serif";
+  return 'inherit';
+}
 function bkBgList() {
   return {
     white: ['#ffffff', '#262626', '#9a9a9a'],
@@ -140,6 +154,15 @@ function bkInjectStyle() {
   .bk-toc-list{flex:1;overflow:auto;padding:6px 0}
   .bk-toc-it{padding:11px 18px;font-size:14px;color:#555;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .bk-toc-it.bk-cur{color:#8a6d4b;background:rgba(160,130,80,.1);font-weight:600}
+  /* v3.11.0：目录/书签双 tab + 书签条目 */
+  .bk-toc-tabs{display:flex;gap:6px;padding:10px 14px;border-bottom:1px solid #eee2}
+  .bk-toc-tab{flex:1;text-align:center;padding:6px 0;border-radius:14px;border:1px solid #e2ded4;background:#f7f5ef;color:#7a7263;font-size:13px;cursor:pointer}
+  .bk-toc-tab.bk-on{background:#efe9dc;color:#5a4f38;border-color:#d8cfba;font-weight:600}
+  .bk-toc-it{display:flex;align-items:center;gap:8px}
+  .bk-toc-it .tx{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .bk-toc-it .meta{font-size:11px;color:#b3ab99;flex:none}
+  .bk-toc-it .del{flex:none;width:26px;height:26px;line-height:24px;text-align:center;border-radius:50%;color:#c9c2b2;font-size:15px;cursor:pointer}
+  .bk-toc-it .del:active{background:#f0ece1;color:#a05a4a}
   .bk-panel{position:absolute;left:0;right:0;bottom:0;z-index:25;background:var(--card,#fff);color:var(--text,#333);border-radius:16px 16px 0 0;box-shadow:0 -6px 24px rgba(0,0,0,.16);padding:14px 18px calc(env(safe-area-inset-bottom,0px) + 14px);transform:translateY(105%);transition:transform .26s ease;max-height:72%;overflow:auto}
   .bk-panel.bk-show{transform:translateY(0)}
   .bk-panel-h{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
@@ -745,7 +768,7 @@ function bkMapKey() {
   const s = _bk;
   const stage = document.getElementById('bk-stage');
   return ['v1', s.chunkSize, s.encoding, s.settings.fontSize, s.settings.lineHeight, s.settings.letterSpacing,
-    s.settings.paraSpacing, s.settings.margin, s.settings.indent ? 1 : 0, BK_COL_GAP,
+    s.settings.paraSpacing, s.settings.margin, s.settings.indent ? 1 : 0, s.settings.fontFamily || 'system', BK_COL_GAP,
     stage ? stage.clientWidth : 0, stage ? stage.clientHeight : 0, s.rec.size || 0].join('|');
 }
 let _bkMapSaveT = null;
@@ -1123,7 +1146,7 @@ function bkApplyTxtStyle() {
   if (stage) {
     stage.style.background = b[0];
     stage.style.color = b[1];
-    stage.style.fontFamily = 'inherit';
+    stage.style.fontFamily = bkFontStack();   // v3.11.0：字体三选（测量容器在 stage 下同链继承）
   }
   bkApplyTxtStyleTo(host);
   /* 段距 / 缩进用动态 style 标签（避免逐段改） */
@@ -1142,6 +1165,7 @@ function bkApplyTxtStyleTo(host) {
   host.style.fontSize = set.fontSize + 'px';
   host.style.lineHeight = set.lineHeight;
   host.style.letterSpacing = (set.letterSpacing || 0) + 'px';
+  host.style.fontFamily = bkFontStack();   // 离屏测量容器（不在 stage 继承链外也保一致）
   host.style.padding = set.margin + 'px ' + set.margin + 'px ' + (set.margin + 26) + 'px';
 }
 
@@ -1196,6 +1220,7 @@ function bkMenuHTML() {
         <span class="bk-mb2" onclick="bkMenuChapter(1)">下一章</span>
       </div>
       <div class="bk-menu-tabs">
+        <span class="bk-mb2" onclick="bkBookmarkAdd()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h12v18l-6-4.5L6 21Z"/></svg>加书签</span>
         <span class="bk-mb2" onclick="bkToggleToc(true)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h10"/></svg>目录</span>
         <span class="bk-mb2" onclick="bkMenuMode()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h12M4 8l3-3M4 8l3 3M20 16H8M20 16l-3-3M20 16l-3 3"/></svg><span id="bk-menu-mode-t">滚动</span></span>
         <span class="bk-mb2" onclick="bkShowPanel()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h9"/><circle cx="18.5" cy="17" r="1.6"/></svg>界面</span>
@@ -1229,6 +1254,7 @@ function bkHideMenu() {
   if (m) m.classList.add('bk-hide');
   bkHidePanel();
   bkToggleToc(false);
+  bkTogglePdfToc(false);   // v3.11.0：两个类型的目录面板都收（旧版只收 TXT，PDF 目录会残留）
 }
 /* v3.10.0：滑条两种模式统一为字符比例（0~1000），与进度存储口径一致，也不再依赖
    「全局总页数已量完」——大书测量未完成时照样能拖。 */
@@ -1275,39 +1301,100 @@ function bkCycleEnc() {
   showToast('编码：' + (s.encoding === 'gbk' ? 'GBK' : (s.encoding === 'utf-8' ? 'UTF-8' : '自动')));
 }
 
-/* ---------- 目录面板 ---------- */
-function bkToggleToc(show) {
+/* ---------- 目录面板（v3.11.0：目录 / 书签 双 tab） ---------- */
+function bkToggleToc(show, tab) {
   const s = _bk; if (!s || s.type !== 'txt') return;
   let toc = document.getElementById('bk-toc');
   if (!toc) {
     toc = document.createElement('div');
     toc.id = 'bk-toc'; toc.className = 'bk-toc';
-    toc.innerHTML = `<div class="bk-toc-h">目录 <span id="bk-toc-n" style="font-weight:400;color:#aaa;font-size:12px"></span></div><div class="bk-toc-list" id="bk-toc-list"></div>`;
+    toc.innerHTML = `<div class="bk-toc-tabs">
+        <span class="bk-toc-tab" data-t="toc" onclick="bkToggleToc(true,'toc')">目录</span>
+        <span class="bk-toc-tab" data-t="bm" onclick="bkToggleToc(true,'bm')">书签</span>
+      </div><div class="bk-toc-list" id="bk-toc-list"></div>`;
     const stage = document.getElementById('bk-stage');
     if (stage) stage.appendChild(toc);
     bkGuardOverlay(toc, false);
   }
+  if (!show) { toc.classList.remove('bk-show'); return; }
+  const curTab = tab || toc.dataset.tab || 'toc';
+  toc.dataset.tab = curTab;
+  toc.querySelectorAll('.bk-toc-tab').forEach(t => t.classList.toggle('bk-on', t.dataset.t === curTab));
   const list = document.getElementById('bk-toc-list');
-  if (show && list && !list.children.length) {
-    const charNow = s.settings.mode === 'page' ? (s.curChar || 0) : (s.fraction || 0) * s.totalChars;
-    const n = document.getElementById('bk-toc-n');
-    if (n) n.textContent = s.chapters.length ? s.chapters.length + ' 章' : '（未识别到章节，可继续滚动/翻页阅读）';
-    list.innerHTML = s.chapters.length
-      ? s.chapters.map((c, i) => `<div class="bk-toc-it" data-i="${i}" onclick="bkTocGo(${i})">${esc(c.title)}</div>`).join('')
-      : '';
-    if (s.chapters.length) {
+  const charNow = s.settings.mode === 'page' ? (s.curChar || 0) : (s.fraction || 0) * s.totalChars;
+  if (curTab === 'toc') {
+    const n = s.chapters.length;
+    list.innerHTML = n
+      ? s.chapters.map((c, i) => `<div class="bk-toc-it" onclick="bkTocGo(${i})"><span class="tx">${esc(c.title)}</span></div>`).join('')
+      : `<div style="padding:24px 18px;color:var(--hint,#b8b8b8);font-size:12px;line-height:1.9;text-align:center">未识别到章节<br>可加书签标记常读位置</div>`;
+    if (n) {
       let cur = 0;
       s.chapters.forEach((c, i) => { if (c.charStart <= charNow) cur = i; });
       const curEl = list.children[cur];
       if (curEl) { curEl.classList.add('bk-cur'); setTimeout(() => curEl.scrollIntoView({ block: 'start' }), 60); }
     }
+  } else {
+    const bms = s.rec.bookmarks || [];
+    list.innerHTML = bms.length
+      ? bms.map((b, i) => `<div class="bk-toc-it" onclick="bkBmGo(${i})"><span class="tx">${esc(b.sn || '')}</span><span class="meta">${Math.round(((b.pos || 0) / (s.totalChars || 1)) * 100)}%</span><span class="del" onclick="event.stopPropagation();bkBmDel(${i})">✕</span></div>`).join('')
+      : `<div style="padding:24px 18px;color:var(--hint,#b8b8b8);font-size:12px;line-height:1.9;text-align:center">还没有书签<br>阅读菜单里点「加书签」标记当前位置</div>`;
   }
-  toc.classList.toggle('bk-show', !!show);
+  toc.classList.add('bk-show');
 }
 function bkTocGo(i) {
   const s = _bk; if (!s || !s.chapters || !s.chapters[i]) return;
   bkJumpChar(s.chapters[i].charStart);
   bkToggleToc(false);
+}
+
+/* ---------- 书签（v3.11.0）：挂 rec.bookmarks 随书持久化（与进度/pageCache 同一 IndexedDB 链路）。
+   TXT 条目 {pos:字符位, sn:摘要, ts}；PDF 条目 {pos:页码, sn, ts}。按 pos 升序，上限 200 条。 ---------- */
+async function bkBookmarkAdd() {
+  const s = _bk; if (!s || !s.rec) return;
+  let pos, sn;
+  if (s.type === 'txt') {
+    pos = Math.round(s.settings.mode === 'page' ? (s.curChar || 0) : (s.fraction || 0) * s.totalChars);
+    /* 摘要从已挂载段落取（大书 s.text 已释放，不回读整本） */
+    const host = document.getElementById('bk-txt-text') || document.getElementById('bk-pageflow');
+    let el = null;
+    if (host) for (const p of host.children) { if ((p._charStart || 0) <= pos + 2) el = p; else break; }
+    sn = el ? (el.textContent || '').trim().slice(0, 30)
+            : '位置 ' + Math.round((pos / (s.totalChars || 1)) * 100) + '%';
+  } else {
+    pos = s.pdfCur || 1;
+    sn = '第 ' + pos + ' 页';
+  }
+  const bms = s.rec.bookmarks = s.rec.bookmarks || [];
+  /* 去重：同页/邻近位置（±400 字符）不重复加 */
+  if (bms.some(b => s.type === 'txt' ? Math.abs((b.pos || 0) - pos) < 400 : b.pos === pos)) {
+    showToast('这个位置已有书签'); return;
+  }
+  const item = { pos: pos, sn: sn, ts: Date.now() };
+  let at = bms.length;
+  while (at > 0 && bms[at - 1].pos > item.pos) at--;
+  bms.splice(at, 0, item);
+  if (bms.length > 200) bms.shift();
+  try { await dbPut('books', s.rec); } catch (e) {}
+  showToast(s.type === 'pdf' ? '已加书签（第 ' + pos + ' 页）' : '已加书签');
+}
+async function bkBmSave() {
+  const s = _bk; if (!s || !s.rec) return;
+  try { await dbPut('books', s.rec); } catch (e) {}
+}
+function bkBmGo(i) {
+  const s = _bk; if (!s || !s.rec || !s.rec.bookmarks || !s.rec.bookmarks[i]) return;
+  const b = s.rec.bookmarks[i];
+  bkHideMenu(); bkToggleToc(false);
+  if (s.type === 'txt') bkSeekChar(b.pos, true);
+  else bkPdfGoPage(b.pos);
+}
+async function bkBmDel(i) {
+  const s = _bk; if (!s || !s.rec || !s.rec.bookmarks || !s.rec.bookmarks[i]) return;
+  s.rec.bookmarks.splice(i, 1);
+  await bkBmSave();
+  showToast('已删除书签');
+  /* 重画当前列表 */
+  if (s.type === 'txt') bkToggleToc(true, 'bm'); else bkTogglePdfToc(true, 'bm');
 }
 
 /* ---------- 设置面板（界面） ---------- */
@@ -1331,6 +1418,11 @@ function bkShowPanel() {
     <div class="bk-chips">
       <button class="bk-chip ${isPage ? 'bk-on' : ''}" onclick="bkSetMode('page')">翻页</button>
       <button class="bk-chip ${!isPage ? 'bk-on' : ''}" onclick="bkSetMode('scroll')">滚动</button>
+    </div>
+    <div class="bk-sec">字体</div>
+    <div class="bk-chips">
+      ${[['serif', '默认'], ['kai', '楷体'], ['system', '跟随系统']].map(([k, t]) =>
+        `<button class="bk-chip ${(set.fontFamily || 'system') === k ? 'bk-on' : ''}" onclick="bkSetFamily('${k}')">${t}</button>`).join('')}
     </div>
     <div class="bk-sec">翻页动画（翻页模式）</div>
     <div class="bk-chips">
@@ -1408,6 +1500,14 @@ function bkSetProp(k, v) {
   const lab = document.getElementById('bk-v-' + k);
   if (lab) lab.textContent = v;
   bkPersistApply(true);
+}
+/* v3.11.0 字体三选：换字体改变文字宽度 → 必须走重排（bkMapKey 已含 fontFamily，整表自动作废） */
+function bkSetFamily(f) {
+  const s = _bk; if (!s) return;
+  if (s.settings.fontFamily === f) return;
+  s.settings.fontFamily = f;
+  bkPersistApply(true);
+  showToast({ serif: '字体：默认（衬线）', kai: '字体：楷体（霞鹜文楷）', system: '字体：跟随系统' }[f] || '字体已切换');
 }
 function bkAdj(k, d) {
   const s = _bk; if (!s) return;
@@ -1896,6 +1996,7 @@ function bkPdfMenuHTML() {
         <span class="bk-mb2" onclick="bkPdfGoPageRel(1)">下一页</span>
       </div>
       <div class="bk-menu-tabs">
+        <span class="bk-mb2" onclick="bkBookmarkAdd()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h12v18l-6-4.5L6 21Z"/></svg>加书签</span>
         <span class="bk-mb2" onclick="bkTogglePdfToc(true)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h10"/></svg>目录</span>
         <span class="bk-mb2" onclick="bkPdfSetScale(1)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg>适应宽度</span>
         <span class="bk-mb2" onclick="bkShowPdfPanel()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h9"/><circle cx="18.5" cy="17" r="1.6"/></svg>界面</span>
@@ -2005,32 +2106,57 @@ async function bkPdfLoadOutline() {
     s.pdfOutline = flat.filter(it => it.page);
   } catch (e) { s.pdfOutline = null; }
 }
-function bkTogglePdfToc(show) {
+/* v3.11.0：目录（outline，无则页码列表）/ 书签 双 tab。无 outline 不再是死胡同——
+   "页"就是 PDF 的天然章节。 */
+function bkTogglePdfToc(show, tab) {
   const s = _bk; if (!s || s.type !== 'pdf') return;
   let toc = document.getElementById('bk-toc');
   if (!toc) {
     toc = document.createElement('div');
     toc.id = 'bk-toc'; toc.className = 'bk-toc';
-    toc.innerHTML = `<div class="bk-toc-h">目录 <span id="bk-toc-n" style="font-weight:400;color:#aaa;font-size:12px"></span></div><div class="bk-toc-list" id="bk-toc-list"></div>`;
+    toc.innerHTML = `<div class="bk-toc-tabs">
+        <span class="bk-toc-tab" data-t="toc" onclick="bkTogglePdfToc(true,'toc')">目录</span>
+        <span class="bk-toc-tab" data-t="bm" onclick="bkTogglePdfToc(true,'bm')">书签</span>
+      </div><div class="bk-toc-list" id="bk-toc-list"></div>`;
     const stage = document.getElementById('bk-stage');
     if (stage) stage.appendChild(toc);
     bkGuardOverlay(toc, false);
   }
+  if (!show) { toc.classList.remove('bk-show'); return; }
+  const curTab = tab || toc.dataset.tab || 'toc';
+  toc.dataset.tab = curTab;
+  toc.querySelectorAll('.bk-toc-tab').forEach(t => t.classList.toggle('bk-on', t.dataset.t === curTab));
   const list = document.getElementById('bk-toc-list');
-  if (show && list && !list.children.length) {
-    const n = document.getElementById('bk-toc-n');
+  if (curTab === 'toc') {
     const items = s.pdfOutline;
-    if (n) n.textContent = items && items.length ? items.length + ' 项' : '';
-    list.innerHTML = (items && items.length)
-      ? items.map((it, i) => `<div class="bk-toc-it" style="${it.depth ? 'padding-left:' + (18 + it.depth * 16) + 'px;font-size:13px;' : ''}" onclick="bkPdfTocGo(${i})">${esc(it.title || ('第 ' + it.page + ' 页'))}</div>`).join('')
-      : `<div style="padding:24px 18px;color:var(--hint,#b8b8b8);font-size:12px;line-height:1.9;text-align:center">该 PDF 没有书签目录<br>可用下方滑条或点按左右翻页</div>`;
+    if (items && items.length) {
+      list.innerHTML = items.map((it, i) =>
+        `<div class="bk-toc-it" onclick="bkPdfTocGo(${i})"><span class="tx" style="${it.depth ? 'padding-left:' + (it.depth * 16) + 'px;font-size:13px;' : ''}">${esc(it.title || ('第 ' + it.page + ' 页'))}</span><span class="meta">${it.page}</span></div>`).join('');
+    } else {
+      const total = s.totalPages || 0;
+      const cur = s.pdfCur || 1;
+      list.innerHTML = total
+        ? Array.from({ length: total }, (_, k) => k + 1).map(p =>
+            `<div class="bk-toc-it ${p === cur ? 'bk-cur' : ''}" onclick="bkPdfTocGo(-1,${p})"><span class="tx">第 ${p} 页</span></div>`).join('')
+        : `<div style="padding:24px 18px;color:var(--hint,#b8b8b8);font-size:12px;text-align:center">页数解析中…</div>`;
+      const curEl = list.querySelector('.bk-cur');
+      if (curEl) setTimeout(() => curEl.scrollIntoView({ block: 'center' }), 60);
+    }
+  } else {
+    const bms = s.rec.bookmarks || [];
+    list.innerHTML = bms.length
+      ? bms.map((b, i) => `<div class="bk-toc-it" onclick="bkBmGo(${i})"><span class="tx">${esc(b.sn || ('第 ' + b.pos + ' 页'))}</span><span class="del" onclick="event.stopPropagation();bkBmDel(${i})">✕</span></div>`).join('')
+      : `<div style="padding:24px 18px;color:var(--hint,#b8b8b8);font-size:12px;line-height:1.9;text-align:center">还没有书签<br>阅读菜单里点「加书签」收藏当前页</div>`;
   }
-  toc.classList.toggle('bk-show', !!show);
+  toc.classList.add('bk-show');
 }
-function bkPdfTocGo(i) {
-  const s = _bk; if (!s || !s.pdfOutline || !s.pdfOutline[i]) return;
+function bkPdfTocGo(i, page) {
+  const s = _bk; if (!s || s.type !== 'pdf') return;
+  let pg = page;
+  if (!pg && i >= 0 && s.pdfOutline && s.pdfOutline[i]) pg = s.pdfOutline[i].page;
+  if (!pg) return;
   bkHideMenu();
-  bkPdfGoPage(s.pdfOutline[i].page);
+  bkPdfGoPage(pg);
 }
 
 /* =========================================================
