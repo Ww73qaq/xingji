@@ -1,0 +1,86 @@
+# 星迹 · APK 云端构建流水线
+# 触发：手动（workflow_dispatch）或推送影响站点/工程的文件
+# 产物：签名 APK 自动提交回 apk/xingji-latest.apk（APP 在线更新通道即时生效）
+# 密钥：XJ_KEYSTORE_B64 / XJ_KEY_PASS / XJ_KEY_ALIAS / XJ_TOKEN（仓库 Secrets，不入代码）
+name: build-apk
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'js/**'
+      - 'css/**'
+      - 'index.html'
+      - 'manifest.webmanifest'
+      - 'version.json'
+      - 'app-project/**'
+      - '.github/workflows/build-apk.yml'
+
+jobs:
+  build:
+    if: ${{ github.event.head_commit == null || !startsWith(github.event.head_commit.message, 'ci: cloud build') }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - name: Install Capacitor deps
+        working-directory: app-project
+        run: npm install --no-fund --no-audit
+
+      - name: Assemble web assets
+        run: |
+          mkdir -p app-project/www
+          tar --exclude='./.git' --exclude='./.workbuddy' --exclude='./*.md' \
+              --exclude='./apk' --exclude='./app-project' --exclude='./.github' \
+              -cf - . | (cd app-project/www && tar -xf -)
+          VER=$(python3 -c "import json;print(json.load(open('version.json'))['version'])")
+          CODE=$(python3 -c "import json;print(json.load(open('version.json'))['apk']['code'])")
+          echo "{\"version\":\"$VER\",\"code\":$CODE}" > app-project/www/app-version.json
+          echo "web version=$VER code=$CODE"
+
+      - name: Sync Capacitor
+        working-directory: app-project
+        run: npx cap sync android
+
+      - name: Restore signing material
+        working-directory: app-project/android
+        run: |
+          echo "${{ secrets.XJ_KEYSTORE_B64 }}" | base64 -d > xingji-release.keystore
+          printf 'storeFile=../xingji-release.keystore\nstoreAlias=%s\nstorePassword=%s\nkeyPassword=%s\n' \
+            "${{ secrets.XJ_KEY_ALIAS }}" "${{ secrets.XJ_KEY_PASS }}" "${{ secrets.XJ_KEY_PASS }}" > keystore.properties
+
+      - name: Build release APK
+        working-directory: app-project/android
+        run: |
+          chmod +x gradlew
+          ./gradlew assembleRelease --no-daemon
+
+      - name: Publish APK back to repo
+        run: |
+          cp app-project/android/app/build/outputs/apk/release/app-release.apk apk/xingji-latest.apk
+          SIZE=$(du -k apk/xingji-latest.apk | cut -f1)
+          python3 - "$SIZE" <<'PYEOF'
+          import io, json, sys
+          size_mb = round(int(sys.argv[1]) / 1024, 1)
+          v = json.load(open('version.json'))
+          if 'apk' in v:
+              v['apk']['sizeMB'] = size_mb
+          io.open('version.json', 'w', encoding='utf-8', newline='').write(
+              json.dumps(v, ensure_ascii=False, indent=2) + '\n')
+          print('version.json apk sizeMB =', size_mb)
+          PYEOF
+          git config user.name "xingji-bot"
+          git config user.email "bot@users.noreply.github.com"
+          git add apk/xingji-latest.apk version.json
+          git commit -m "ci: cloud build apk ($(date -u +%Y-%m-%d))" || echo "nothing to commit"
+          git push https://x-access-token:${{ secrets.XJ_TOKEN }}@github.com/Ww73qaq/xingji.git main

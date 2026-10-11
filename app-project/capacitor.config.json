@@ -1,0 +1,11 @@
+{
+  "appId": "com.ww73qaq.xingji",
+  "appName": "星迹",
+  "webDir": "www",
+  "android": {
+    "allowMixedContent": false
+  },
+  "server": {
+    "androidScheme": "https"
+  }
+}
