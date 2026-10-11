@@ -115,6 +115,7 @@ function openNotifySettings(){
     <div class="modal-item" onclick="setNotify('moments')"><span style="flex:1">朋友圈互动</span><span class="cs-switch${n.moments!==false?' on':''}" onclick="event.stopPropagation();setNotify('moments')"></span></div>
     <div class="modal-item" onclick="setNotify('letters')"><span style="flex:1">信件回信</span><span class="cs-switch${n.letters!==false?' on':''}" onclick="event.stopPropagation();setNotify('letters')"></span></div>
     <button class="btn-pill" style="width:100%;margin-top:8px" onclick="testNotify()">测试通知（当场发一条验证链路）</button>
+    ${inApp()?`<button class="btn-pill" style="width:100%;margin-top:8px" onclick="appBatteryGuide()">通知保活 · 电池优化白名单（锁屏也能收）</button>`:''}
     <details style="margin-top:10px;font-size:11px;color:var(--hint)"><summary style="cursor:pointer;outline:none">？ 通知说明</summary><div style="line-height:1.8;margin-top:6px">说明：<br>· 通知需要浏览器授权，首次开启会弹出授权请求；<br>· 若授权框不弹、或已被浏览器自动禁止（Edge / Chrome 会挡反复请求的站点）→ 按上面红字去浏览器设置添加例外；<br>· 手机端点「测试通知」：切回桌面/其它App 后通知即弹出（Android 前台页面不显示通知）；<br>· iPhone Safari：先「添加到主屏幕」再从桌面图标打开，通知才能稳定生效；<br>· QQ / 微信内置浏览器：部分版本会拦截网页通知，建议用系统浏览器打开本站；<br>· Android 后台运行：设置→应用→Edge/Chrome→电池→「不受限制」；最近任务把浏览器「锁定」；关闭浏览器省电模式/后台限制——否则锁屏后系统会休眠浏览器导致通知失效；<br>· 页面完全关闭后无法收到（静态站无推送服务器），保持后台打开即可。</div></details>`);
 }
 function testNotify(){
