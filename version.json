@@ -1,12 +1,12 @@
 {
-  "version": "3.18.2",
+  "version": "3.18.3",
   "name": "星迹",
-  "ts": "2026-10-11T17:55:00Z",
+  "ts": "2026-10-11T18:05:00Z",
   "apk": {
-    "version": "3.18.2",
-    "code": 5,
+    "version": "3.18.3",
+    "code": 6,
     "url": "apk/xingji-latest.apk",
     "sizeMB": 8.3,
-    "notes": "通知发送结果可见(成功/失败原因toast) + 通知设置内显示APP构建版本, 便于确认是否装上新包"
+    "notes": "修复垫片加载顺序缺陷(profile.js函数声明覆盖原生重载致通知全程走网页路径)+Notification构造器垫片(new Notification直通原生)"
   }
 }

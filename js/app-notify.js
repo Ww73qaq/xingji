@@ -1,7 +1,10 @@
 /* =========================================================
-   星迹 · APP 原生能力桥（v3.18.0，仅 Capacitor 壳内生效）
-   ① Notification API 垫片：让 profile.js 现有权限检查/开关 UI 原样工作
+   星迹 · APP 原生能力桥（v3.18.3，仅 Capacitor 壳内生效）
+   ① Notification 构造器垫片：window.Notification 变为「调原生通知」的函数
+      （旧版是普通对象，网页代码 new Notification() 直接 TypeError 被吞）
    ② 发送重载：sendWebNotify/fallbackNotify → LocalNotifications 原生通知
+      ⚠️ 安装时机：立即 + DOMContentLoaded 各装一次——profile.js 的函数声明
+      在解析时会覆盖先加载的垫片（v3.18.0~3.18.2 通知失效的根因），必须晚于它再挂
    ③ 电池优化白名单：appBatteryGuide()（自写原生 BatteryWhitelistPlugin）
    网页端：inApp()=false，本文件全部逻辑跳过，行为与旧版完全一致
    ========================================================= */
@@ -11,32 +14,25 @@
   var LN = Capacitor.Plugins.LocalNotifications;
   var BW = Capacitor.Plugins.BatteryWhitelist || null;
 
-  /* v3.18.1：高优先级渠道——横幅弹出 + 锁屏可见（默认渠道重要性不足会静默进抽屉） */
+  /* ---- 高优先级渠道：横幅 + 锁屏可见（默认渠道重要性不足会静默进抽屉） ---- */
   var XJ_CHANNEL = 'xingji-msg';
-  try {
-    LN.createChannel({
-      id: XJ_CHANNEL,
-      name: '星迹消息',
-      description: 'TA 的消息、动态与提醒',
-      importance: 'HIGH',          // 4：横幅 + 声音 + 锁屏
-      visibility: 'PUBLIC'         // 锁屏上显示内容
-    }).catch(function () {});
-  } catch (e) {}
+  function ensureChannel() {
+    try {
+      LN.createChannel({
+        id: XJ_CHANNEL,
+        name: '星迹消息',
+        description: 'TA 的消息、动态与提醒',
+        importance: 'HIGH',
+        visibility: 'PUBLIC'
+      }).catch(function () {});
+    } catch (e) {}
+  }
 
-  /* ---- 权限状态缓存 + Notification 垫片 ---- */
+  /* ---- 权限状态缓存 ---- */
   window.__xjNPerm = 'default';
   LN.checkPermissions().then(function (r) { window.__xjNPerm = r.display === 'granted' ? 'granted' : (r.display === 'denied' ? 'denied' : 'default'); }).catch(function () {});
-  window.Notification = {
-    get permission() { return window.__xjNPerm; },
-    requestPermission: function () {
-      return LN.requestPermissions().then(function (r) {
-        window.__xjNPerm = r.display === 'granted' ? 'granted' : (r.display === 'denied' ? 'denied' : 'default');
-        return window.__xjNPerm;
-      });
-    }
-  };
 
-  /* ---- 点击回调表：通知 id → onClick ---- */
+  /* ---- 原生发送（结果可见，不再静默吞错） ---- */
   var _clicks = {};
   var _nextId = 1;
   try {
@@ -51,7 +47,7 @@
   } catch (e) {}
 
   function appNotifySend(title, body, onClick) {
-    var id = (_nextId++) * 7919 + (Date.now() % 100000);   // 32bit 内稳定唯一
+    var id = (_nextId++) * 7919 + (Date.now() % 100000);
     if (typeof onClick === 'function') _clicks[id] = onClick;
     LN.schedule({
       notifications: [{
@@ -61,18 +57,40 @@
         channelId: XJ_CHANNEL
       }]
     }).then(function () {
-      /* v3.18.2：投递成功回执（前台可直接看到发送结果） */
       try { if (typeof showToast === 'function') showToast('原生通知已提交系统'); } catch (e) {}
     }).catch(function (err) {
-      /* v3.18.2：失败原因直接显示，不再静默吞掉 */
       try { if (typeof showToast === 'function') showToast('通知发送失败：' + ((err && (err.message || err.details)) || JSON.stringify(err) || '未知')); } catch (e) {}
       console.error('[xingji] LocalNotifications.schedule 失败', err);
     });
   }
+  window.appNotifySend = appNotifySend;   // 诊断/调试入口
 
-  /* 重载发送层（notifySystem 内部调 sendWebNotify；SW 不可达时走 fallbackNotify） */
-  window.sendWebNotify = function (title, body, tag, onClick) { appNotifySend(title, body, onClick); };
-  window.fallbackNotify = function (title, body, onClick) { appNotifySend(title, body, onClick); };
+  /* ---- Notification 构造器垫片：new Notification(title,{body}) → 原生通知 ---- */
+  function XJNotification(title, opts) {
+    try { appNotifySend(title, opts && opts.body); } catch (e) {}
+    this.close = function () {};
+  }
+  XJNotification.requestPermission = function () {
+    return LN.requestPermissions().then(function (r) {
+      window.__xjNPerm = r.display === 'granted' ? 'granted' : (r.display === 'denied' ? 'denied' : 'default');
+      return window.__xjNPerm;
+    });
+  };
+  try {
+    Object.defineProperty(XJNotification, 'permission', { get: function () { return window.__xjNPerm; } });
+  } catch (e) { XJNotification.permission = 'default'; }
+  window.Notification = XJNotification;
+
+  /* ---- 发送层重载（关键：晚于 profile.js 的函数声明再挂一次） ---- */
+  function installShim() {
+    window.sendWebNotify = function (title, body, tag, onClick) { appNotifySend(title, body, onClick); };
+    window.fallbackNotify = function (title, body, onClick) { appNotifySend(title, body, onClick); };
+  }
+  installShim();
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', installShim);
+    window.addEventListener('load', installShim);
+  }
 
   /* ---- 电池优化白名单 ---- */
   window.appBatteryIsIgnoring = function () {
@@ -85,12 +103,12 @@
       setTimeout(function () {
         appBatteryIsIgnoring().then(function (ok) {
           showToast(ok ? '保活已开启，通知在锁屏后也能送达' : '还没有允许，可稍后从「消息通知」里再进来开');
-          if (typeof saveKey === 'function') { try { localStorage.setItem('xj-battery-asked', '1'); } catch (e) {} }
+          try { localStorage.setItem('xj-battery-asked', '1'); } catch (e) {}
         });
       }, 1200);
     }).catch(function () { showToast('打开系统设置失败，请手动到 设置→电池 里关闭本应用的优化'); });
   };
-  /* 首次启动一次性引导：仅在已开总开关且未豁免且没问过时弹 */
+  /* 首次启动一次性引导 */
   setTimeout(function () {
     try {
       var n = (typeof state !== 'undefined' && state.notify) || {};
@@ -105,4 +123,6 @@
       });
     } catch (e) {}
   }, 6000);
+
+  ensureChannel();
 })();
