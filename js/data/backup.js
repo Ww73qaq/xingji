@@ -42,6 +42,29 @@ function _deepMerge(cur,inc){
   }
   return out;
 }
+/* v3.16.0：localStorage 直存键入备份（房间预设 / 阅读器全局排版）。
+   这两个键不在 IndexedDB，此前备份不携带 → 网页版/APP 互迁会丢房间摆设和阅读排版。
+   白名单制：只读写 LS_KEYS 里的键；值为原样 JSON 字符串，导入时逐键校验可解析才落。 */
+const LS_KEYS=['xingji-room','xingji-book-settings'];
+function _collectLs(){
+  const out={};
+  try{for(const k of LS_KEYS){const v=localStorage.getItem(k);if(v!=null)out[k]=v;}}catch(e){}
+  return out;
+}
+function _restoreLs(data){
+  try{
+    const ls=data&&data.ls;
+    if(!ls||typeof ls!=='object'||Array.isArray(ls))return 0;
+    let n=0;
+    for(const k of LS_KEYS){
+      const v=ls[k];
+      if(typeof v!=='string')continue;
+      JSON.parse(v);                                 // 坏串直接抛，不落盘
+      localStorage.setItem(k,v);n++;
+    }
+    return n;
+  }catch(e){console.error('restore ls',e);return 0;}
+}
 /* 备份内容白名单化：只接受本应用已知的 store 且形状正确（数组；pokeGroups 为对象）。
    此前只要顶层有个真值 .stores 就放行，任意第三方 JSON（例如 {"stores":{"questions":[...]}}）
    都能通过校验并在覆盖导入时把库洗成空的（v3.9.5 修）。 */
@@ -154,7 +177,7 @@ async function exportData(){
     showToast('正在打包数据…');
     const data={
       app:'xingji', schemaVersion:SCHEMA_VERSION, appVersion:APP_VERSION,
-      exportedAt:new Date().toISOString(), stores:{}
+      exportedAt:new Date().toISOString(), stores:{}, ls:_collectLs()
     };
     for(const s of STORES)data.stores[s]=await _readStoreData(s);
     const blob=new Blob([JSON.stringify(data)],{type:'application/json'});
@@ -217,7 +240,7 @@ function toggleExportSel(s,on){if(on)exportSel.add(s);else exportSel.delete(s);}
 async function doExportSelect(){
   const sel=[...exportSel];
   if(!sel.length){showToast('请至少选择一项');return;}
-  const data={app:'xingji',schemaVersion:SCHEMA_VERSION,appVersion:APP_VERSION,exportedAt:new Date().toISOString(),stores:{}};
+  const data={app:'xingji',schemaVersion:SCHEMA_VERSION,appVersion:APP_VERSION,exportedAt:new Date().toISOString(),stores:{},ls:_collectLs()};
   for(const s of sel)data.stores[s]=await _readStoreData(s);
   const blob=new Blob([JSON.stringify(data)],{type:'application/json'});
   const name=`星迹_自定义数据_${new Date().toISOString().slice(0,10)}.json`;
@@ -253,6 +276,7 @@ async function importBackupText(){
       showToast('正在恢复 '+dirty.length+' 类数据…');
       for(const s of dirty)await _writeStoreData(s,stores[s],importMode);
       if(dirty.includes('settings'))await loadSettings();
+      _restoreLs(data);
       closeModal();showToast('恢复完成，正在刷新…');setTimeout(()=>location.reload(),700);
     };
     if(importMode==='overwrite'||importMode==='full'){
@@ -289,6 +313,7 @@ function pickImportFile(mode){
           await _writeStoreData(s,stores[s],importMode);
         }
         if(dirty.includes('settings')){await loadSettings();}
+        _restoreLs(data);
         showToast('导入完成');
         setTimeout(()=>location.reload(),600);
       };
