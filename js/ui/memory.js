@@ -15,6 +15,7 @@ function backupMigrateHtml(){
       <div class="cs-item" onclick="exportData()"><span class="cs-ico">${ICO.mail}</span><span class="cs-label">完整备份</span><span class="cs-val">聊天 / 信件 / 日记 / 朋友圈等</span><span class="cs-arrow">&#8250;</span></div>
       <div class="cs-item" onclick="showExportSelect()"><span class="cs-ico">${ICO.chart}</span><span class="cs-label">自定义导出</span><span class="cs-val">按类别选择数据</span><span class="cs-arrow">&#8250;</span></div>
       <div class="cs-item" onclick="showImportMenu()"><span class="cs-ico">${ICO.book}</span><span class="cs-label">导入数据</span><span class="cs-val">合并 / 覆盖 / 完整</span><span class="cs-arrow">&#8250;</span></div>
+      ${inApp() ? `<div class="cs-item" onclick="appUpdateCheck(true)"><span class="cs-ico">${ICO.chart}</span><span class="cs-label">检查 APP 更新</span><span class="cs-val">在线下载新版本安装包</span><span class="cs-arrow">&#8250;</span></div>` : ''}
     </div>`;
 }
 /* 「数据」Tab：先渲染收藏消息（renderDataPage 在 backup.js），再把备份/迁移入口追加在下面 */

@@ -118,6 +118,7 @@ if('serviceWorker' in navigator){navigator.serviceWorker.register('./sw.js').cat
 openDB().then(async()=>{
   checkUpdate();
   checkVersion();
+  if (typeof appUpdateCheck === 'function') appUpdateCheck(false);   // v3.17.0：APP 壳内静默检查 APK 更新
   await loadSettings();
   migrateProb();                 // 旧概率结构 → 新独立概率结构（迁移一次）
   /* v3.9.5：刷新页面会丢掉内存里的陪伴会话（companion.js 的 companionSession），
