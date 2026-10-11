@@ -11,6 +11,18 @@
   var LN = Capacitor.Plugins.LocalNotifications;
   var BW = Capacitor.Plugins.BatteryWhitelist || null;
 
+  /* v3.18.1：高优先级渠道——横幅弹出 + 锁屏可见（默认渠道重要性不足会静默进抽屉） */
+  var XJ_CHANNEL = 'xingji-msg';
+  try {
+    LN.createChannel({
+      id: XJ_CHANNEL,
+      name: '星迹消息',
+      description: 'TA 的消息、动态与提醒',
+      importance: 'HIGH',          // 4：横幅 + 声音 + 锁屏
+      visibility: 'PUBLIC'         // 锁屏上显示内容
+    }).catch(function () {});
+  } catch (e) {}
+
   /* ---- 权限状态缓存 + Notification 垫片 ---- */
   window.__xjNPerm = 'default';
   LN.checkPermissions().then(function (r) { window.__xjNPerm = r.display === 'granted' ? 'granted' : (r.display === 'denied' ? 'denied' : 'default'); }).catch(function () {});
@@ -45,7 +57,8 @@
       notifications: [{
         id: id,
         title: title || '星迹',
-        body: (body || '').slice(0, 150)
+        body: (body || '').slice(0, 150),
+        channelId: XJ_CHANNEL
       }]
     }).catch(function () {});
   }

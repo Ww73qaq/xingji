@@ -86,6 +86,7 @@ function notifySystem(title,body,onClick,src){
    通知由浏览器原生调度，页面后台/冻结也能弹出）；无 SW 时回退 Notification API。 */
 function sendWebNotify(title,body,tag,onClick){
   if(!notifySupported()||!notifyPermGranted())return;
+  if(typeof inApp==='function'&&inApp()){fallbackNotify(title,body,onClick);return;}   /* v3.18.1：APP 内不走 SW showNotification（WebView 弹不出） */
   const opts={body:(body||'').slice(0,120),tag:tag||('xingji|'+Date.now())};
   if('serviceWorker' in navigator){
     navigator.serviceWorker.ready.then(reg=>reg.showNotification(title||'星迹',opts))
@@ -131,12 +132,9 @@ function testNotify(){
 }
 /* 发送测试通知：走 Service Worker——前台调用不抛异常，Android 上通知在切回桌面/其它App 后显示 */
 function sendTestNotification(){
-  if('serviceWorker' in navigator&&navigator.serviceWorker.controller){
-    navigator.serviceWorker.ready.then(reg=>reg.showNotification('星迹 · 测试通知',{body:'通知链路已打通，你已能收到本网站的系统通知',tag:'xingji-test'}))
-      .catch(()=>fallbackNotify('星迹 · 测试通知','通知链路已打通，你已能收到本网站的系统通知'));
-  }else{
-    fallbackNotify('星迹 · 测试通知','通知链路已打通，你已能收到本网站的系统通知');
-  }
+  /* v3.18.1：统一走 sendWebNotify——APP 内被 app-notify.js 重载为原生 LocalNotifications
+     （旧版直连 reg.showNotification 在 WebView 中弹不出，导致 APP 测试通知失败）；网页行为不变 */
+  sendWebNotify('星迹 · 测试通知','通知链路已打通，你已能收到本网站的系统通知','xingji-test');
 }
 function setNotify(k){
   state.notify=state.notify||{enabled:false,chat:true,moments:true,letters:true};
@@ -166,6 +164,7 @@ function keepAliveActive(){return !!(state.notify&&state.notify.enabled&&_keepCt
      是否被挂起（suspended）并 resume，保证音频不停、页面不被冻结。
    - visibilitychange：切后台确保保活在跑；切回前台 resume 被挂起的上下文。 */
 function startKeepAlive(){
+  if(typeof inApp==='function'&&inApp())return;   /* v3.18.1：APP 内不需要保活音频（原生通知不依赖页面存活），省电 */
   if(_keepCtx)return;
   try{
     const AC=window.AudioContext||window.webkitAudioContext;
