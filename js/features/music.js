@@ -28,6 +28,7 @@ async function muInit() {
   try { await dbReady; } catch (e) {}
   try { muList = (await dbGetAll('music')).sort((a, b) => (a.addedAt || 0) - (b.addedAt || 0)); } catch (e) { muList = []; }
   muAudio = new Audio();
+  muAudio.volume = (muSet.vol != null) ? muSet.vol : 1;
   muAudio.addEventListener('timeupdate', muOnTime);
   muAudio.addEventListener('ended', muOnEnded);
   muAudio.addEventListener('loadedmetadata', muOnMeta);
@@ -41,7 +42,7 @@ async function muInit() {
     if (idx >= 0) { muCurId = pos.id; muPlayIndex(idx, pos.t || 0, true); }
   }
   muRenderAll();
-  muBindFabDrag();
+  muBindMini();
   muRestorePage();
 }
 
@@ -220,6 +221,10 @@ function muOnTime() {
   if (sl && d) sl.value = Math.round(muAudio.currentTime / d * 1000);
   const tc = document.getElementById('mu-t-cur');
   if (tc) tc.textContent = muFmt(muAudio.currentTime);
+  const msl = document.getElementById('muf-seek');
+  if (msl && d) msl.value = Math.round(muAudio.currentTime / d * 1000);
+  const tc2 = document.getElementById('muf-t-cur');
+  if (tc2) tc2.textContent = muFmt(muAudio.currentTime);
 }
 let muSeeking = false;
 function muSeek(v) {
@@ -266,20 +271,55 @@ function muDelete(id, ev) {
 }
 
 /* ---------- 渲染 ---------- */
-function muRenderAll() { muRenderPlayer(); muRenderList(); muRenderFab(); muRenderAppIcon(); }
+function muRenderAll() { muRenderPlayer(); muRenderList(); muRenderMini(); muRenderFull(); muRenderAppIcon(); }
+const _covBg = rec => rec && rec.cover ? 'url(' + rec.cover + ')' : 'linear-gradient(135deg,#8a6d4b,#c99a7a)';
 function muRenderPlayer() {
   const rec = muCur();
   const cov = document.getElementById('mu-cover');
-  if (cov) cov.style.backgroundImage = rec && rec.cover ? 'url(' + rec.cover + ')' : 'linear-gradient(135deg,#8a6d4b,#c99a7a)';
+  if (cov) cov.style.backgroundImage = _covBg(rec);
   const t = document.getElementById('mu-title'), a = document.getElementById('mu-artist');
   if (t) t.textContent = rec ? rec.name : '未在播放';
-  if (a) a.textContent = rec ? (rec.artist || '本地音乐') : '导入本地歌曲开始聆听';
+  if (a) a.textContent = rec ? (rec.artist || '本地音乐') : '点此进入播放页 · 导入歌曲';
   const pi = document.getElementById('mu-play-ico');
   if (pi) pi.innerHTML = (muAudio && !muAudio.paused && muCurId) ? '<path d="M6 5h4v14H6zM14 5h4v14h-4z"/>' : '<path d="M8 5v14l11-7z"/>';
-  const te = document.getElementById('mu-t-end');
+}
+/* 全屏黑胶页 */
+function muRenderFull() {
+  const rec = muCur();
+  const cov = document.getElementById('muf-cover2');
+  if (cov) cov.style.backgroundImage = _covBg(rec);
+  const t = document.getElementById('muf-title'), a = document.getElementById('muf-artist');
+  if (t) t.textContent = rec ? rec.name : '未在播放';
+  if (a) a.textContent = rec ? (rec.artist || '本地音乐') : '导入本地歌曲开始聆听';
+  const pi = document.getElementById('muf-play-ico');
+  if (pi) pi.innerHTML = (muAudio && !muAudio.paused && muCurId) ? '<path d="M6 5h4v14H6zM14 5h4v14h-4z"/>' : '<path d="M8 5v14l11-7z"/>';
+  const playing = !!(muAudio && !muAudio.paused && muCurId);
+  const disc = document.getElementById('muf-disc');
+  if (disc) disc.classList.toggle('spin', playing);
+  const arm = document.getElementById('muf-arm');
+  if (arm) arm.classList.toggle('on', playing);
+  const mt = document.getElementById('muf-mode-t');
+  if (mt) mt.textContent = '· ' + (muSet.mode === 'loop' ? '列表循环' : muSet.mode === 'one' ? '单曲循环' : '随机播放');
+  const te = document.getElementById('muf-t-end');
   if (te) te.textContent = muFmt(rec && rec.dur ? rec.dur : (muAudio && muAudio.duration) || 0);
-  const mb = document.getElementById('mu-mode-btn');
-  if (mb) { mb.style.opacity = muSet.mode === 'loop' ? '.55' : '1'; mb.title = muSet.mode === 'loop' ? '列表循环' : muSet.mode === 'one' ? '单曲循环' : '随机播放'; }
+}
+/* 悬浮迷你控制条 */
+function muRenderMini() {
+  const m = document.getElementById('mu-mini');
+  if (!m) return;
+  const has = muList.length > 0;
+  const appOpen = !!(document.getElementById('app-pages') && document.getElementById('app-pages').classList.contains('on'));
+  const onDesk2 = !appOpen && deskCurPage() === 1;
+  m.style.display = (has && !onDesk2) ? 'flex' : 'none';
+  const rec = muCur();
+  const cov = document.getElementById('mu-mini-cov');
+  if (cov) cov.style.backgroundImage = _covBg(rec);
+  const t = document.getElementById('mu-mini-t'), a = document.getElementById('mu-mini-a');
+  if (t) t.textContent = rec ? rec.name : '未在播放';
+  if (a) a.textContent = rec ? (rec.artist || '星迹音乐') : '星迹音乐';
+  const p = document.getElementById('mu-mini-ico');
+  if (p) p.innerHTML = (muAudio && !muAudio.paused && muCurId) ? '<path d="M6 5h4v14H6zM14 5h4v14h-4z"/>' : '<path d="M8 5v14l11-7z"/>';
+  m.style.opacity = muSet.miniOp != null ? muSet.miniOp : 1;
 }
 function muRenderList() {
   const host = document.getElementById('mu-list');
@@ -312,54 +352,70 @@ function muRenderAppIcon() {
   ico.classList.toggle('mu-playing', !!(muAudio && !muAudio.paused && muCurId));
 }
 /* 状态变化只刷按钮/悬浮钮 */
-function muRenderState() { muRenderPlayer(); muRenderFab(); muRenderAppIcon(); muRenderList(); }
+function muRenderState() { muRenderPlayer(); muRenderList(); muRenderMini(); muRenderFull(); muRenderAppIcon(); }
 
-/* ---------- 悬浮小按钮（可拖动·位置记忆） ---------- */
-function muRenderFab() {
-  const fab = document.getElementById('mu-fab');
-  if (!fab) return;
-  const has = muList.length > 0;
-  const appOpen = !!(document.getElementById('app-pages') && document.getElementById('app-pages').classList.contains('on'));
-  const onDesk2 = !appOpen && deskCurPage() === 1;
-  fab.style.display = (has && !onDesk2) ? '' : 'none';
-  const rec = muCur();
-  const cov = document.getElementById('mu-fab-cov');
-  if (cov) cov.style.backgroundImage = rec && rec.cover ? 'url(' + rec.cover + ')' : 'linear-gradient(135deg,#8a6d4b,#c99a7a)';
-  const p = document.getElementById('mu-fab-ico');
-  if (p) p.setAttribute('d', (muAudio && !muAudio.paused && muCurId) ? 'M6 5h4v14H6zM14 5h4v14h-4z' : 'M8 5v14l11-7z');
-  if (muSet.fabY != null) fab.style.top = muSet.fabY + 'px';
-}
-function muFabTap(ev) {
-  /* 拖动结束时刚松手不触发点击 */
-  if (muFabMoved) { muFabMoved = false; return; }
-  muToggle();
-}
-let muFabMoved = false;
-function muBindFabDrag() {
-  const fab = document.getElementById('mu-fab');
-  if (!fab) return;
-  let sy = 0, st = 0, dragging = false;
-  fab.addEventListener('pointerdown', e => {
-    dragging = true; muFabMoved = false;
-    sy = e.clientY; st = fab.getBoundingClientRect().top;
-    fab.setPointerCapture(e.pointerId);
-  });
-  fab.addEventListener('pointermove', e => {
-    if (!dragging) return;
-    const dy = e.clientY - sy;
-    if (Math.abs(dy) > 6) muFabMoved = true;
-    const max = window.innerHeight - 70;
-    const nt = Math.max(50, Math.min(max, st + dy));
-    fab.style.top = nt + 'px';
-  });
-  fab.addEventListener('pointerup', e => {
-    dragging = false;
-    if (muFabMoved) {
-      muSet.fabY = parseInt(fab.style.top, 10) || null;
+/* ---------- 悬浮迷你控制条（自由拖动·位置记忆·长按切透明度） ---------- */
+let _miniMoved = false, muFabMoved = false;
+function muBindMini() {
+  const m = document.getElementById('mu-mini');
+  if (!m) return;
+  let sx = 0, sy = 0, ox = 0, oy = 0, dragging = false, pressT = 0, lpTimer = 0;
+  m.addEventListener('pointerdown', e => {
+    if (e.target.closest('.mu-mini-btn') || e.target.closest('.mu-mini-cov')) return;   // 控制钮不触发拖动
+    dragging = true; _miniMoved = false;
+    sx = e.clientX; sy = e.clientY;
+    const r = m.getBoundingClientRect();
+    ox = r.left; oy = r.top;
+    try { m.setPointerCapture(e.pointerId); } catch (e2) {}
+    pressT = Date.now();
+    lpTimer = setTimeout(() => {   // 长按 600ms：循环透明度 100→75→45→100
+      muFabMoved = true; dragging = false;
+      const ops = [1, 0.75, 0.45];
+      const i = ops.findIndex(o => Math.abs((muSet.miniOp == null ? 1 : muSet.miniOp) - o) < 0.05);
+      muSet.miniOp = ops[(i + 1) % ops.length];
+      m.style.opacity = muSet.miniOp;
       muSaveSet();
-      setTimeout(() => { muFabMoved = false; }, 50);
-    }
+      if (typeof showToast === 'function') showToast('迷你条透明度 ' + Math.round(muSet.miniOp * 100) + '%');
+    }, 600);
   });
+  m.addEventListener('pointermove', e => {
+    if (!dragging) return;
+    const dx = e.clientX - sx, dy = e.clientY - sy;
+    if (Math.abs(dx) > 6 || Math.abs(dy) > 6) { muFabMoved = true; clearTimeout(lpTimer); }
+    const r = m.getBoundingClientRect();
+    let nx = ox + dx, ny = oy + dy;
+    nx = Math.max(4, Math.min(window.innerWidth - r.width - 4, nx));
+    ny = Math.max(46, Math.min(window.innerHeight - r.height - 4, ny));
+    m.style.left = nx + 'px'; m.style.top = ny + 'px'; m.style.right = 'auto'; m.style.bottom = 'auto';
+  });
+  m.addEventListener('pointerup', () => {
+    clearTimeout(lpTimer);
+    if (dragging && _miniMoved) {
+      muSet.miniX = parseFloat(m.style.left) || null;
+      muSet.miniY = parseFloat(m.style.top) || null;
+      muSaveSet();
+      setTimeout(() => { _miniMoved = false; }, 60);
+    }
+    dragging = false;
+  });
+  if (muSet.miniX != null && muSet.miniY != null) {
+    m.style.left = muSet.miniX + 'px'; m.style.top = muSet.miniY + 'px';
+    m.style.right = 'auto'; m.style.bottom = 'auto';
+  }
+}
+function muOpenFull() {
+  if (typeof openApp === 'function') openApp('music');
+  muRenderFull();
+}
+function muVol(v) {
+  if (muAudio) muAudio.volume = Math.max(0, Math.min(1, v / 100));
+  muSet.vol = v / 100; muSaveSet();
+}
+function muListPeek() {
+  if (typeof openApp === 'function') { muSet.page = 1; muSaveSet(); }
+  try { document.getElementById('desk-pages').scrollLeft = document.getElementById('desk-pages').clientWidth; } catch (e) {}
+  if (typeof goBack === 'function') goBack();
+  showToast('已回到桌面第 2 页的播放列表');
 }
 
 /* ---------- 桌面分页联动 ---------- */
@@ -386,7 +442,7 @@ function muBindDeskScroll() {
       const p = deskCurPage();
       muSet.page = p; muSaveSet();
       muUpdateDots();
-      muRenderFab();
+      muRenderMini();
     }, 120);
   }, { passive: true });
 }
