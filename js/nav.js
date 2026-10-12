@@ -40,7 +40,7 @@ function goHome(){
   if(emojiOpen)toggleEmojiPanel();
   if(document.getElementById('img-viewer'))closeImageViewer();
   if(document.getElementById('modal').classList.contains('show'))closeModal();
-  if(state.callActive)endCall('hangup');
+  if(state.callActive&&!(callMode==='talk'&&document.getElementById('call-float').classList.contains('show')))endCall('hangup');   // v3.27.0：小窗态导航不挂断（星币侍从逆位还债）
   const n=Math.max(0,navStack.length-1);
   navStack=[];
   navRoot=navRoot;                       // 保留 tab 高亮参考
@@ -106,7 +106,7 @@ function goBack(){
   if(document.getElementById('img-viewer')){closeImageViewer();return;}
   if(emojiOpen){toggleEmojiPanel();return;}
   if(document.getElementById('modal').classList.contains('show')){closeModal();return;}
-  if(state.callActive){endCall('hangup');return;}
+  if(state.callActive&&!(callMode==='talk'&&document.getElementById('call-float').classList.contains('show'))){endCall('hangup');return;}
   if(navStack.length>1){
     navStack.pop();
     renderNav();

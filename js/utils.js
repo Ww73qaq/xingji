@@ -34,6 +34,14 @@ function setProactiveFreqTier(tier){
   state.prob.proactiveFreq=tier; state.prob.proactiveMinIntervalMin=PROACTIVE_FREQ_VAL[tier];
   if(typeof scheduleProactive==='function')scheduleProactive();
 }
+/* v3.27.0：通话挂断节奏三档（星币骑士——耐住性子，通话能待得住） */
+function setCallHangupTier(t){
+  const map={clingy:{minSec:150,prob:1.5},natural:{minSec:60,prob:3},brief:{minSec:30,prob:6}};
+  const mm=map[t]||map.natural;
+  state.prob.callHangupTier=(t in map)?t:'natural';
+  state.prob.callHangupMinSec=mm.minSec;
+  state.prob.callHangupProb=mm.prob;
+}
 function setCardRatioTier(tier){
   if(!CARD_RATIO_VAL[tier])return;
   state.prob.cardRatio=tier; state.prob.customRatio=CARD_RATIO_VAL[tier];

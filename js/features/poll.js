@@ -55,6 +55,9 @@ function buildSurveyFormHtml(raw,deadline,earlyPct){
       +'<span style="margin-left:6px">提前交卷</span><input class="app-input" id="survey-early" type="number" min="0" max="100" value="'+earlyPct+'" style="width:64px;text-align:center">'
       +'<span>%</span></div>'
     +'<div id="survey-preview" style="font-size:12px;color:var(--sub);margin-top:8px"></div>'
+    +'<label style="display:flex;align-items:center;gap:8px;margin-top:10px;padding:10px 12px;border:1px solid var(--input);border-radius:12px;background:rgba(128,128,128,.06);cursor:pointer;font-size:13px">'
+      +'<input type="checkbox" id="survey-dual" style="width:16px;height:16px;accent-color:#7c6fde">'
+      +'<span>我也做一份 <span style="color:var(--hint);font-size:11px">（TA 先盲答交卷，再解锁你的作答；不限时，交卷后对答案）</span></span></label>'
     +'<div style="display:flex;align-items:center;gap:10px;margin-top:8px">'
       +'<span style="flex:1;font-size:11px;color:var(--hint);line-height:1.5">期限写在这条问卷上：TA 会在期限内作答，部分情况提前交卷。</span>'
       +'<button class="btn-pill ghost" style="padding:7px 14px;font-size:12px;flex-shrink:0" onclick="parseSurveyText()">解析</button></div>';
@@ -175,13 +178,15 @@ async function submitSurvey(isEdit){
   closeModal();
   surveyParsed=null;
   const fromId=editingFromId;
+  const dualEl=document.getElementById('survey-dual');
+  const dual=(dualEl&&dualEl.checked)?1:0;
   const newId=await sendMessageObject({
     type:'survey',
     content:questions[0].q+' 等 '+questions.length+' 题',
-    survey:{questions,rawText:raw,deadlineSec:deadline,earlySubmitProb:earlyPct}
+    survey:{questions,rawText:raw,deadlineSec:deadline,earlySubmitProb:earlyPct,dual}
   });
   if(isEdit&&fromId)await markSuperseded(fromId,newId);
-  showToast(isEdit?'修改后的问卷已重新发送（原消息保留）':'问卷已发送，TA 会在 '+deadline+' 秒内作答');
+  showToast(isEdit?'修改后的问卷已重新发送（原消息保留）':(dual?'问卷已发送：'+(state.other.name||'TA')+' 先盲答，交卷后解锁你的作答':'问卷已发送，TA 会在 '+deadline+' 秒内作答'));
   surveyEditing=false;editingFromId=null;
 }
 /* 「修改并重发」后给原消息打「已被新版本替代」标记（内容保留，不删除） */
@@ -214,4 +219,64 @@ async function pollRetry(id){
     ...(isSurvey?{survey:pp}:{poll:pp})},false);
   if(state.currentApp==='chat')refreshMsgRow(m.id);
   showToast('已再问一遍');
+}
+
+/* =========================================================
+   v3.27.0 问卷「我也做一份」：TA 先盲答（现有模块零改动），交卷后解锁我的作答；
+   我不限时，交卷即对答案——全部相同「默契感十足」，差异按比例给去评判化文案（圣杯王后逆位修正）。
+   ========================================================= */
+function openMySurveyAnswer(id){
+  dbGet('messages',id).then(m=>{
+    if(!m||!m.survey||!m.survey.dual)return;
+    const pp=m.survey;
+    if(pp.myAnswers||pp.giveup){showToast('这张卷子已经对过答案了');return;}
+    if(!m.answer){showToast((state.other.name||'TA')+' 还没交卷，等一下');return;}
+    const body=pp.questions.map((q,i)=>{
+      const opts=(q.options||[]).map((o,oi)=>'<label style="display:flex;align-items:center;gap:10px;padding:8px 10px;border:1px solid var(--input);border-radius:10px;margin-bottom:6px;cursor:pointer;font-size:13px"><input type="'+(q.multi?'checkbox':'radio')+'" name="mysv-'+i+'" id="mysv-'+i+'-'+oi+'" style="width:15px;height:15px;accent-color:#7c6fde"><span style="flex:1">'+String.fromCharCode(65+oi)+'. '+esc(o)+'</span></label>').join('');
+      return '<div style="font-size:12px;font-weight:600;margin:10px 0 6px">'+(i+1)+'. '+esc(q.q||'')+(q.multi?'<span style="color:var(--hint);font-weight:400">（多选）</span>':'')+'</div>'+opts;
+    }).join('');
+    showModal('我的作答',
+      '<div style="font-size:11px;color:var(--hint);margin-bottom:4px">'+esc(state.other.name)+' 已交卷，答案封存中——你交卷后一起揭晓。不限时，慢慢填。</div>'+body,
+      '<div style="font-size:11px;text-align:center;margin-bottom:6px"><a href="javascript:void(0)" onclick="giveupMySurvey('+m.id+')" style="color:var(--hint)">不做了，直接对答案</a></div>'
+      +'<div class="modal-btn-row"><button class="modal-btn" onclick="closeModal()">存着以后填</button><button class="modal-btn primary" onclick="submitMySurvey('+m.id+')">交卷对答案</button></div>');
+  });
+}
+function _mySurveyCollect(m){
+  const pp=m.survey,out=[];
+  pp.questions.forEach((q,i)=>{
+    if(q.multi){
+      const ids=[];(q.options||[]).forEach((o,oi)=>{const el=document.getElementById('mysv-'+i+'-'+oi);if(el&&el.checked)ids.push(oi);});out[i]=ids;
+    }else{
+      let k=-1;(q.options||[]).forEach((o,oi)=>{const el=document.getElementById('mysv-'+i+'-'+oi);if(el&&el.checked)k=oi;});out[i]=[k];
+    }
+  });
+  return out;
+}
+async function submitMySurvey(id){
+  const m=await dbGet('messages',id);
+  if(!m||!m.survey||m.survey.myAnswers||m.survey.giveup)return;
+  const sel=_mySurveyCollect(m);
+  const ta=m.answer&&m.answer.sel;
+  let match=0,total=0;
+  m.survey.questions.forEach((q,i)=>{
+    total++;
+    const a=((sel[i]||[]).slice().sort().join(',')),b=((ta&&ta[i])||[]).slice().sort().join(',');
+    if(a===b)match++;
+  });
+  m.survey.myAnswers=sel;m.survey.myAt=Date.now();
+  await dbPut('messages',m);
+  closeModal();
+  /* v3.27.0：交卷是低频操作，直接全量重渲染（refreshMsgRow 行级刷新在双刷新竞态下偶发不生效，实测踩过） */
+  if(typeof renderChat==='function')renderChat(false);
+  const verdict=match===total?'默契感十足':(total&&match/total>=0.5?'大部分都想到一起去了':'啊，原来你是这么想的');
+  showToast(verdict+'（相同 '+match+'/'+total+' 题）');
+}
+function giveupMySurvey(id){
+  dbGet('messages',id).then(async m=>{
+    if(!m||!m.survey||m.survey.myAnswers)return;
+    m.survey.giveup=1;await dbPut('messages',m);
+    closeModal();
+    if(typeof renderChat==='function')renderChat(false);
+    showToast('已跳过我的作答，直接对答案');
+  });
 }

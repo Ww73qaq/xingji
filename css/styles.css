@@ -1238,3 +1238,8 @@ body{-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;letter
 #mu-app-body .mu-row.on{background:rgba(0,0,0,.055)}
 .mu-full-page .muf-prog input[type=range]{accent-color:#111}
 .mu-full-page .muf-ctrl .mu-btn{color:#111}
+
+/* ===== v3.27.0 问卷「我也做一份」：我的答案标记（♥ 蓝）+ 对照结果条 ===== */
+.poll-opt.my{border-color:#bcd0ee;background:rgba(93,133,201,.08)}
+.poll-opt .myck{color:#4a7dc9;margin-left:2px}
+.poll-cmp{font-size:11.5px;color:#8a6d4b;background:rgba(160,130,80,.09);border-radius:8px;padding:6px 9px;margin-top:6px}

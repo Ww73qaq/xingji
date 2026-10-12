@@ -38,6 +38,11 @@ function renderProbability(){
       ${_tierRow(p.replyPace||'natural',[['slow','从容慢一点'],['natural','自然'],['fast','快一点']],'applyReplyPace')}
     </div>
     <div class="list-card">
+      <div class="list-card-title">通话节奏</div>
+      <div class="list-card-sub">TA 在电话里陪你聊多久，才舍得说「先这样」。</div>
+      ${_tierRow(p.callHangupTier||'natural',[['clingy','恋恋不舍'],['natural','自然'],['brief','简短']],'applyCallHangupTier')}
+    </div>
+    <div class="list-card">
       <div class="list-card-title">主动频率</div>
       <div class="list-card-sub">TA 多久会想主动找你说说话。</div>
       ${_tierRow(p.proactiveFreq||'occasional',[['rare','安静独处'],['occasional','偶尔想起'],['frequent','常来看看']],'applyProactiveFreq')}
@@ -63,7 +68,8 @@ function renderProbability(){
 function applyReplyPace(t){ setReplyPace(t); saveKey('prob'); renderProbability(); }
 function applyProactiveFreq(t){ setProactiveFreqTier(t); saveKey('prob'); renderProbability(); }
 function applyCardRatio(t){ setCardRatioTier(t); saveKey('prob'); renderProbability(); }
-function applyReadIgnoreTier(t){ setReadIgnoreTier(t); saveKey('prob'); renderProbability(); }   // v3.24.0：已读不回三档（10/20/30）
+function applyReadIgnoreTier(t){ setReadIgnoreTier(t); saveKey('prob'); renderProbability(); }
+function applyCallHangupTier(t){ setCallHangupTier(t); saveKey('prob'); renderProbability(); }   // v3.27.0   // v3.24.0：已读不回三档（10/20/30）
 
 /* setSurveySetting：v3.4.0 起本页不再展示问卷卡片，
    这里保留为「弹窗默认值的读写入口」——发送问卷/多选时用它取上次的默认数字。 */

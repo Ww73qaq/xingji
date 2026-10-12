@@ -150,15 +150,35 @@ case 'gift':{
             ?('<div class="poll-wait stale" onclick="pollRetry(\''+m.id+'\')">'+(m.retried?'已重新问过 · 再问一次':'TA 好像没接住这道题 · 点击再问一遍')+'</div>')
             :('<div class="poll-wait" onclick="pollRetry(\''+m.id+'\')">等待作答… 点击可再问一遍</div>')));
       if(isSurvey){
+        /* v3.27.0「我也做一份」：dual 问卷——TA 盲答后答案封存，我交卷后揭晓对照 */
+        const dual=!!pp.dual;
+        const my=pp.myAnswers;
+        const sealed=dual&&!my&&!pp.giveup&&!!m.answer;
+        const selView=sealed?null:sel;
+        const isSelQ2=(qi,oi)=>{if(!selView)return false;const sv=selView[qi];return Array.isArray(sv)?sv.indexOf(oi)>=0:sv===oi;};
+        const isMySelQ=(qi,oi)=>{if(!my)return false;const sv=my[qi];return Array.isArray(sv)?sv.indexOf(oi)>=0:sv===oi;};
         const items=pp.questions.map((q,i)=>{
           const optsHtml=(q.options||[]).map((o,oi)=>{
-            const on=isSelQ(i,oi);
-            return '<div class="poll-opt'+(on?' sel':'')+'">'+String.fromCharCode(65+oi)+'. '+esc(o)+(on?' <b>&#10003;</b>':'')+'</div>';
+            const on=isSelQ2(i,oi),mine=isMySelQ(i,oi);
+            return '<div class="poll-opt'+(on?' sel':'')+(mine?' my':'')+'">'+String.fromCharCode(65+oi)+'. '+esc(o)+(on?' <b>&#10003;</b>':'')+(mine?' <b class="myck">&#9829;</b>':'')+'</div>';
           }).join('');
           return '<div class="poll-q" style="margin-top:'+(i?'7':'0')+'px">'+(i+1)+'. '+esc(q.q||'')+(q.multi?'<span style="font-size:11px;color:var(--hint)">（多选）</span>':'')+'</div>'+optsHtml;
         }).join('');
         const dl=pp.deadlineSec?(' · '+pp.deadlineSec+' 秒内作答'):'';
-        return q+'<div class="msg-bubble msg-card" style="min-width:0"><div style="padding:11px 13px 9px"><div class="poll-q">'+esc(m.content||'问卷')+' <span style="font-size:11px;color:var(--hint)">问卷 · '+pp.questions.length+' 题'+dl+'</span></div>'+items+'</div>'+foot+'</div>';
+        let foot2=foot;
+        if(sealed){
+          foot2='<div class="poll-note">'+esc(state.other.name)+' 已交卷 · 答案封存中</div><div class="poll-wait" onclick="openMySurveyAnswer('+m.id+')">开始我的作答 · 交卷后一起揭晓</div>';
+        }else if(dual&&my&&m.answer){
+          let match=0,total=0;
+          pp.questions.forEach((qq,i)=>{total++;const a=((my[i]||[]).slice().sort().join(',')),b=((sel&&sel[i])||[]).slice().sort().join(',');if(a===b)match++;});
+          const verdict=match===total?'默契感十足':(total&&match/total>=0.5?'大部分都想到一起去了':'啊，原来你是这么想的');
+          foot2='<div class="poll-cmp">对答案 · 相同 '+match+'/'+total+' · '+verdict+'</div><div class="poll-ans">'+esc(state.other.name)+' 已作答 · 用时 '+(m.answer.usedSec||0)+' 秒</div>';
+        }else if(dual&&pp.giveup){
+          foot2='<div class="poll-note">已跳过我的作答 · 直接对答案</div>'+(m.answer?('<div class="poll-ans">'+esc(state.other.name)+' 已作答 · 用时 '+(m.answer.usedSec||0)+' 秒</div>'):'');
+        }else if(dual&&!m.answer){
+          foot2='<div class="poll-note">你也做了一份 · '+esc(state.other.name)+' 交卷后解锁你的作答</div>'+foot;
+        }
+        return q+'<div class="msg-bubble msg-card" style="min-width:0"><div style="padding:11px 13px 9px"><div class="poll-q">'+esc(m.content||'问卷')+' <span style="font-size:11px;color:var(--hint)">问卷 · '+pp.questions.length+' 题'+dl+(dual?' · 我也做一份':'')+'</span></div>'+items+'</div>'+foot2+'</div>';
       }
       const opts=(pp.options||[]).map((o,i)=>{const on=isSelFlat(i);return '<div class="poll-opt'+(on?' sel':'')+'">'+String.fromCharCode(65+i)+'. '+esc(o)+(on?' <b>&#10003;</b>':'')+'</div>';}).join('');
       const tag=(pp.multi?('多选'+(pp.multiMin?' · 选 '+pp.multiMin+'-'+pp.multiMax+' 项':'')):'单选');

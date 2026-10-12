@@ -20,6 +20,8 @@ let state = {
     emojiCardProb:20,
     // 回复行为（v3.24.0：已读不回 = 唯一不回复机制；禁言已删）
     readIgnoreEnabled:false, readIgnoreTier:'normal', readIgnoreProb:20, repeatExclude:5, customRatio:90,
+    // v3.27.0：通话挂断节奏三档（星币骑士）——natural=60s/3%（原行为放宽）、clingy=150s/1.5%、brief=30s/6%
+    callHangupTier:'natural', callHangupMinSec:60, callHangupProb:3,
     // 主动消息：只暴露「开关 + 最小间隔（分钟）」，TA 的想不想主动属于内部行为
     proactiveEnabled:true, proactiveMinIntervalMin:30, proactiveCountMin:1, proactiveCountMax:2,
     momentProb:20,

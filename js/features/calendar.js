@@ -487,6 +487,14 @@ function calAddTodoOk(date){
   Promise.all(lines.map((text,i)=>dbPut('calendar',{date,type:'todo',text,done:0,at:now+i,alarm}))).then(()=>renderCalendar());
   showToast('已添加 '+lines.length+' 件待办'+(alarm?'，已设提醒':''));
 }
+/* v3.27.0 修：calAddTodoOk/ensureTaSchedule 落库不带 id → IndexedDB 自动分配【数字】键，
+   而渲染层 onclick 一律传字符串（'${it.id}'）——严格等于查找永远 false，导致一次性待办
+   勾选/编辑/删除、周期待办编辑/删除静默失效（周期待办勾选走 todoDoneByDay 状态表幸免）。
+   统一归一：纯数字字符串 → 数字键。 */
+function _calKey(id){
+  const s=String(id);
+  return /^\d+$/.test(s)?Number(s):id;
+}
 function calToggleTodo(id){
   if(String(id).indexOf('tpl:')===0){
     const dkey=String(id).slice(4);
@@ -495,7 +503,7 @@ function calToggleTodo(id){
     renderCalendar();return;
   }
   dbGetAll('calendar').then(all=>{
-    const it=all.find(x=>x.id===id);if(!it)return;
+    const it=all.find(x=>x.id===_calKey(id));if(!it)return;
     it.done=it.done?0:1;dbPut('calendar',it).then(()=>renderCalendar());
   });
 }
@@ -504,7 +512,7 @@ function calEditTodo(id){
     /* v3.15.1 修：tpl 虚拟 id 必须先归一到源 id 再查库——旧代码先 if(!it)return
        再归一，导致周期待办点编辑永远静默无反应 */
     if(String(id).indexOf('tpl:')===0)id=String(id).slice(4).split(':')[0];
-    const it=all.find(x=>x.id===id);if(!it)return;
+    const it=all.find(x=>x.id===_calKey(id));if(!it)return;
     appPrompt('编辑待办内容',it.text||'',v=>{
       v=(v||'').trim();if(!v)return false;
       it.text=v;dbPut('calendar',it).then(()=>renderCalendar());
@@ -519,7 +527,7 @@ function calDelTodo(id){
     const srcId=dkey.split(':')[0];
     const date=dkey.split(':').slice(1).join(':');
     const allP=dbGetAll('calendar').then(all=>{
-      const src=all.find(x=>x.id===srcId);
+      const src=all.find(x=>x.id===_calKey(srcId));
       showModal('删除周期待办',
         `<div style="font-size:14px;color:var(--text);text-align:left;padding:4px 0 10px">「${esc((src&&src.text)||'')}」按周期重复。<b>要删哪一个？</b></div>
          <div style="display:flex;flex-direction:column;gap:8px">
@@ -531,7 +539,7 @@ function calDelTodo(id){
     return;
   }
   appConfirm('删除待办','确定删除这条待办吗？',async()=>{
-    await dbDelete('calendar',id);renderCalendar();
+    await dbDelete('calendar',_calKey(id));renderCalendar();
   });
 }
 /* v3.15.0：周期待办删除——仅当天（排除日） */
@@ -545,7 +553,7 @@ function calDelTodoOnly(srcId,date){
 function calDelTodoSeries(srcId){
   dbGetAll('calendar').then(async all=>{
     const src=all.find(x=>x.id===srcId);
-    if(src)await dbDelete('calendar',srcId);
+    if(src)await dbDelete('calendar',_calKey(srcId));
     const m={};Object.assign(m,state.todoDoneByDay||{});
     Object.keys(m).forEach(k=>{if(String(k).indexOf(srcId+':')===0)delete m[k];});
     state.todoDoneByDay=m;saveKey('todoDoneByDay');

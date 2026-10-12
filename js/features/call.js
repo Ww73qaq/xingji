@@ -59,7 +59,10 @@ function showVideoStage(){
 }
 
 /* ===== CALL（手机通话：来电 / 去电 / 通话中 / 通话记录） ===== */
-let callSec=0,callIv=null,callMode=null,callMuted=false,callSpeaker=false,ringIv=null,ringOsc=null,callTalkTimer=null;
+let callSec=0,callIv=null,callMode=null,callMuted=false,callSpeaker=false,ringIv=null,ringOsc=null,callTalkTimer=null,callFarewell=false;
+/* v3.27.0 圣杯王后：TA 挂断前先说一句告别，说完才挂——结束要有温度 */
+const CALL_FAREWELL_DAY=['先聊到这啦，回头找你','我这边有点事，晚点接着说','说得差不多了，去忙啦','嗯嗯，先这样，想你'];
+const CALL_FAREWELL_NIGHT=['不早了，早点睡哦','我要去睡啦，晚安','困了，明天再聊'];
 let callInitiator=null;   // v3.6.6：记录发起方（'me'|'ta'），避免 startCall 后 callMode='talk' 覆盖导致文案错误
 function showCallOverlay(){
   const ov=document.getElementById('call-overlay');
@@ -176,16 +179,23 @@ function answerCall(){
   setTimeout(()=>{if(state.callActive)startCall();},700);
 }
 function startCall(){
-  callSec=0;callMode='talk';
+  callSec=0;callMode='talk';callFarewell=false;
   setCallBadge(callKind==='video'?'视频通话中':'通话中',true);
   updateCallFloat();                // v3.6.3：全屏通话不显示浮窗（缩小后才出现，避免浮窗盖住全屏）
   if(callIv)clearInterval(callIv);
   callIv=setInterval(()=>{
     callSec++;updateCallFloat();
-    // v3.6.6：TA 可能挂断——40 秒后每秒约 4% 概率（通话一般持续 40~80 秒）
-    if(callSec>=40&&Math.random()<0.04){
-      showToast((state.other.name||'TA')+'挂断了通话');
-      endCall('hangup','ta');
+    /* v3.27.0 星币骑士：挂断节奏三档化（prob.callHangupMinSec/callHangupProb，不再写死 40s/4%）；
+       触发时先说告别语（圣杯王后），~9 秒后才真正挂断 */
+    const hp=state.prob||{};
+    const minS=clamp(num(hp.callHangupMinSec,60),10,600);
+    const hProb=clamp(num(hp.callHangupProb,3),0,100);
+    if(callSec>=minS&&!callFarewell&&Math.random()*100<hProb){
+      callFarewell=true;
+      const h=new Date().getHours();
+      const pool=(h>=22||h<5)?CALL_FAREWELL_NIGHT:CALL_FAREWELL_DAY;
+      pushReply(pool[Math.floor(Math.random()*pool.length)]);
+      setTimeout(()=>{if(state.callActive&&callMode==='talk'){showToast((state.other.name||'TA')+'挂断了通话');endCall('hangup','ta');}},9000);
     }
   },1000);
   if(callKind==='video')showVideoStage();
@@ -249,9 +259,12 @@ function minimizeCall(){
   f.classList.add('show','mini','edge');   // v3.6.9：小窗直接进迷你头像贴边态（漏半头像），不显示「头像+名字+时间」卡片
   const ph=document.getElementById('phone');
   const p=ph.getBoundingClientRect();
+  f.style.transition='none';               // v3.27.0：定位用目标常量（mini=54），不读过渡中的 rect（漂移修复）
   f.style.right='auto';
-  f.style.left=(p.width-f.offsetWidth/2)+'px';
-  f.style.top=Math.min(Math.max(Number(f.style.top)||(p.height*0.3),0),p.height-f.offsetHeight)+'px';
+  f.style.left=(p.width-27)+'px';
+  f.style.top=Math.min(Math.max(Number(f.style.top)||(p.height*0.3),0),Math.max(0,p.height-54))+'px';
+  void f.offsetWidth;
+  f.style.transition='';
   updateCallFloat();
 }
 /* 右上角四角按钮：正常 ⇄ 迷你（更小、靠边漏半、半透明） */
@@ -262,16 +275,15 @@ function miniCallMini(){
   const f=document.getElementById('call-float');if(!f)return;
   const ph=document.getElementById('phone');
   const p=ph.getBoundingClientRect();
+  const W=_floatMini?54:104;               // v3.27.0：目标尺寸取常量，防过渡期 rect 漂移
   f.classList.toggle('mini',_floatMini);
   f.classList.add('edge');
-  if(_floatMini){
-    f.style.left=(p.width-f.offsetWidth/2)+'px';
-  }else{
-    const r=f.getBoundingClientRect();
-    f.style.left=(p.width-r.width/2)+'px';
-  }
-  f.style.top=Math.min(Math.max(Number(f.style.top)||(p.height*0.3),0),p.height-f.offsetHeight)+'px';
+  f.style.transition='none';
+  f.style.left=(p.width-W/2)+'px';
+  f.style.top=Math.min(Math.max(Number(f.style.top)||(p.height*0.3),0),Math.max(0,p.height-W))+'px';
   f.style.right='auto';
+  void f.offsetWidth;
+  f.style.transition='';
 }
 /* 拖动监听只初始化一次；默认落点：右侧中上（像微信视频小窗） */
 let _floatDragInit=false;
@@ -318,6 +330,24 @@ function initCallFloat(){
   f.addEventListener('pointercancel',()=>{dragging=false;});        // 指针被系统取消（来电 / 手势打断）
   f.addEventListener('lostpointercapture',()=>{dragging=false;});   // 捕获丢失兜底
   window.addEventListener('pointerup',()=>{if(!dragging)return;dragging=false;endDrag();});   // window 级松手兜底
+  /* v3.27.0：旋转/窗口尺寸/键盘变化后重新收拢位置（此前一次性绝对定位，尺寸变小小窗会被裁出视野） */
+  if(!window.__callFloatClamp){
+    window.__callFloatClamp=true;
+    const reclamp=()=>{
+      const f2=document.getElementById('call-float');
+      if(!f2||!f2.classList.contains('show')||callMode!=='talk')return;
+      const p2=document.getElementById('phone').getBoundingClientRect();
+      const W=_floatMini?54:104;
+      const minX=f2.classList.contains('edge')?-W/2:0;
+      const maxX=f2.classList.contains('edge')?p2.width-W/2:Math.max(0,p2.width-W);
+      let x=parseFloat(f2.style.left)||0,y=parseFloat(f2.style.top)||0;
+      x=Math.max(minX,Math.min(maxX,x));
+      y=Math.max(0,Math.min(Math.max(0,p2.height-W),y));
+      f2.style.left=x+'px';f2.style.top=y+'px';f2.style.right='auto';
+    };
+    window.addEventListener('resize',reclamp);
+    window.addEventListener('orientationchange',()=>setTimeout(reclamp,300));
+  }
 }
 /* v3.7.0：删除未挂载的死函数 miniCallHangup（浮窗已无 × 按钮引用） */
 function toggleMute(){callMuted=!callMuted;if(mediaStream)mediaStream.getAudioTracks().forEach(t=>t.enabled=!callMuted);renderCallActions(callActionsHtml());}
