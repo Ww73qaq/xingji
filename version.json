@@ -6,7 +6,7 @@
     "version": "3.25.0",
     "code": 17,
     "url": "apk/xingji-latest.apk",
-    "sizeMB": 8.4,
+    "sizeMB": 8.3,
     "notes": "音乐功能下线（完整代码冻结于 feature/music-beta 分支）：桌面恢复一页，聚焦核心聊天体验"
   }
 }
