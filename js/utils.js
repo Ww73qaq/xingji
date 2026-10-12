@@ -7,19 +7,24 @@ function _clamp(v,min,max){return Math.max(min,Math.min(max,v));}
 function _randomInt(min,max){min=Math.ceil(min);max=Math.floor(max);return Math.floor(Math.random()*(max-min+1))+min;}
 
 /* =========================================================
-   TA 输出统一门控（v3.7.0）——所有 TA 对外输出入口统一调用，替代原先散落各通道的重复判据
+   TA 输出统一门控（v3.7.0 → v3.24.0 废弃）
+   禁言（muteEndTime）与 TA 安静（taMuteMeEndTime）两套静音已按产品决策移除，
+   TA 不回复的唯一机制 = 已读不回（engine.js executeReply 掷骰）。
+   保留函数返回 false，让既有调用点自动旁路，后续版本再物理清理。
    ========================================================= */
-/* 两种静默：muteEndTime（你把 TA 静音）/ taMuteMeEndTime（TA 收起声音、整理意识）。
-   返回 true＝此刻 TA 不应输出（不发消息、不推送、不弹系统通知）。 */
 function taOutputBlocked(){
-  const now=Date.now();
-  return now<Number(state.muteEndTime||0) || now<Number(state.taMuteMeEndTime||0);
+  return false;
 }
 
 /* 语义档位 → 底层数值映射（设置页内化；底层值不在 UI 暴露百分比/秒/分钟） */
 const REPLY_PACE_VAL={slow:45,natural:20,fast:8};            // 说话节奏 → replyDelaySec
 const PROACTIVE_FREQ_VAL={rare:120,occasional:30,frequent:10}; // 主动频率 → proactiveMinIntervalMin
 const CARD_RATIO_VAL={mine:90,half:50,free:20};              // 用词比例 → customRatio
+const READ_IGNORE_VAL={rare:10,normal:20,often:30};          // v3.24.0：已读不回三档 → readIgnoreProb（以十整数为一个百分点）
+function setReadIgnoreTier(tier){
+  if(!READ_IGNORE_VAL[tier])return;
+  state.prob.readIgnoreTier=tier; state.prob.readIgnoreProb=READ_IGNORE_VAL[tier];
+}
 function setReplyPace(tier){
   if(!REPLY_PACE_VAL[tier])return;
   state.prob.replyPace=tier; state.prob.replyDelaySec=REPLY_PACE_VAL[tier];

@@ -54,6 +54,7 @@ function renderProbability(){
       ${_switchRow('multiBubbleEnabled','分几次说','像当面聊天，把一句话拆成几次发出来')}
       ${_switchRow('cardConcatEnabled','把话连成一句','把几张字卡拼成一整句，听着更自然')}
       ${_switchRow('readIgnoreEnabled','偶尔已读不回','有时候 TA 看到了，只想先安静待一会儿')}
+      ${p.readIgnoreEnabled?_tierRow(p.readIgnoreTier||'normal',[['rare','很少安静'],['normal','有时安静'],['often','常常安静']],'applyReadIgnoreTier'):''}
     </div>
     <button type="button" class="btn-pill ghost" style="width:100%;margin-top:4px" onclick="resetProb()">恢复默认</button>`;
 }
@@ -62,6 +63,7 @@ function renderProbability(){
 function applyReplyPace(t){ setReplyPace(t); saveKey('prob'); renderProbability(); }
 function applyProactiveFreq(t){ setProactiveFreqTier(t); saveKey('prob'); renderProbability(); }
 function applyCardRatio(t){ setCardRatioTier(t); saveKey('prob'); renderProbability(); }
+function applyReadIgnoreTier(t){ setReadIgnoreTier(t); saveKey('prob'); renderProbability(); }   // v3.24.0：已读不回三档（10/20/30）
 
 /* setSurveySetting：v3.4.0 起本页不再展示问卷卡片，
    这里保留为「弹窗默认值的读写入口」——发送问卷/多选时用它取上次的默认数字。 */
@@ -92,7 +94,7 @@ function resetProb(){
     cardConcatEnabled:true,cardConcatProb:35,minCardsPerBubble:1,maxCardsPerBubble:3,
     emojiReplyProb:15,pokeReplyProb:8,quoteReplyProb:20,giftReplyProb:5,
     emojiCardProb:20,
-    readIgnoreEnabled:false,repeatExclude:5,customRatio:90,
+    readIgnoreEnabled:false,readIgnoreTier:'normal',readIgnoreProb:20,repeatExclude:5,customRatio:90,
     proactiveEnabled:true,proactiveMinIntervalMin:30,
     proactiveCountMin:1,proactiveCountMax:2,
     momentProb:20

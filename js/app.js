@@ -76,7 +76,6 @@ function startHeartbeat(){
     renderSignal();
     if(_tick%5===0){
       processMomentReplies();
-      maybeTaMuteMe();
       if(typeof maybeTaStatusChange==='function')maybeTaStatusChange();
       if(typeof maybeTaCall==='function')maybeTaCall();
       if(typeof maybeTaSense==='function')maybeTaSense();       // v3.6.8 TA 主动感应
@@ -127,8 +126,7 @@ openDB().then(async()=>{
   if(state.stats.companionStart&&typeof companionSession!=='undefined'&&!companionSession){
     state.stats.companionStart=0;saveKey('stats');
   }
-  if(Date.now()<state.muteEndTime)showMuteBanner(Math.ceil((state.muteEndTime-Date.now())/1000));
-  if(Date.now()<state.taMuteMeEndTime)showTaMuteBanner();
+  /* v3.24.0：禁言/TA 安静横幅恢复逻辑已删（两套静音移除） */
   applySkinVars();                 // 主题变量（浮层/反色令牌）由 state.skin 驱动
   applyChatBg();
   history.replaceState({d:1},'');

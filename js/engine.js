@@ -441,16 +441,32 @@ async function executeReply(job){
   const p=state.prob||{};
   // 本轮必须作答的题目（若有）
   const pollTarget=job.source==='proactive'?null:await _jobPollTarget(job);
-  // 已读不回开关：打开后允许某轮已读但不回复。
-  // 但「必答」优先——用户明确提交了单选/多选/问卷时，不能已读不回。
+  /* v3.24.0：已读不回重构（唯一不回复机制，禁言已删）
+     - 概率走设置档位 state.prob.readIgnoreProb（10/20/30，默认 20），不再裸 20%；
+     - 冷却保底：命中后接下来 2 轮强制回复（state.readIgnoreCooldown，会话内内存即可）；
+     - 只标记本轮 job.messageIds 的我方消息为已读（TA 只看了这轮），历史未读保留单勾；
+     - 「必答」优先——单选/多选/问卷不能已读不回。 */
   if(state.prob&&state.prob.readIgnoreEnabled&&!pollTarget){
-    const all=await dbGetAll('messages');
-    const mine=all.filter(m=>m.sender==='me'&&!m.read&&!m.recalled);
-    if(mine.length&&Math.random()<0.2){
-      for(const m of mine){m.read=true;await dbPut('messages',m);}
-      if(state.currentApp==='chat')refreshReadTicks();
+    const ids=(job&&job.messageIds)||[];
+    const cool=state.readIgnoreCooldown||0;
+    const rip=Number(state.prob.readIgnoreProb);
+    if(ids.length&&cool<=0&&(!Number.isFinite(rip)||Math.random()*100<rip)){
+      for(const id of ids){
+        const m=await dbGet('messages',id);
+        if(m&&m.sender==='me'&&!m.read){m.read=true;await dbPut('messages',m);}
+      }
+      if(state.currentApp==='chat'&&typeof refreshReadTicks==='function')refreshReadTicks();
+      state.readIgnoreCooldown=2;   // 接下来 2 轮强制回复，杜绝连续装死
       return;
     }
+  }
+  if(state.readIgnoreCooldown>0)state.readIgnoreCooldown--;   // 本轮正常回复 → 冷却递减
+  // 正常回复前统一标记已读：本轮消息 + 此前残留未读（TA 打开聊天就都看到了），避免永久单勾
+  {
+    const all=await dbGetAll('messages');
+    const unread=all.filter(m=>m.sender==='me'&&!m.read&&!m.recalled);
+    for(const m of unread){m.read=true;await dbPut('messages',m);}
+    if(unread.length&&state.currentApp==='chat'&&typeof refreshReadTicks==='function')refreshReadTicks();
   }
   const proactiveCount=job.source==='proactive'
     ?_randomInt(_clamp(Number(p.proactiveCountMin)||1,1,5),_clamp(Number(p.proactiveCountMax)||2,1,5))

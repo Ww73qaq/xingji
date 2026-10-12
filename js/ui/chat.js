@@ -462,7 +462,6 @@ function jumpToMsg(id,ev){
 /* ---- 发送 ---- */
 /* ---- 统一消息发送入口：文字/图片/语音/emoji/表情包/字卡/礼物/单选/多选/问卷 ---- */
 async function sendMessageObject(message){
-  if(Date.now()<state.taMuteMeEndTime){showToast('TA 正在安静，等 TA 缓一缓');return null;}
   message.sender='me';message.time=message.time||Date.now();message.read=false;message.state='sending';
   if(typeof touchInteract==='function')touchInteract();   // v3.6.0：我方发消息 → 连接频率上升
   if(quoteTarget&&!message.quote){message.quote=quoteTarget;quoteTarget=null;document.getElementById('quote-input').classList.remove('show');}
@@ -487,25 +486,13 @@ async function sendMessageObject(message){
 /* 兼容旧调用 */
 async function sendMsgObj(obj,noReply){obj.noReply=noReply;return sendMessageObject(obj);}
 function sendMessage(){
-  if(Date.now()<state.muteEndTime){showToast('对方已被禁言');return;}
-  if(Date.now()<state.taMuteMeEndTime){showToast('TA 正在安静，等 TA 缓一缓');return;}
   const input=document.getElementById('chat-input');const text=input.value.trim();if(!text)return;
   input.value='';autoGrow(input);
   syncInputBar();
   sendMessageObject({type:'text',content:text});
-  markMeReadSoon();
+  /* v3.24.0：不再发送后 2~4 秒自动标已读——✓✓ 时机改由引擎决定（回复前或已读不回时），模拟"TA 看到消息"的真实时刻 */
 }
-/* 我方消息延迟 2~4 秒标记「已读」（✓✓），模拟 TA 已读 */
-function markMeReadSoon(){
-  setTimeout(async()=>{
-    const all=await dbGetAll('messages');
-    const changed=all.filter(m=>m.sender==='me'&&!m.read&&!m.recalled);
-    if(!changed.length)return;
-    for(const m of changed){m.read=true;await dbPut('messages',m);}
-    // 只刷新 ✓/✓✓ 状态，不重建 DOM（避免整屏重绘导致滚动位置丢失）
-    if(state.currentApp==='chat')refreshReadTicks();
-  },2000+Math.random()*2000);
-}
+/* v3.24.0：markMeReadSoon 已删——已读标记时机统一由引擎 executeReply 决定（回复前标记本轮，或已读不回时标记本轮） */
 /* 增量刷新我方消息的已读标记 */
 async function refreshReadTicks(){
   const el=document.getElementById('chat-content');if(!el)return;
@@ -527,10 +514,8 @@ function updateChatSubtitle(){
   if(title){const nn=title.firstChild;if(nn&&nn.nodeType===3)nn.nodeValue=state.other.name||'TA';}   // 只改名字文本，保留状态徽标 span（v3.6.0 修 bug：textContent 会抹掉 chat-ta-status）
   if(!sub)return;
   const j=_scheduler.activeJob;
-  // 唯一状态来源：在线 / 正在输入…（含 waiting+typing 全程） / 被禁言 / 通话中
+  // 唯一状态来源：在线 / 正在输入…（含 waiting+typing 全程） / 通话中（v3.24.0：静音两套已删）
   if(state.callActive){sub.textContent='通话中';}
-  else if(Date.now()<state.muteEndTime){sub.textContent='被禁言';}
-  else if(Date.now()<state.taMuteMeEndTime){sub.textContent='TA 正在安静';}
   else if(j&&(j.status==='waiting'||j.status==='typing'||j.status==='sending')){sub.textContent='正在输入…';}
   else{sub.textContent='在线';}
   /* 继续按钮：有进行中的任务时隐藏；无任务且已有过回复轮次时显示 */
@@ -928,106 +913,9 @@ function clearChat(){
     chatFirstPaint=true;renderChat(true);showToast('聊天记录已清空');
   });
 }
-function requestUnmute(){if(Date.now()>=state.muteEndTime)return;state.muteRequest={status:'pending',time:Date.now()};saveKey('muteRequest');showToast('已发送解除申请');showMuteBanner(Math.ceil((state.muteEndTime-Date.now())/1000));}
-function agreeUnmute(){if(Date.now()>=state.muteEndTime)return;state.muteEndTime=0;state.muteRequest=null;saveKey('muteEndTime');saveKey('muteRequest');if(muteBannerInterval)clearInterval(muteBannerInterval);document.getElementById('mute-banner').classList.remove('show');pushSys('对方同意了你的解除申请，禁言已解除');showToast('对方同意解除禁言');renderChat();}
-function rejectUnmute(){if(!state.muteRequest||Date.now()>=state.muteEndTime)return;state.muteRequest={status:'rejected',time:Date.now()};saveKey('muteRequest');showToast('对方拒绝了解除申请');showMuteBanner(Math.ceil((state.muteEndTime-Date.now())/1000));}
-function showMuteBanner(sec){
-  const banner=document.getElementById('mute-banner');banner.classList.add('show');
-  if(muteBannerInterval)clearInterval(muteBannerInterval);
-  const refresh=()=>{
-    const remain=Math.ceil((state.muteEndTime-Date.now())/1000);
-    const text=document.getElementById('mute-text');const actions=document.getElementById('mute-actions');
-    if(remain<=0){clearInterval(muteBannerInterval);state.muteRequest=null;saveKey('muteRequest');banner.classList.remove('show');return;}
-    if(state.muteRequest&&state.muteRequest.status==='pending'){text.textContent='已申请解除禁言，等待对方同意';actions.innerHTML='<span class="mute-mini agree" onclick="agreeUnmute()">同意解除</span><span class="mute-mini" onclick="rejectUnmute()">拒绝</span>';}
-    else if(state.muteRequest&&state.muteRequest.status==='rejected'){text.textContent='对方拒绝了解除申请，禁言继续';actions.innerHTML='<span class="mute-mini" onclick="requestUnmute()">再次申请</span>';}
-    else{text.textContent='对方已被你静音，约 '+Math.max(1,Math.ceil(remain/60))+' 分钟后解除';actions.innerHTML='<span class="mute-mini" onclick="requestUnmute()">申请解除</span>';}
-  };
-  refresh();muteBannerInterval=setInterval(refresh,1000);
-}
-async function pushSys(text){const m={sender:'sys',type:'text',content:text,time:Date.now()};m.id=await dbPut('messages',m);if(isAppVisible())appendMsgRow(m,true);}            // TA 禁言时长（10 分钟）   // 两次 TA 禁言的最小冷却（40 分钟）
-/* v3.6.0：禁言原因文案池随机抽取 */
-function pickMuteReason(){
-  return MUTE_REASONS[Math.floor(Math.random()*MUTE_REASONS.length)];
-}
-function maybeTaMuteMe(){
-  if(state.taMuteMeEndTime>Date.now())return;          // 正在被禁言中
-  if(Date.now()-state.taMuteLastEnd<TA_MUTE_COOLDOWN_MS)return;
-  if(state.taMuteCycleSkip){                           // v3.6.0 跳过层：本周期 TA 不想这样 → 重新进冷却（间隔自然翻倍，恢复"偶尔"感）
-    state.taMuteCycleSkip=false;
-    state.taMuteLastEnd=Date.now();
-    saveKey('taMuteMeEndTime');saveKey('taMuteCycleSkip');
-    return;
-  }
-  if(Math.random()<0.03){
-    state.taMuteMeEndTime=Date.now()+TA_MUTE_MS;
-    state.taMuteLastEnd=state.taMuteMeEndTime;
-    state.taMuteReqAt=0;
-    state.taMuteReason=pickMuteReason();
-    // v3.6.0：禁言同步 TA 状态——随机切一个非在线状态（职业/生活），保持与禁言同长，到期由状态机自动回在线
-    if(typeof statusPool==='function'){
-      const pool=statusPool().filter(x=>x.s!=='在线');
-      if(pool.length){
-        const st=pool[Math.floor(Math.random()*pool.length)];
-        state.taStatus=st.s;state.other.status=st.s;
-        state.taStatusUntil=state.taMuteMeEndTime;
-        saveKey('other');saveKey('taStatusUntil');
-        if(typeof updateTaStatusBadge==='function')updateTaStatusBadge();
-      }
-    }
-    state.taMuteCycleSkip=Math.random()<0.6;           // v3.6.0：下一周期 60% 跳过（TA 低频、不粘人）
-    saveKey('taMuteMeEndTime');saveKey('taMuteCycleSkip');
-    pushSys('对方暂时把声音收起来了…（'+state.taMuteReason+'）');
-    showTaMuteBanner();
-    updateChatSubtitle();
-  }
-}
-function showTaMuteBanner(){
-  const b=document.getElementById('ta-mute-banner');
-  if(!b)return;
-  b.classList.add('show');
-  const refresh=()=>{
-    const remain=Math.ceil((state.taMuteMeEndTime-Date.now())/1000);
-    if(remain<=0){
-      b.classList.remove('show');
-      if(state.taMuteReqAt){state.taMuteReqAt=0;saveKey('taMuteMeEndTime');pushSys('对方缓过来了，频道重新接通');}
-      syncInputDisabled();
-      updateChatSubtitle();
-      return;
-    }
-    const txt=document.getElementById('ta-mute-text');
-    const act=document.getElementById('ta-mute-actions');
-    // v3.5.1：验证码式 60 秒冷却——申请后按钮进入动态倒计时，归零才能再次申请
-    const cool=Math.ceil(60-(Date.now()-(state.taMuteReqCoolAt||0))/1000);
-    txt.innerHTML=`${esc(state.taMuteReason||'TA 想安静一会儿')}，缓过来 TA 会主动找你`;   // v3.6.14 去掉精确秒数倒计时，减少焦虑
-    if(cool>0){
-      act.innerHTML=`<span class="mute-mini" style="opacity:.45;pointer-events:none">${cool} 秒后可再次申请</span>`;
-    }else{
-      act.innerHTML='<span class="mute-mini" onclick="requestTaUnmute()">申请解除</span>';
-    }
-  };
-  refresh();
-  if(showTaMuteBanner._iv)clearInterval(showTaMuteBanner._iv);
-  showTaMuteBanner._iv=setInterval(refresh,1000);
-  syncInputDisabled();
-}
-function requestTaUnmute(){
-  if(state.taMuteMeEndTime<=Date.now())return;
-  // v3.5.1：60 秒验证码式冷却，冷却中不可再申请
-  const cool=Math.ceil(60-(Date.now()-(state.taMuteReqCoolAt||0))/1000);
-  if(cool>0){showToast(`请等 ${cool} 秒后再申请`);return;}
-  state.taMuteReqCoolAt=Date.now();
-  state.taMuteReqAt=Date.now();
-  saveKey('taMuteMeEndTime');saveKey('taMuteReqCoolAt');
-  showToast('已申请解除，等 TA 缓一缓');
-  showTaMuteBanner();
-}
-function syncInputDisabled(){
-  const inp=document.getElementById('chat-input');
-  const sendBtn=document.getElementById('send-btn');
-  const muted=state.taMuteMeEndTime>Date.now();
-  if(inp){inp.disabled=muted;inp.placeholder=muted?'对方暂时不想理你…':'发消息…';}
-  if(sendBtn)sendBtn.style.display=(muted||!inp||!inp.value.trim())?'none':'block';
-}
+async function pushSys(text){const m={sender:'sys',type:'text',content:text,time:Date.now()};m.id=await dbPut('messages',m);if(isAppVisible())appendMsgRow(m,true);}
+/* v3.24.0：禁言（muteOther/解除申请/横幅）与 TA 安静周期（maybeTaMuteMe/横幅/申请）整套移除；
+   TA 不回复的唯一机制 = 已读不回（engine.js）。 */
 async function pushReply(text){
   if(typeof taOutputBlocked==='function'&&taOutputBlocked())return null;   // v3.7.0 纵深门控：静音/收起声音时底层也不输出（双保险；各调用方仍应先判）
   const msg={sender:'other',type:'text',content:text,time:Date.now(),read:false};
@@ -1079,30 +967,12 @@ function renderChatInfo(){
       <div class="cs-item" onclick="managePokes()"><span class="cs-ico">&#128073;</span><span class="cs-label">TA 拍我</span><span class="cs-val" style="font-size:11px;color:var(--hint)">${(allPokeTexts()||[]).length} 条动作</span><span class="cs-arrow">&#8250;</span></div>
     </div>
     <div class="cs-group">
-      <div class="cs-item" onclick="muteOther()"><span class="cs-ico">&#128263;</span><span class="cs-label">禁言 TA</span>${Date.now()<state.muteEndTime?`<span class="cs-val">剩 ${Math.ceil((state.muteEndTime-Date.now())/1000)}s</span>`:''}<span class="cs-arrow">&#8250;</span></div>
-    </div>
-    <div class="cs-group">
       <div class="cs-item" onclick="clearChat()" style="color:#c0392b"><span class="cs-ico">&#128465;</span><span class="cs-label">清空聊天记录</span></div>
     </div>`;
 }
 function toggleChatQuote(){state.chat.showQuote=state.chat.showQuote===0?1:0;saveKey('chat');renderChatInfo();showToast(state.chat.showQuote?'已开启引用':'已关闭引用');}
 function toggleAllowRecall(){state.chat.allowRecall=state.chat.allowRecall===false?true:false;saveKey('chat');renderChatInfo();showToast(state.chat.allowRecall?'已开启撤回':'已关闭撤回');}
-/* 禁言 TA：输入分钟，可自动解除 */
-function muteOther(){
-  showModal('禁言 TA',`<div style="padding:4px 2px 10px;font-size:13px;color:var(--sub)">禁言期间 TA 不会回复、不会主动发消息；到时间自动解除。</div>
-    <input class="app-input" id="mute-min" type="number" min="1" max="1440" placeholder="禁言时长（分钟）" style="width:100%;text-align:center;font-size:18px;margin-bottom:12px">
-    <button class="btn-pill primary" style="width:100%" onclick="doMuteOther()">开始禁言</button>`);
-}
-function doMuteOther(){
-  const min=parseInt((document.getElementById('mute-min')||{}).value||'0',10);
-  if(!min||min<1){showToast('请输入至少 1 分钟');return;}
-  state.muteEndTime=Date.now()+min*60000;
-  saveKey('muteEndTime');
-  closeModal();
-  showMuteBanner(min*60);
-  renderChatInfo();
-  showToast(`已禁言 TA ${min} 分钟`);
-}
+/* v3.24.0：muteOther/doMuteOther（禁言 TA）已删 */
 function applyChatBg(){
   const el=document.getElementById('chat-content');if(!el)return;
   const bg=state.chat.chatBg||state.skin.chatBg;

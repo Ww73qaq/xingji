@@ -18,8 +18,8 @@ let state = {
     emojiReplyProb:15, pokeReplyProb:8, quoteReplyProb:20, giftReplyProb:5,
     // v3.6.4：颜文字字卡独立概率（命中后本轮基础回复直接抽「颜文字」分组字卡）
     emojiCardProb:20,
-    // 回复行为
-    readIgnoreEnabled:false, repeatExclude:5, customRatio:90,
+    // 回复行为（v3.24.0：已读不回 = 唯一不回复机制；禁言已删）
+    readIgnoreEnabled:false, readIgnoreTier:'normal', readIgnoreProb:20, repeatExclude:5, customRatio:90,
     // 主动消息：只暴露「开关 + 最小间隔（分钟）」，TA 的想不想主动属于内部行为
     proactiveEnabled:true, proactiveMinIntervalMin:30, proactiveCountMin:1, proactiveCountMax:2,
     momentProb:20,
@@ -131,8 +131,8 @@ function migrateProb(){
   // v2.0 兜底：replyDelaySec 缺失时补 20
   if(!(state.prob.replyDelaySec>0))state.prob.replyDelaySec=20;
   if(!(state.prob.proactiveMinIntervalMin>0))state.prob.proactiveMinIntervalMin=30;
-  // 删除 v1.3 残留旧键
-  ['fastSec','slowSec','c1','c2','c3','c4','c5','normalProb','emojiProb','pokeProb','quoteProb','heartProb','qaProb','proactive','readIgnoreProb','multiEnabled','multiProb','minPerBubble','maxPerBubble','pollProb'].forEach(k=>delete state.prob[k]);
+  // 删除 v1.3 残留旧键（v3.24.0：readIgnoreProb 已重启用为「已读不回概率档位派生值」，不再是残留键，移出清理名单）
+  ['fastSec','slowSec','c1','c2','c3','c4','c5','normalProb','emojiProb','pokeProb','quoteProb','heartProb','qaProb','proactive','multiEnabled','multiProb','minPerBubble','maxPerBubble','pollProb'].forEach(k=>delete state.prob[k]);
   if(state.prob.momentProb===25)state.prob.momentProb=20;   // v3.6.13 朋友圈主动概率降到 20（旧默认 25 迁移，TA 想用才触发）
   // v3.7.0 设置页内化：把老的数值偏好映射为关系语义档位（幂等，保留用户已表达的偏好，不丢数据）
   (function migrateSemanticTiers(){
@@ -140,6 +140,9 @@ function migrateProb(){
     if(!sp.replyPace){const d=Number(sp.replyDelaySec);sp.replyPace=(Number.isFinite(d)&&d<=12)?'fast':(d>=30?'slow':'natural');}
     if(!sp.proactiveFreq){const m=Number(sp.proactiveMinIntervalMin);sp.proactiveFreq=(Number.isFinite(m)&&m<=15)?'frequent':(m>=90?'rare':'occasional');}
     if(!sp.cardRatio){const c=Number(sp.customRatio);sp.cardRatio=c>=75?'mine':((Number.isFinite(c)&&c>=35)?'half':'free');}
+    /* v3.24.0：已读不回档位迁移——老的数字 readIgnoreProb（若有）映射到三档；数值一律由档位派生 */
+    if(!sp.readIgnoreTier){const d=Number(sp.readIgnoreProb);sp.readIgnoreTier=(Number.isFinite(d)&&d<=10)?'rare':((Number.isFinite(d)&&d>=30)?'often':'normal');}
+    if(!Number.isFinite(Number(sp.readIgnoreProb)))sp.readIgnoreProb=READ_IGNORE_VAL[sp.readIgnoreTier]||20;
   })();
   /* v3.9.5：相处节奏的四个开关曾以数字 0/1 落库，而读侧一律用 `!==false` 判断，
      于是 0 被当成「开」→ 主动来消息关掉后再也开不回来，分几次说/把话连成一句则完全无效。
