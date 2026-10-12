@@ -1040,3 +1040,75 @@ body{-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;letter
 .mu-disc-mini{width:56px;height:56px;border-radius:50%;background:linear-gradient(135deg,#8a6d4b,#c99a7a);background-size:cover;background-position:center;flex-shrink:0;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 6px rgba(0,0,0,.14);position:relative}
 .mu-disc-mini::after{content:'';position:absolute;inset:0;border-radius:50%;background:repeating-radial-gradient(circle at 50% 50%, rgba(0,0,0,.14) 0 1px, transparent 1px 5px);pointer-events:none}
 .mu-ctrl-row{display:flex;align-items:center;gap:6px;flex-shrink:0}
+
+/* =========================================================
+   v3.21.0 音乐 APP（独立应用：3 Tab + 常驻迷你条 + 浅色全屏播放页）
+   ========================================================= */
+.mu-app{background:var(--bg)}
+.mu-app-body{flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:10px 12px calc(var(--sab) + 74px)}
+.mu-tabpage{display:flex;flex-direction:column;min-height:100%}
+.mu-search{display:flex;align-items:center;gap:8px;background:var(--card);border:1px solid var(--input);border-radius:12px;padding:9px 12px;color:var(--hint);margin-bottom:8px;position:sticky;top:0;z-index:3}
+.mu-search input{flex:1;border:none;outline:none;background:transparent;font-size:13px;color:var(--text)}
+.mu-list{display:flex;flex-direction:column}
+.mu-row{display:flex;align-items:center;gap:10px;padding:10px 6px;border-radius:12px;cursor:pointer}
+.mu-row:active{background:var(--input)}
+.mu-row.on{background:rgba(138,109,75,.09)}
+.mu-row.on .mu-i-m b{color:#8a6d4b}
+.mu-i-n{width:22px;text-align:center;font-size:12px;color:var(--hint);flex-shrink:0}
+.mu-i-m{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.mu-i-m b{font-size:13px;font-weight:500;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mu-i-m i{font-style:normal;font-size:11px;color:var(--hint);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mu-i-add{width:28px;height:28px;display:flex;align-items:center;justify-content:center;color:#8a6d4b;font-size:16px;border-radius:50%;flex-shrink:0}
+.mu-i-add:active{background:var(--input)}
+.mu-i-del{width:28px;height:28px;display:flex;align-items:center;justify-content:center;color:var(--hint);font-size:17px;border-radius:50%;flex-shrink:0}
+.mu-i-del:active{background:var(--input)}
+.mu-empty{text-align:center;font-size:13px;color:var(--hint);padding:34px 10px;line-height:2}
+
+/* APP 内常驻迷你播放条 */
+.mu-bar{display:flex;align-items:center;gap:9px;margin:0 10px calc(var(--sab) + 58px);padding:7px 10px;border-radius:14px;background:var(--card);border:1px solid var(--input);box-shadow:0 2px 10px rgba(0,0,0,.08);cursor:pointer;position:absolute;left:0;right:0;bottom:calc(var(--sab) + var(--tabbar-h) + 4px);z-index:5}
+.mu-bar-cov{width:38px;height:38px;border-radius:9px;background:linear-gradient(135deg,#8a6d4b,#c99a7a);background-size:cover;background-position:center;flex-shrink:0;box-shadow:0 1px 3px rgba(0,0,0,.15)}
+.mu-bar-t{flex:1;min-width:0;display:flex;flex-direction:column;gap:1px}
+.mu-bar-t b{font-size:12px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mu-bar-t i{font-style:normal;font-size:10px;color:var(--hint);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+/* 音乐自己的底 Tab */
+.mu-tabbar{position:absolute;left:0;right:0;bottom:0;display:flex;background:rgba(250,250,249,.96);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border-top:1px solid rgba(0,0,0,.07);padding:6px 0 calc(var(--sab) + 6px);z-index:6}
+.mu-ti{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;font-size:10px;color:var(--hint);cursor:pointer}
+.mu-ti.on{color:#8a6d4b}
+.mu-ti:active{opacity:.7}
+
+/* Tab2 歌单 */
+.mu-pl-add{margin:2px 0 10px;padding:12px;border:1.5px dashed rgba(120,100,75,.3);border-radius:12px;text-align:center;font-size:13px;color:#8a6d4b;cursor:pointer}
+.mu-pl-add:active{background:var(--input)}
+.mu-pl-head{display:flex;align-items:center;gap:8px;padding:4px 2px 10px;font-size:14px}
+.mu-pl-head b{flex:none;max-width:46%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mu-pl-head i{font-style:normal;font-size:11px;color:var(--hint)}
+.mu-pl-head .mu-lbtn{margin-left:auto;font-size:11px;color:#fff;background:#8a6d4b;border:none;border-radius:12px;padding:4px 12px}
+.mu-back-ico{font-size:18px;color:var(--text);padding:0 4px}
+.mu-pl-pick{padding:12px 6px;border-bottom:1px solid var(--input);font-size:14px;cursor:pointer}
+.mu-pl-pick:active{background:var(--input)}
+.mu-pl-pick i{float:right;font-style:normal;font-size:11px;color:var(--hint)}
+
+/* Tab3 设置 */
+.mu-sec{font-size:11px;color:var(--hint);margin:14px 2px 6px}
+.mu-set-row{display:flex;align-items:center;justify-content:space-between;gap:10px;background:var(--card);border:1px solid var(--input);border-radius:12px;padding:12px 14px;font-size:13px;color:var(--text);margin-bottom:6px;cursor:pointer}
+.mu-set-row b{font-weight:500;color:var(--sub)}
+.mu-set-col{background:var(--card);border:1px solid var(--input);border-radius:12px;padding:12px 14px;font-size:13px;color:var(--text);margin-bottom:6px;display:flex;flex-direction:column;gap:8px}
+.mu-set-col span i{font-style:normal;color:var(--hint)}
+.mu-set-col input[type=range]{width:100%;accent-color:#8a6d4b}
+
+/* 全屏播放页（浅色卡片式） */
+.mu-full-page{background:var(--bg)}
+.muf-body{flex:1;min-height:0;display:flex;flex-direction:column;align-items:center;padding:20px 24px calc(var(--sab) + 20px);overflow-y:auto}
+.muf-cover-big{width:min(78vw,290px);height:min(78vw,290px);border-radius:26px;background:linear-gradient(135deg,#8a6d4b,#c99a7a);background-size:cover;background-position:center;margin:12px 0 22px;box-shadow:0 8px 26px rgba(90,70,50,.28);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.muf-info{display:flex;flex-direction:column;align-items:center;gap:3px;margin-bottom:14px;flex-shrink:0}
+.muf-info b{font-size:18px;font-weight:600;color:var(--text);max-width:80vw;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.muf-info span{font-size:12px;color:var(--sub)}
+.muf-prog{width:100%;color:var(--hint);flex-shrink:0}
+.muf-prog input[type=range]{accent-color:#8a6d4b}
+.muf-ctrl{display:flex;align-items:center;justify-content:center;gap:36px;margin:18px 0 8px;flex-shrink:0}
+.muf-ctrl .mu-btn{color:var(--text);width:46px;height:46px}
+.muf-ctrl .mu-play-big{width:68px;height:68px;color:#8a6d4b;background:rgba(138,109,75,.1);border-radius:50%}
+.muf-ctrl .mu-play-big:active{transform:scale(.94)}
+.muf-sub{display:flex;align-items:center;gap:8px;width:100%;margin-top:auto;padding-top:14px;color:var(--hint);flex-shrink:0}
+.muf-sub input[type=range]{width:110px;accent-color:#8a6d4b;height:14px}

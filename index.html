@@ -27,8 +27,8 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'%3E%3Crect width='180' height='180' rx='40' fill='%23f7f6f3'/%3E%3Ctext x='90' y='122' font-size='96' text-anchor='middle' fill='%231a1a1a' font-family='serif'%3E%E2%97%86%3C/text%3E%3C/svg%3E">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23f7f6f3'/%3E%3Ctext x='32' y='45' font-size='34' text-anchor='middle' fill='%231a1a1a' font-family='serif'%3E%E2%97%86%3C/text%3E%3C/svg%3E">
-<link rel="stylesheet" href="js/vendor/fonts/lxgw-wenkai-regular.css?v=3.20.0">
-<link rel="stylesheet" href="css/styles.css?v=3.20.0">
+<link rel="stylesheet" href="js/vendor/fonts/lxgw-wenkai-regular.css?v=3.21.0">
+<link rel="stylesheet" href="css/styles.css?v=3.21.0">
 </head>
 <body>
 <div id="phone">
@@ -124,7 +124,7 @@
   </div><!-- /desk-page 1 -->
   <div class="desk-page" id="desk-page-music">
     <!-- 对应便签位：迷你摘要条（点击展开全屏黑胶播放页） -->
-    <div class="mu-player" id="mu-player" onclick="muOpenFull()">
+    <div class="mu-player" id="mu-player" onclick="openApp('music')">
       <div class="mu-disc-mini" id="mu-cover"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="rgba(255,255,255,.9)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg></div>
       <div class="mu-mid">
         <div class="mu-title" id="mu-title">未在播放</div>
@@ -136,17 +136,9 @@
         <span class="mu-btn" onclick="muNext()"><svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M5 4l10 8-10 8V4zM17 5v14h2V5h-2z"/></svg></span>
       </div>
     </div>
-    <!-- 对应心跳轨迹位：播放列表 -->
-    <div class="mu-list-card" id="mu-list-card">
-      <div class="mu-list-head"><span class="mu-lt">播放列表 <b id="mu-count">0</b></span>
-        <span class="mu-lbtn" onclick="muImportFolder()" id="mu-fld-btn">选文件夹</span>
-        <span class="mu-lbtn" onclick="muImport()">导入歌曲</span>
-      </div>
-      <div class="mu-list" id="mu-list"><div class="mu-empty">还没有歌曲<br><span style="font-size:11px">点上方「导入歌曲」或「选文件夹」，支持 MP3 / M4A / FLAC / WAV</span></div></div>
-    </div>
     <!-- 对应图标位：本地音乐 + 预留 -->
     <div class="app-grid" id="app-grid2">
-      <div class="app-item" onclick="muOpenFull()" title="打开播放页"><div class="app-icon" id="mu-app-ico" style="background:#a3765a"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg></div><div class="app-label">本地音乐</div></div>
+      <div class="app-item" onclick="openApp('music')" title="打开音乐"><div class="app-icon" id="mu-app-ico" style="background:#a3765a"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg></div><div class="app-label">本地音乐</div></div>
       <div class="app-item mu-resv"><div class="app-icon"></div><div class="app-label">&nbsp;</div></div>
       <div class="app-item mu-resv"><div class="app-icon"></div><div class="app-label">&nbsp;</div></div>
       <div class="app-item mu-resv"><div class="app-icon"></div><div class="app-label">&nbsp;</div></div>
@@ -161,8 +153,8 @@
   <div class="desk-dots" id="desk-dots"><i class="on"></i><i></i></div>
   <!-- 悬浮迷你控制条（可拖动定位记忆·长按切换透明度，桌面第2页自动隐藏） -->
   <div class="mu-mini" id="mu-mini" style="display:none">
-    <div class="mu-mini-cov" id="mu-mini-cov" onclick="muOpenFull()"><div class="mu-mini-vinyl" id="mu-mini-vinyl"></div></div>
-    <div class="mu-mini-t" onclick="muOpenFull()"><b id="mu-mini-t">未在播放</b><i id="mu-mini-a">星迹音乐</i></div>
+    <div class="mu-mini-cov" id="mu-mini-cov" onclick="openApp('musicplay')"><div class="mu-mini-vinyl" id="mu-mini-vinyl"></div></div>
+    <div class="mu-mini-t" onclick="openApp('musicplay')"><b id="mu-mini-t">未在播放</b><i id="mu-mini-a">星迹音乐</i></div>
     <span class="mu-mini-btn" onclick="muPrev()"><svg viewBox="0 0 24 24" width="15" height="15" fill="currentColor"><path d="M19 20L9 12l10-8v16zM7 19V5H5v14h2z"/></svg></span>
     <span class="mu-mini-btn" onclick="muToggle()"><svg id="mu-mini-ico" viewBox="0 0 24 24" width="17" height="17" fill="currentColor"><path d="M8 5v14l11-7z"/></svg></span>
     <span class="mu-mini-btn" onclick="muNext()"><svg viewBox="0 0 24 24" width="15" height="15" fill="currentColor"><path d="M5 4l10 8-10 8V4zM17 5v14h2V5h-2z"/></svg></span>
@@ -200,46 +192,61 @@
 <!-- ===== APP PAGES（导航栈：push / pop 均有动画） ===== -->
 <div id="app-pages">
 
-<!-- MUSIC 全屏黑胶播放页（对标网易云唱片机） -->
-<div id="app-music" class="app-page mu-full-page">
+<!-- MUSIC 独立音乐 APP（自带底 Tab：全部列表/歌单/设置 + 常驻迷你播放条） -->
+<div id="app-music" class="app-page mu-app">
+  <div class="app-header">
+    <div class="back" onclick="goBack()">&#8249;</div>
+    <h1>音乐</h1>
+    <div class="act" onclick="muImportMenu()" title="导入"><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></div>
+  </div>
+  <div class="mu-app-body" id="mu-app-body">
+    <!-- Tab1 全部列表 -->
+    <div class="mu-tabpage" id="mu-tab-list">
+      <div class="mu-search"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg><input id="mu-q" placeholder="搜索歌名 / 歌手" oninput="muRenderListTab()"></div>
+      <div class="mu-list" id="mu-list"></div>
+    </div>
+    <!-- Tab2 歌单 -->
+    <div class="mu-tabpage" id="mu-tab-pl" style="display:none"><div id="mu-pl-body"></div></div>
+    <!-- Tab3 设置 -->
+    <div class="mu-tabpage" id="mu-tab-set" style="display:none"><div id="mu-set-body"></div></div>
+  </div>
+  <!-- 常驻迷你播放条（有歌才显示） -->
+  <div class="mu-bar" id="mu-bar" style="display:none" onclick="openApp('musicplay')">
+    <div class="mu-bar-cov" id="mu-bar-cov"></div>
+    <div class="mu-bar-t"><b id="mu-bar-t">—</b><i id="mu-bar-a">—</i></div>
+    <span class="mu-mini-btn" onclick="event.stopPropagation();muPrev()"><svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M19 20L9 12l10-8v16zM7 19V5H5v14h2z"/></svg></span>
+    <span class="mu-mini-btn" onclick="event.stopPropagation();muToggle()"><svg id="mu-bar-ico" viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M8 5v14l11-7z"/></svg></span>
+    <span class="mu-mini-btn" onclick="event.stopPropagation();muNext()"><svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M5 4l10 8-10 8V4zM17 5v14h2V5h-2z"/></svg></span>
+  </div>
+  <!-- 音乐自己的底 Tab -->
+  <div class="mu-tabbar" id="mu-tabbar">
+    <div class="mu-ti on" data-t="list" onclick="muTab('list')"><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h10"/></svg><span>全部</span></div>
+    <div class="mu-ti" data-t="pl" onclick="muTab('pl')"><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v2"/><rect x="6" y="9" width="12" height="12" rx="2"/><path d="M9 13h6M9 17h4"/></svg><span>歌单</span></div>
+    <div class="mu-ti" data-t="set" onclick="muTab('set')"><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.87l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.7 1.7 0 0 0-1.87-.34 1.7 1.7 0 0 0-1 1.55V21a2 2 0 1 1-4 0v-.09a1.7 1.7 0 0 0-1-1.55 1.7 1.7 0 0 0-1.87.34l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.7 1.7 0 0 0 .34-1.87 1.7 1.7 0 0 0-1.55-1H3a2 2 0 1 1 0-4h.09a1.7 1.7 0 0 0 1.55-1 1.7 1.7 0 0 0-.34-1.87l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.7 1.7 0 0 0 1.87.34h0a1.7 1.7 0 0 0 1-1.55V3a2 2 0 1 1 4 0v.09a1.7 1.7 0 0 0 1 1.55h0a1.7 1.7 0 0 0 1.87-.34l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.7 1.7 0 0 0-.34 1.87v0a1.7 1.7 0 0 0 1.55 1H21a2 2 0 1 1 0 4h-.09a1.7 1.7 0 0 0-1.55 1z"/></svg><span>设置</span></div>
+  </div>
+</div>
+
+<!-- MUSIC 全屏播放页（浅色卡片式，从迷你条/列表进入） -->
+<div id="app-musicplay" class="app-page mu-full-page">
   <div class="app-header mu-full-head">
     <div class="back" onclick="goBack()">&#8249;</div>
-    <h1>私人漫游 <span id="muf-mode-t" style="font-size:11px;font-weight:400;color:var(--sub)">· 列表循环</span></h1>
+    <h1>正在播放 <span id="muf-mode-t" style="font-size:11px;font-weight:400;color:var(--sub)">· 列表循环</span></h1>
     <div class="act" onclick="muCycleMode()" title="播放模式"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M17 2l4 4-4 4"/><path d="M3 11v-1a4 4 0 0 1 4-4h14"/><path d="M7 22l-4-4 4-4"/><path d="M21 13v1a4 4 0 0 1-4 4H3"/></svg></div>
   </div>
   <div class="muf-body">
-    <div class="muf-stage">
-      <div class="muf-arm" id="muf-arm">
-        <svg viewBox="0 0 120 170" width="110" height="155">
-          <circle cx="22" cy="20" r="13" fill="rgba(255,255,255,.14)" stroke="rgba(255,255,255,.35)" stroke-width="1.5"/>
-          <circle cx="22" cy="20" r="5" fill="rgba(255,255,255,.5)"/>
-          <path d="M30 27 C58 55 84 60 96 96 L96 132" fill="none" stroke="rgba(255,255,255,.55)" stroke-width="7" stroke-linecap="round"/>
-          <rect x="86" y="126" width="22" height="34" rx="7" fill="rgba(255,255,255,.65)" transform="rotate(14 97 143)"/>
-        </svg>
-      </div>
-      <div class="muf-disc" id="muf-disc">
-        <div class="muf-grooves"></div>
-        <div class="muf-cover" id="muf-cover2"><svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="rgba(255,255,255,.85)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg></div>
-        <div class="muf-hole"></div>
-      </div>
-    </div>
-    <div class="muf-info">
-      <b id="muf-title">未在播放</b>
-      <span id="muf-artist">导入本地歌曲开始聆听</span>
-    </div>
+    <div class="muf-cover-big" id="muf-cover2"><svg viewBox="0 0 24 24" width="34" height="34" fill="none" stroke="rgba(255,255,255,.9)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg></div>
+    <div class="muf-info"><b id="muf-title">未在播放</b><span id="muf-artist">导入本地歌曲开始聆听</span></div>
     <div class="mu-prog muf-prog"><span id="muf-t-cur">0:00</span><input type="range" id="muf-seek" min="0" max="1000" value="0" oninput="muSeek(this.value)"><span id="muf-t-end">0:00</span></div>
     <div class="muf-ctrl">
       <span class="mu-btn" onclick="muPrev()"><svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor"><path d="M19 20L9 12l10-8v16zM7 19V5H5v14h2z"/></svg></span>
-      <span class="mu-btn mu-play-big" id="muf-play-btn" onclick="muToggle()"><svg id="muf-play-ico" viewBox="0 0 24 24" width="40" height="40" fill="currentColor"><path d="M8 5v14l11-7z"/></svg></span>
+      <span class="mu-btn mu-play-big" id="muf-play-btn" onclick="muToggle()"><svg id="muf-play-ico" viewBox="0 0 24 24" width="38" height="38" fill="currentColor"><path d="M8 5v14l11-7z"/></svg></span>
       <span class="mu-btn" onclick="muNext()"><svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor"><path d="M5 4l10 8-10 8V4zM17 5v14h2V5h-2z"/></svg></span>
     </div>
     <div class="muf-sub">
-      <span class="mu-mini-btn" style="color:inherit" onclick="muListPeek()"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h10"/></svg></span>
-      <span style="flex:1"></span>
       <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M11 5L6 9H2v6h4l5 4V5z"/><path d="M15.5 8.5a5 5 0 0 1 0 7" opacity=".7"/></svg>
       <input type="range" id="muf-vol" min="0" max="100" value="100" oninput="muVol(this.value)">
       <span style="flex:1"></span>
-      <span class="mu-mini-btn" style="color:inherit" onclick="muImport()"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg></span>
+      <span class="mu-mini-btn" style="color:var(--sub)" onclick="muImport()"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg></span>
     </div>
   </div>
 </div>
@@ -504,44 +511,44 @@
 
 </div>
 
-<script src="js/config.js?v=3.20.0"></script>
-<script src="js/utils.js?v=3.20.0"></script>
-<script src="js/db.js?v=3.20.0"></script>
-<script src="js/state.js?v=3.20.0"></script>
-<script src="js/modal.js?v=3.20.0"></script>
-<script src="js/nav.js?v=3.20.0"></script>
-<script src="js/features/theme-editor.js?v=3.20.0"></script>
-<script src="js/home.js?v=3.20.0"></script>
-<script src="js/ui/lock.js?v=3.20.0"></script>
-<script src="js/ui/version.js?v=3.20.0"></script>
-<script src="js/app-update.js?v=3.20.0"></script>
-<script src="js/app-notify.js?v=3.20.0"></script>
-<script src="js/ui/action-bar.js?v=3.20.0"></script>
-<script src="js/ui/chat.js?v=3.20.0"></script>
-<script src="js/features/poll.js?v=3.20.0"></script>
-<script src="js/features/call.js?v=3.20.0"></script>
-<script src="js/ui/moments.js?v=3.20.0"></script>
-<script src="js/ui/mailbox.js?v=3.20.0"></script>
-<script src="js/features/envelope.js?v=3.20.0"></script>
-<script src="js/ui/diary.js?v=3.20.0"></script>
-<script src="js/ui/profile.js?v=3.20.0"></script>
-<script src="js/features/mood.js?v=3.20.0"></script>
-<script src="js/features/stickers.js?v=3.20.0"></script>
-<script src="js/ui/memory.js?v=3.20.0"></script>
+<script src="js/config.js?v=3.21.0"></script>
+<script src="js/utils.js?v=3.21.0"></script>
+<script src="js/db.js?v=3.21.0"></script>
+<script src="js/state.js?v=3.21.0"></script>
+<script src="js/modal.js?v=3.21.0"></script>
+<script src="js/nav.js?v=3.21.0"></script>
+<script src="js/features/theme-editor.js?v=3.21.0"></script>
+<script src="js/home.js?v=3.21.0"></script>
+<script src="js/ui/lock.js?v=3.21.0"></script>
+<script src="js/ui/version.js?v=3.21.0"></script>
+<script src="js/app-update.js?v=3.21.0"></script>
+<script src="js/app-notify.js?v=3.21.0"></script>
+<script src="js/ui/action-bar.js?v=3.21.0"></script>
+<script src="js/ui/chat.js?v=3.21.0"></script>
+<script src="js/features/poll.js?v=3.21.0"></script>
+<script src="js/features/call.js?v=3.21.0"></script>
+<script src="js/ui/moments.js?v=3.21.0"></script>
+<script src="js/ui/mailbox.js?v=3.21.0"></script>
+<script src="js/features/envelope.js?v=3.21.0"></script>
+<script src="js/ui/diary.js?v=3.21.0"></script>
+<script src="js/ui/profile.js?v=3.21.0"></script>
+<script src="js/features/mood.js?v=3.21.0"></script>
+<script src="js/features/stickers.js?v=3.21.0"></script>
+<script src="js/ui/memory.js?v=3.21.0"></script>
 <!-- PDF.js 3.11.174（自托管经典 UMD 全局 pdfjsLib；defer=解析不阻塞、解析完成后才执行，因此 books.js 顶部不能再配置 workerSrc，改由 books.js 的 bkPdfWorkerSrc() 在使用前设置；worker 自托管于 js/vendor/pdf.worker.min.js） -->
 <script defer src="js/vendor/pdf.min.js"></script>
-<script src="js/features/books.js?v=3.20.0"></script>
-<script src="js/features/music.js?v=3.20.0"></script>
-<script src="js/ui/companion.js?v=3.20.0"></script>
-<script src="js/ui/probability.js?v=3.20.0"></script>
-<script src="js/features/reply-library.js?v=3.20.0"></script>
-<script src="js/features/calendar.js?v=3.20.0"></script>
-<script src="js/features/group-chat.js?v=3.20.0"></script>
-<script src="js/ui/room.js?v=3.20.0"></script>
-<script src="js/ui/trace.js?v=3.20.0"></script>
-<script src="js/data/backup.js?v=3.20.0"></script>
-<script src="js/scheduler.js?v=3.20.0"></script>
-<script src="js/engine.js?v=3.20.0"></script>
-<script src="js/app.js?v=3.20.0"></script>
+<script src="js/features/books.js?v=3.21.0"></script>
+<script src="js/features/music.js?v=3.21.0"></script>
+<script src="js/ui/companion.js?v=3.21.0"></script>
+<script src="js/ui/probability.js?v=3.21.0"></script>
+<script src="js/features/reply-library.js?v=3.21.0"></script>
+<script src="js/features/calendar.js?v=3.21.0"></script>
+<script src="js/features/group-chat.js?v=3.21.0"></script>
+<script src="js/ui/room.js?v=3.21.0"></script>
+<script src="js/ui/trace.js?v=3.21.0"></script>
+<script src="js/data/backup.js?v=3.21.0"></script>
+<script src="js/scheduler.js?v=3.21.0"></script>
+<script src="js/engine.js?v=3.21.0"></script>
+<script src="js/app.js?v=3.21.0"></script>
 </body>
 </html>
