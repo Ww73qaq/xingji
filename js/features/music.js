@@ -320,7 +320,7 @@ function muRenderAll() {
   muRenderFull();        // 全屏播放页
   muRenderAppIcon();     // 图标位状态
 }
-const _covBg = rec => rec && rec.cover ? 'url(' + rec.cover + ')' : 'linear-gradient(135deg,#8a6d4b,#c99a7a)';
+const _covBg = rec => rec && rec.cover ? 'url(' + rec.cover + ')' : 'linear-gradient(135deg,#3d3d40,#17171a)';
 
 /* 桌面第2页摘要条 */
 function muRenderPlayer() {
@@ -332,6 +332,8 @@ function muRenderPlayer() {
   if (a) a.textContent = rec ? (rec.artist || '点此进入音乐 APP') : '点此进入音乐 · 导入歌曲';
   const pi = document.getElementById('mu-play-ico');
   if (pi) pi.innerHTML = (muAudio && !muAudio.paused && muCurId) ? '<path d="M6 5h4v14H6zM14 5h4v14h-4z"/>' : '<path d="M8 5v14l11-7z"/>';
+  const fv = document.getElementById('mu-w-fav');
+  if (fv) { fv.dataset.sz = 17; muFavStyle(fv, rec ? muIsFav(rec.id) : false); }
 }
 
 /* 全屏播放页（浅色卡片式） */
@@ -344,14 +346,14 @@ function muRenderFull() {
   if (a) a.textContent = rec ? (rec.artist || '本地音乐') : '导入本地歌曲开始聆听';
   const pi = document.getElementById('muf-play-ico');
   if (pi) pi.innerHTML = (muAudio && !muAudio.paused && muCurId) ? '<path d="M6 5h4v14H6zM14 5h4v14h-4z"/>' : '<path d="M8 5v14l11-7z"/>';
-  const mt = document.getElementById('muf-mode-t');
-  if (mt) mt.textContent = '· ' + (muSet.mode === 'loop' ? '列表循环' : muSet.mode === 'one' ? '单曲循环' : '随机播放');
+  const mi = document.getElementById('muf-mode-ico');
+  if (mi) mi.style.opacity = muSet.mode === 'loop' ? '.45' : '1';
   const te = document.getElementById('muf-t-end');
   if (te) te.textContent = muFmt(rec && rec.dur ? rec.dur : (muAudio && muAudio.duration) || 0);
   const vs = document.getElementById('muf-vol');
   if (vs && muAudio) vs.value = Math.round((muAudio.volume || 1) * 100);
   const fv = document.getElementById('muf-fav');
-  if (fv) { fv.dataset.sz = 26; muFavStyle(fv, rec ? muIsFav(rec.id) : false); }
+  if (fv) { fv.dataset.sz = 24; muFavStyle(fv, rec ? muIsFav(rec.id) : false); }
 }
 
 /* Tab 切换 */
@@ -384,8 +386,7 @@ function muRenderListTab() {
     return '<div class="mu-row' + (cur ? ' on' : '') + '" onclick="muPlayById(' + x.id + ')">'
       + '<span class="mu-i-n">' + (i + 1) + '</span>'
       + '<span class="mu-i-m"><b>' + esc(x.name) + '</b><i>' + esc(x.artist || '未知歌手') + (x.dur ? ' · ' + muFmt(x.dur) : '') + '</i></span>'
-      + '<span class="mu-i-add" title="加入歌单" onclick="event.stopPropagation();muAddToPl(' + x.id + ')">＋</span>'
-      + '<span class="mu-i-del" title="移除" onclick="event.stopPropagation();muDelete(' + x.id + ')">×</span></div>';
+      + '<span class="mu-i-more" title="更多" onclick="event.stopPropagation();muRowMenu(' + x.id + ')"><svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><circle cx="12" cy="5" r="1.7"/><circle cx="12" cy="12" r="1.7"/><circle cx="12" cy="19" r="1.7"/></svg></span></div>';
   }).join('');
 }
 
@@ -401,7 +402,7 @@ function muRenderPl() {
   if (muPlView == null) {
     host.innerHTML = '<div class="mu-pl-add" onclick="muPlCreate()">＋ 新建歌单</div>'
       + '<div class="mu-row' + (muPlView === 'fav' ? ' on' : '') + '" onclick="muPlView=\'fav\';muRenderPl()"><span class="mu-i-n" style="color:#e05c5c">♥</span><span class="mu-i-m"><b>我喜欢的音乐</b><i>' + muFavs.length + ' 首</i></span></div>'
-      + (muPls.length ? muPls.map((p, i) => '<div class="mu-row" onclick="muPlOpen(' + i + ')"><span class="mu-i-n"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#8a6d4b" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="9" width="12" height="12" rx="2"/><path d="M9 13h6M9 17h4"/></svg></span><span class="mu-i-m"><b>' + esc(p.name) + '</b><i>' + p.ids.length + ' 首</i></span><span class="mu-i-del" onclick="event.stopPropagation();muPlDel(' + i + ')">×</span></div>').join('')
+      + (muPls.length ? muPls.map((p, i) => '<div class="mu-row" onclick="muPlOpen(' + i + ')"><span class="mu-i-n"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#333" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="9" width="12" height="12" rx="2"/><path d="M9 13h6M9 17h4"/></svg></span><span class="mu-i-m"><b>' + esc(p.name) + '</b><i>' + p.ids.length + ' 首</i></span><span class="mu-i-del" onclick="event.stopPropagation();muPlDel(' + i + ')">×</span></div>').join('')
       : '<div class="mu-empty">还没有歌单<br><span style="font-size:11px">点「＋ 新建歌单」，再在「全部」里点 ＋ 收歌</span></div>');
     return;
   }
@@ -453,7 +454,7 @@ function muAddToPl(id) {
   const rec = muList.find(x => x.id === id); if (!rec) return;
   showModal('加入歌单 · ' + esc(rec.name),
     (muPls.length ? muPls.map((p, i) => '<div class="mu-pl-pick" onclick="muAddToPlDo(' + i + ',' + id + ')">' + esc(p.name) + '<i>' + p.ids.length + ' 首</i></div>').join('') : '<div style="text-align:center;color:var(--hint);padding:8px 0">还没有歌单</div>')
-    + '<div class="mu-pl-pick" style="color:#8a6d4b" onclick="muPlCreate();closeModal()">＋ 新建歌单…</div>',
+    + '<div class="mu-pl-pick" style="color:#111" onclick="muPlCreate();closeModal()">＋ 新建歌单…</div>',
     '<div class="modal-btn-row"><button class="modal-btn" onclick="closeModal()">取消</button></div>');
 }
 function muAddToPlDo(pi, id) {
@@ -633,6 +634,87 @@ function muUpdateDots() {
   if (!dots) return;
   const p = deskCurPage();
   dots.querySelectorAll('i').forEach((el, i) => el.classList.toggle('on', i === p));
+}
+
+/* ---------- 歌曲行 ⋮ 功能归拢 ---------- */
+function muRowMenu(id) {
+  const rec = muList.find(x => x.id === id); if (!rec) return;
+  const fav = muIsFav(id);
+  showModal('「' + esc(rec.name) + '」',
+    '<div class="mu-pl-pick" onclick="closeModal();muFavCurById(' + id + ')">' + (fav ? '♥ 取消收藏' : '♡ 收藏到「我喜欢的音乐」') + '</div>'
+    + '<div class="mu-pl-pick" onclick="closeModal();muAddToPl(' + id + ')">＋ 加入歌单…</div>'
+    + '<div class="mu-pl-pick" style="color:#c55" onclick="closeModal();muDelete(' + id + ')">× 从列表移除</div>',
+    '<div class="modal-btn-row"><button class="modal-btn" onclick="closeModal()">取消</button></div>');
+}
+
+/* ---------- 全屏页：当前播放抽屉 ---------- */
+function muQueueToggle() {
+  const mask = document.getElementById('muf-queue-mask'), q = document.getElementById('muf-queue');
+  if (!mask || !q) return;
+  const show = q.style.display === 'none';
+  if (show) muRenderQueue();
+  mask.style.display = show ? '' : 'none';
+  q.style.display = show ? '' : 'none';
+}
+function muRenderQueue() {
+  const n = document.getElementById('muf-q-n');
+  if (n) n.textContent = muList.length;
+  const host = document.getElementById('muf-q-list');
+  if (!host) return;
+  host.innerHTML = muList.length ? muList.map(x => {
+    const cur = x.id === muCurId;
+    return '<div class="mu-row' + (cur ? ' on' : '') + '" onclick="muPlayById(' + x.id + ')">'
+      + '<span class="mu-i-m"><b style="color:' + (cur ? '#c55' : 'inherit') + '">' + esc(x.name) + '</b><i>' + esc(x.artist || '未知歌手') + '</i></span>'
+      + '<span class="mu-i-del" title="移除" onclick="event.stopPropagation();muQueueDel(' + x.id + ')">×</span></div>';
+  }).join('') : '<div class="mu-empty">列表是空的</div>';
+}
+function muQueueDel(id) {
+  muList = muList.filter(x => x.id !== id);
+  try { dbDelete('music', id); } catch (e) {}
+  muFavs = muFavs.filter(x => x !== id); muFavSave();
+  muPls.forEach(pl => { pl.ids = pl.ids.filter(x => x !== id); }); muPlSave();
+  if (id === muCurId) { try { muAudio.pause(); } catch (e) {} muCurId = null; }
+  muRenderAll(); muRenderQueue();
+  if (!muList.length) muQueueToggle();
+}
+/* 更多菜单（播放页 ⋯） */
+function muMoreMenu() {
+  showModal('更多',
+    '<div class="mu-pl-pick" onclick="closeModal();muToggleMini()">悬浮迷你条：' + (muSet.miniOn !== false ? '开启中 → 关闭' : '已关闭 → 开启') + '</div>'
+    + '<div class="mu-pl-pick" onclick="closeModal();muClearDup()">清理重复导入</div>'
+    + '<div class="mu-pl-pick" style="color:#c55" onclick="closeModal();muClearAll()">清空全部歌曲</div>',
+    '<div class="modal-btn-row"><button class="modal-btn" onclick="closeModal()">取消</button></div>');
+}
+
+/* ---------- 悬浮迷你条：上拉播放面板 ---------- */
+function muMiniPanelToggle() {
+  const p = document.getElementById('mu-mpanel'), m = document.getElementById('mu-mini');
+  if (!p || !m) return;
+  const show = p.style.display === 'none';
+  p.style.display = show ? 'flex' : 'none';   // 先显示再定位（display:none 时 offsetParent 为 null）
+  if (show) {
+    const r = m.getBoundingClientRect();
+    const opr = (p.offsetParent || document.body).getBoundingClientRect();   // 定位基准 = offsetParent（screen-home）
+    const left = Math.max(6, Math.min(opr.width - p.offsetWidth - 6, r.left - opr.left));
+    p.style.left = left + 'px';
+    p.style.bottom = (opr.bottom - r.top + 8) + 'px';
+    p.style.top = 'auto';
+    muRenderMPanel();
+  }
+}
+function muRenderMPanel() {
+  const n = document.getElementById('mu-mp-n');
+  if (n) n.textContent = muList.length;
+  const p = document.getElementById('mu-mp-ico');
+  if (p) p.innerHTML = (muAudio && !muAudio.paused && muCurId) ? '<path d="M6 5h4v14H6zM14 5h4v14h-4z"/>' : '<path d="M8 5v14l11-7z"/>';
+  const host = document.getElementById('mu-mp-list');
+  if (!host) return;
+  host.innerHTML = muList.length ? muList.map(x => {
+    const cur = x.id === muCurId;
+    return '<div class="mu-row' + (cur ? ' on' : '') + '" onclick="muPlayById(' + x.id + ')">'
+      + '<span class="mu-i-m"><b style="color:' + (cur ? '#111' : 'inherit') + '">' + esc(x.name) + '</b><i>' + esc(x.artist || '未知歌手') + '</i></span>'
+      + '<span class="mu-i-del" title="移除" onclick="event.stopPropagation();muQueueDel(' + x.id + ')">×</span></div>';
+  }).join('') : '<div class="mu-empty" style="padding:14px">列表是空的</div>';
 }
 
 /* ---------- 启动 ---------- */
