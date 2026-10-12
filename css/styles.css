@@ -1112,3 +1112,55 @@ body{-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;letter
 .muf-ctrl .mu-play-big:active{transform:scale(.94)}
 .muf-sub{display:flex;align-items:center;gap:8px;width:100%;margin-top:auto;padding-top:14px;color:var(--hint);flex-shrink:0}
 .muf-sub input[type=range]{width:110px;accent-color:#8a6d4b;height:14px}
+
+/* =========================================================
+   v3.22.0 音乐 APP 黑白极简主题（白底黑字）+ 播放条贴底 + 收藏
+   ========================================================= */
+.mu-app{background:#fff}
+.mu-app .app-header{background:#fff;border-bottom:1px solid #f0f0f0}
+.mu-app .app-header h1{color:#111}
+.mu-app .app-header .back,.mu-app .app-header .act{color:#111}
+.mu-app-body{padding-bottom:12px}   /* 播放条已入文档流，无需让位 */
+.mu-search{background:#fff;border-color:#ececec;color:#999}
+.mu-search input{color:#111}
+.mu-list .mu-row .mu-i-m b,.mu-pl-body .mu-row .mu-i-m b{color:#111}
+.mu-row.on{background:rgba(0,0,0,.055)}
+.mu-row.on .mu-i-m b{color:#111}
+.mu-i-add{color:#111}
+.mu-i-del{color:#999}
+.mu-empty{color:#999}
+.mu-pl-add{color:#111;border-color:#e2e2e2}
+
+/* 播放条：文档流内，紧贴底 Tab 上沿 */
+.mu-bar{position:static;margin:8px 10px calc(var(--tabbar-h) + var(--sab) + 2px);background:#fff;border:1px solid #ececec;box-shadow:0 -1px 8px rgba(0,0,0,.05)}
+.mu-bar-t b{color:#111}
+.mu-bar-t i{color:#999}
+.mu-bar .mu-mini-btn{color:#111}
+.mu-bar .mu-mini-btn:active{background:rgba(0,0,0,.06)}
+
+/* 音乐自己的底 Tab：白底黑字 */
+.mu-tabbar{background:#fff;border-top:1px solid #f0f0f0}
+.mu-ti{color:#9a9a9a}
+.mu-ti.on{color:#111;font-weight:600}
+
+/* 全屏播放页：白底黑字 */
+.mu-full-page{background:#fff}
+.mu-full-head{background:#fff;border-bottom:1px solid #f5f5f5;color:#111}
+.mu-full-head h1{color:#111}
+.mu-full-head .back,.mu-full-head .act{color:#111}
+.muf-info b{color:#111}
+.muf-info span{color:#888}
+.muf-info{flex-direction:row;width:100%;align-items:center;gap:10px;padding:0 6px}
+.muf-tcol{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px;align-items:flex-start}
+.muf-tcol b{max-width:100%}
+.muf-fav{width:44px;height:44px;display:flex;align-items:center;justify-content:center;cursor:pointer;border-radius:50%;flex-shrink:0}
+.muf-fav:active{background:rgba(0,0,0,.06);transform:scale(1.12)}
+.muf-fav.on svg{animation:muFavPop .35s ease}
+@keyframes muFavPop{0%{transform:scale(.6)}60%{transform:scale(1.25)}100%{transform:scale(1)}}
+.mu-prog{color:#999}
+.mu-prog input[type=range]{accent-color:#111}
+.muf-ctrl .mu-btn{color:#111}
+.mu-play-big{background:#111!important;color:#fff!important;box-shadow:0 4px 14px rgba(0,0,0,.22)}
+.muf-sub{color:#999}
+.muf-sub input[type=range]{accent-color:#111}
+.mu-bar .mu-fav-on,.mu-mini-fav-on{color:#e05c5c}

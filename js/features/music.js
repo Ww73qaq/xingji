@@ -26,6 +26,7 @@ function muSaveSet() { try { localStorage.setItem(MU_KEY_SET, JSON.stringify(muS
 async function muInit() {
   muLoadSet();
   muPls = muPlLoad();
+  muFavs = muFavLoad();
   try { await dbReady; } catch (e) {}
   try { muList = (await dbGetAll('music')).sort((a, b) => (a.addedAt || 0) - (b.addedAt || 0)); } catch (e) { muList = []; }
   muAudio = new Audio();
@@ -262,6 +263,30 @@ function muRenderAppIcon() {
 }
 function muRenderState() { muRenderAll(); }
 
+/* ---------- 收藏（内置「我喜欢的音乐」） ---------- */
+function muFavLoad() { try { return JSON.parse(localStorage.getItem('xj-music-fav') || '[]'); } catch (e) { return []; } }
+function muFavSave() { try { localStorage.setItem('xj-music-fav', JSON.stringify(muFavs)); } catch (e) {} }
+let muFavs = [];
+function muIsFav(id) { return muFavs.includes(id); }
+function muFavCur() {
+  if (muCurId == null) { showToast('还没有在播放的歌'); return; }
+  if (muIsFav(muCurId)) { muFavs = muFavs.filter(x => x !== muCurId); showToast('已取消收藏'); }
+  else { muFavs.unshift(muCurId); showToast('已收藏 ♥'); }
+  muFavSave(); muRenderAll();
+}
+const _heartSvg = on => '<path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21.2l7.8-7.8 1-1a5.5 5.5 0 0 0 0-7.8z"/>';
+function muFavStyle(el, on) {
+  if (!el) return;
+  el.innerHTML = '<svg viewBox="0 0 24 24" width="' + el.dataset.sz + '" height="' + el.dataset.sz + '" fill="' + (on ? '#e05c5c' : 'none') + '" stroke="' + (on ? '#e05c5c' : 'currentColor') + '" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">' + _heartSvg() + '</svg>';
+}
+
+function muPlayById(id) {
+  const idx = muList.findIndex(x => x.id === id);
+  if (idx < 0) return;
+  if (id === muCurId) { muToggle(); muRenderAll(); return; }
+  muPlayIndex(idx);
+}
+
 /* ---------- 删除 ---------- */
 function muDelete(id, ev) {
   if (ev) event.stopPropagation();
@@ -272,6 +297,7 @@ function muDelete(id, ev) {
     muList = muList.filter(x => x.id !== id);
     muPls.forEach(pl => { pl.ids = pl.ids.filter(x => x !== id); });
     muPlSave();
+    muFavs = muFavs.filter(x => x !== id); muFavSave();
     if (wasCur) {
       try { muAudio.pause(); } catch (e) {}
       const idx = Math.min(muList.length - 1, muList.findIndex(x => x.id === muCurId));
@@ -324,6 +350,8 @@ function muRenderFull() {
   if (te) te.textContent = muFmt(rec && rec.dur ? rec.dur : (muAudio && muAudio.duration) || 0);
   const vs = document.getElementById('muf-vol');
   if (vs && muAudio) vs.value = Math.round((muAudio.volume || 1) * 100);
+  const fv = document.getElementById('muf-fav');
+  if (fv) { fv.dataset.sz = 26; muFavStyle(fv, rec ? muIsFav(rec.id) : false); }
 }
 
 /* Tab 切换 */
@@ -372,8 +400,16 @@ function muRenderPl() {
   if (!host) return;
   if (muPlView == null) {
     host.innerHTML = '<div class="mu-pl-add" onclick="muPlCreate()">＋ 新建歌单</div>'
+      + '<div class="mu-row' + (muPlView === 'fav' ? ' on' : '') + '" onclick="muPlView=\'fav\';muRenderPl()"><span class="mu-i-n" style="color:#e05c5c">♥</span><span class="mu-i-m"><b>我喜欢的音乐</b><i>' + muFavs.length + ' 首</i></span></div>'
       + (muPls.length ? muPls.map((p, i) => '<div class="mu-row" onclick="muPlOpen(' + i + ')"><span class="mu-i-n"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#8a6d4b" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="9" width="12" height="12" rx="2"/><path d="M9 13h6M9 17h4"/></svg></span><span class="mu-i-m"><b>' + esc(p.name) + '</b><i>' + p.ids.length + ' 首</i></span><span class="mu-i-del" onclick="event.stopPropagation();muPlDel(' + i + ')">×</span></div>').join('')
       : '<div class="mu-empty">还没有歌单<br><span style="font-size:11px">点「＋ 新建歌单」，再在「全部」里点 ＋ 收歌</span></div>');
+    return;
+  }
+  if (muPlView === 'fav') {
+    const songs = muFavs.map(id => muList.find(x => x.id === id)).filter(Boolean);
+    host.innerHTML = '<div class="mu-pl-head" onclick="muPlView=null;muRenderPl()"><span class="mu-back-ico">‹</span><b style="color:#e05c5c">♥ 我喜欢的音乐</b><i>' + songs.length + ' 首</i></div>'
+      + (songs.length ? songs.map(x => '<div class="mu-row' + (x.id === muCurId ? ' on' : '') + '" onclick="muPlayById(' + x.id + ')"><span class="mu-i-m"><b>' + esc(x.name) + '</b><i>' + esc(x.artist || '未知歌手') + '</i></span><span class="mu-i-del" title="取消收藏" onclick="event.stopPropagation();muFavCurById(' + x.id + ')">♥</span></div>').join('')
+      : '<div class="mu-empty">还没有收藏的歌<br><span style="font-size:11px">播放页或迷你条里点 ♥ 收藏</span></div>');
     return;
   }
   const p = muPls[muPlView];
@@ -408,6 +444,11 @@ function muPlPlay(pi) {
   if (!songs.length) { showToast('歌单是空的'); return; }
   muPlayById(songs[0].id);
 }
+function muFavCurById(id) {
+  if (muIsFav(id)) { muFavs = muFavs.filter(x => x !== id); showToast('已取消收藏'); }
+  else { muFavs.unshift(id); showToast('已收藏 ♥'); }
+  muFavSave(); muRenderAll();
+}
 function muAddToPl(id) {
   const rec = muList.find(x => x.id === id); if (!rec) return;
   showModal('加入歌单 · ' + esc(rec.name),
@@ -436,6 +477,7 @@ function muRenderSet() {
     + '<div class="mu-set-col"><span>透明度 <i id="mu-op-t">' + Math.round(op * 100) + '%</i></span><input type="range" min="30" max="100" value="' + Math.round(op * 100) + '" oninput="muSetOp(this.value)"></div>'
     + '<div class="mu-sec">数据</div>'
     + '<div class="mu-set-row" style="cursor:default"><span>歌曲数量</span><b>' + muList.length + ' 首 · 约 ' + sizeMB + ' MB</b></div>'
+    + '<div class="mu-set-row" style="cursor:default"><span>我喜欢的音乐</span><b>' + muFavs.length + ' 首</b></div>'
     + '<div class="mu-set-row" onclick="muClearDup()"><span>清理重复导入</span><b>检查</b></div>'
     + '<div class="mu-set-row" onclick="muClearAll()"><span style="color:#c55">清空歌单与列表</span><b style="color:#c55">危险</b></div>'
     + '<div style="font-size:11px;color:var(--hint);line-height:1.9;padding:10px 2px">全部数据仅存本机（IndexedDB），不联网上传。<br>歌曲本体随记录保存，删除 APP 数据会一并清掉。</div>';
@@ -476,6 +518,8 @@ function muRenderBar() {
   if (a) a.textContent = rec.artist || '本地音乐';
   const p = document.getElementById('mu-bar-ico');
   if (p) p.innerHTML = (muAudio && !muAudio.paused) ? '<path d="M6 5h4v14H6zM14 5h4v14h-4z"/>' : '<path d="M8 5v14l11-7z"/>';
+  const f = document.getElementById('mu-bar-fav');
+  if (f) { f.dataset.sz = 16; muFavStyle(f, muIsFav(rec.id)); }
 }
 
 /* 悬浮迷你条（APP 外） */
