@@ -5,24 +5,23 @@
 /* ===== MEMORY（回忆录） ===== */
 /* ===== MEMORY（数据与回忆：两个 Tab [回忆][数据]） ===== */
 let memdataTab='memory';
-/* v3.7.0：备份/迁移/导入属于工程数据入口，统一归到「数据」Tab，
-   「回忆」Tab 只保留相遇叙事 / 数字宫格 / 收藏。按钮本身不删，只是换位置。 */
+/* v3.27.4：备份/迁移整组移到「我的」Tab（二级入口「备份与迁移」，openBackupMigrate 弹窗承载），本页不再渲染 */
 function backupMigrateHtml(){
-  return `<div class="cs-group-title">备份与迁移</div>
-    <div class="cs-group">
+  return `<div class="cs-group">
       <div class="cs-item" onclick="exportCards()"><span class="cs-ico">${ICO.card}</span><span class="cs-label">导出字卡</span><span class="cs-val">只导出字卡与分组</span><span class="cs-arrow">&#8250;</span></div>
-      <div class="cs-item" onclick="importCards()"><span class="cs-ico">${ICO.book}</span><span class="cs-label">导入字卡</span><span class="cs-val">合并到当前字卡库</span><span class="cs-arrow">&#8250;</span></div>
+      <div class="cs-item" onclick="importCards()"><span class="cs-ico">${ICO.book}</span><span class="cs-label">导入字卡</span><span class="cs-val">合并 / 覆盖可选</span><span class="cs-arrow">&#8250;</span></div>
       <div class="cs-item" onclick="exportData()"><span class="cs-ico">${ICO.mail}</span><span class="cs-label">完整备份</span><span class="cs-val">聊天 / 信件 / 日记 / 朋友圈等</span><span class="cs-arrow">&#8250;</span></div>
       <div class="cs-item" onclick="showExportSelect()"><span class="cs-ico">${ICO.chart}</span><span class="cs-label">自定义导出</span><span class="cs-val">按类别选择数据</span><span class="cs-arrow">&#8250;</span></div>
       <div class="cs-item" onclick="showImportMenu()"><span class="cs-ico">${ICO.book}</span><span class="cs-label">导入数据</span><span class="cs-val">合并 / 覆盖 / 完整</span><span class="cs-arrow">&#8250;</span></div>
       ${inApp() ? `<div class="cs-item" onclick="appUpdateCheck(true)"><span class="cs-ico">${ICO.chart}</span><span class="cs-label">检查 APP 更新</span><span class="cs-val">在线下载新版本安装包</span><span class="cs-arrow">&#8250;</span></div>` : ''}
     </div>`;
 }
-/* 「数据」Tab：先渲染收藏消息（renderDataPage 在 backup.js），再把备份/迁移入口追加在下面 */
+function openBackupMigrate(){
+  showModal('备份与迁移',backupMigrateHtml(),'<div class="modal-btn-row"><button class="modal-btn" onclick="closeModal()">关闭</button></div>');
+}
+/* 「数据」Tab：只渲染收藏消息（备份/迁移已移到「我的」页） */
 async function renderMemoryDataTab(){
   await renderDataPage('memory-body');
-  const body=document.getElementById('memory-body');
-  if(body)body.insertAdjacentHTML('beforeend',backupMigrateHtml());
 }
 function switchMemdataTab(t,btn){
   memdataTab=t;
@@ -64,7 +63,7 @@ async function renderMemory(){
         <div class="mem-stat" onclick="switchMemdataTab('data',document.querySelector('#memdata-tabs .tab:nth-child(2)'))"><b>${favCount}</b><span>条收藏</span></div>
       </div>
     </div>
-    <div class="empty" style="font-size:12px;line-height:1.8;text-align:left">备份、迁移与导入入口已移到「数据」Tab。</div>`;
+    <div class="empty" style="font-size:12px;line-height:1.8;text-align:left">备份与迁移已移到「我的」页。</div>`;
 }
 function openFavMsg(id){saveScrollTop();navStack=['chat'];navRoot='chat';renderNav();enterPage('chat');setTimeout(()=>jumpToMsg(id),180);}   // v3.9.5：不再把 chatPageSize 顶成 99999——jumpToMsg 内部按需临时扩窗并恢复，否则一次跳转后全量渲染永久生效
 

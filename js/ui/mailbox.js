@@ -71,7 +71,7 @@ async function saveLetterEdit(id){
   l.content=content;l.time=Date.now();await dbPut('letters',l);closeModal();renderMailbox();showToast('信件已更新');
 }
 function replyLetter(id){
-  showModal('回信',`<textarea class="textarea-full" id="letter-content" placeholder="写下你的回信…" style="min-height:140px"></textarea>`,'<div class="modal-btn-row"><button class="modal-btn" onclick="closeModal()">取消</button><button class="modal-btn primary" onclick="saveLetterReply(${id})">寄出回信</button></div>');
+  showModal('回信',`<textarea class="textarea-full" id="letter-content" placeholder="写下你的回信…" style="min-height:140px"></textarea>`,'<div class="modal-btn-row"><button class="modal-btn" onclick="closeModal()">取消</button><button class="modal-btn primary" onclick="saveLetterReply('+id+')">寄出回信</button></div>');
 }
 async function saveLetterReply(id){
   const content=document.getElementById('letter-content').value.trim();

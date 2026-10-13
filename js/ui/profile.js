@@ -35,6 +35,10 @@ function renderProfile(){
       <div class="cs-item" onclick="managePokes()"><span class="cs-ico">${ICO.poke}</span><span class="cs-label">TA 拍我</span><span class="cs-val">${(allPokeTexts()||[]).length} 条动作</span><span class="cs-arrow">&#8250;</span></div>
       <div class="cs-item" onclick="openTaNoteSettings()"><span class="cs-ico">${ICO.star}</span><span class="cs-label">TA 写便签</span><span class="cs-val">${taNoteEnabled()?'已开启':'已关闭'}</span><span class="cs-switch${taNoteEnabled()?' on':''}" onclick="event.stopPropagation();toggleTaNote()"></span></div>
     </div>
+    <div class="cs-group-title">备份与迁移</div>
+    <div class="cs-group">
+      <div class="cs-item" onclick="openBackupMigrate()"><span class="cs-ico">${ICO.chart}</span><span class="cs-label">备份与迁移</span><span class="cs-val">导出 / 导入 / APP 更新</span><span class="cs-arrow">&#8250;</span></div>
+    </div>
     <div class="cs-group-title">安全</div>
     <div class="cs-group">
       <div class="cs-item" onclick="setupPin()"><span class="cs-ico">${ICO.lock}</span><span class="cs-label">应用锁密码</span><span class="cs-val">${state.pin.code==='0000'?'未修改':'已设置'}</span><span class="cs-arrow">&#8250;</span></div>

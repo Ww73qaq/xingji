@@ -356,6 +356,7 @@ function endCall(reason,by){
   const dur=callSec;
   const connected=(callMode==='talk');
   const kind=callKind||'voice';
+  const initiator=callInitiator;   /* v3.27.4：先存局部——原代码在消息生成前就把 callInitiator 清成 null，导致"TA 发起"恒显示"你发起" */
   state.callActive=false;callSec=0;callMode=null;callInitiator=null;
   if(callIv){clearInterval(callIv);clearTimeout(callIv);callIv=null;}
   if(callTalkTimer){clearTimeout(callTalkTimer);callTalkTimer=null;}
@@ -372,14 +373,14 @@ function endCall(reason,by){
   const dstr=String(Math.floor(dur/60)).padStart(2,'0')+':'+String(dur%60).padStart(2,'0');
   const tn=state.other.name||'TA';
   if(connected){   // v3.6.6：通话记录明确「谁发起 / 谁挂断」
-    const caller=callInitiator==='ta'?tn:'你';
+    const caller=initiator==='ta'?tn:'你';
     const hanger=by==='ta'?tn:'你';
     pushSys(`${caller}发起的${kind==='video'?'视频':'语音'}通话 ${dstr}，${hanger}挂断`);
     // v3.7.0：接通的通话写入 callLogs（发起人/类型/时长/时间），落 stats 持久化，兑现「视频记录页」
     try{
       state.stats=state.stats||{};
       state.stats.callLogs=Array.isArray(state.stats.callLogs)?state.stats.callLogs:[];
-      state.stats.callLogs.unshift({by:callInitiator||'me',kind:(kind==='video'?'video':'voice'),dur:dur,at:Date.now(),hangedBy:by||'me'});
+      state.stats.callLogs.unshift({by:initiator||'me',kind:(kind==='video'?'video':'voice'),dur:dur,at:Date.now(),hangedBy:by||'me'});
       if(state.stats.callLogs.length>60)state.stats.callLogs.length=60;
       state.callLogs=state.stats.callLogs;   // 便捷引用，供记录页读取
       if(typeof saveStats==='function')saveStats();
@@ -389,6 +390,7 @@ function endCall(reason,by){
   else if(reason==='miss-in')pushSys(`${tn}的来电已超时`);
   else if(reason==='declined')pushSys(`你拒接了${tn}的来电`);
   else if(reason==='cancel')pushSys(`已取消呼叫${tn}`);
+  if(typeof updateChatSubtitle==='function')updateChatSubtitle();   /* v3.27.4：挂断后立即刷新聊天副标题，清除"通话中"残留 */
 }
 
 /* 点击悬浮小窗 → 重新展开全屏通话界面（v3.6.3：改用 active 类正确显示全屏） */

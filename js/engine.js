@@ -397,7 +397,16 @@ async function _buildPollAnswer(m){
   if(!opts.length)return {text:'嗯，我选好了。',sel:[]};
   if(poll.multi){
     const ids=pickMulti(opts);
-    return {text:ids.length?'我选：'+ids.map(k=>opts[k]).join('、'):'嗯，我选好了。',sel:ids};
+    const base={text:ids.length?'我选：'+ids.map(k=>opts[k]).join('、'):'嗯，我选好了。',sel:ids};
+    // v3.27.4：多选同步「让 TA 帮我决定」——选完后再抽一张字卡补充意思（与单选同款逻辑）
+    if(poll.decide){
+      try{
+        const pool=await _getCardPool();
+        const card=_pickBalanced(pool,null);
+        if(card)base.card={text:card.text,group:card.group};
+      }catch(e){}
+    }
+    return base;
   }
   const k=Math.floor(Math.random()*opts.length);
   const base={text:'我选：'+opts[k],sel:[k]};
