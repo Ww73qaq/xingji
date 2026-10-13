@@ -53,7 +53,7 @@ async function renderCards(){
       <button class="btn-pill" style="flex:1" onclick="addCard()">＋ 字卡</button>
       <button class="btn-pill ghost" style="flex:1" onclick="manageCardGroups()">分组管理</button>
     </div>
-    <div class="tabs" style="overflow-x:auto;flex-wrap:nowrap">${names.map((n,i)=>`<button class="tab${cardGroupFilter===n?' active':''}" style="flex:0 0 auto;padding:8px 14px" onclick="pickCardGroup(${i})">${esc(n)}</button>`).join('')}</div>
+    <div class="tabs" style="overflow-x:auto;flex-wrap:nowrap">${names.map((n,i)=>{const cnt=n==='全部'?all.length:all.filter(c=>(c.group||'默认')===n).length;return `<button class="tab${cardGroupFilter===n?' active':''}" style="flex:0 0 auto;padding:6px 14px;min-width:60px" onclick="pickCardGroup(${i})"><span style="display:block;font-size:13px;line-height:1.35">${esc(n)}</span><span style="display:block;font-size:10px;opacity:.62;line-height:1.3">${cnt} 条</span></button>`;}).join('')}</div>
     <div class="card-toolbar" style="color:var(--hint);font-size:11px">默认按字母排序 · 用过的字卡排在前面</div>
     <div class="search-bar"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg><input type="text" id="card-search" placeholder="搜索字卡" oninput="filterCards(this.value)"></div>
     <div id="card-list"></div>`;
@@ -265,10 +265,12 @@ function addCardGroup(){
 /* 分组管理：新建 / 重命名 / 删除 / 停用开关（内置 4 分组不可删除——ensureDefaultCardGroups 会自动重建，删了也没用，故不显示删除按钮） */
 async function manageCardGroups(){
   const groups=await dbGetAll('cardGroups');
+  const all=await dbGetAll('cards');
   const builtin=name=>DEFAULT_CARD_GROUPS.includes(name);
+  const cnt=n=>all.filter(c=>(c.group||'默认')===n).length;
   showModal('分组管理',
     groups.map(g=>`<div class="modal-item">
-      <span class="g-name">${esc(g.name)}${builtin(g.name)?'<span style="font-size:10px;color:var(--hint);margin-left:6px">内置</span>':''}</span>
+      <span class="g-name">${esc(g.name)}<span style="font-size:10px;color:var(--hint);margin-left:6px">${cnt(g.name)} 条</span>${builtin(g.name)?'<span style="font-size:10px;color:var(--hint);margin-left:6px">内置</span>':''}</span>
       <span class="cs-switch${g.enabled!==false?' on':''}" onclick="toggleGroupEnabled('${esc(g.name)}')"></span>
       <span class="g-act" onclick="closeModal();renameCardGroup('${esc(g.name)}')" title="重命名">${ICO_EDIT}</span>
       ${builtin(g.name)?'':`<span class="g-act danger" onclick="closeModal();confirmDelGroup('${esc(g.name)}')" title="删除">${ICO_DEL}</span>`}
