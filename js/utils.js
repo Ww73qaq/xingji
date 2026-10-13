@@ -146,6 +146,11 @@ async function confirmDownloadShare(){
 }
 async function shareBlob(blob,name){
   try{
+    if(typeof inApp==='function'&&inApp()){   /* v3.27.3：APP 内走原生分享（WebView 无 navigator.share） */
+      if(await nativeSaveShare(blob,name))return;
+      showToast('当前环境暂不支持分享，已改为下载');
+      downloadBlob(blob,name);return;
+    }
     const file=new File([blob],name,{type:blob.type||'application/json'});
     if(navigator.share&&(!navigator.canShare||navigator.canShare({files:[file]}))){
       await navigator.share({files:[file],title:'星迹数据备份'});
@@ -156,7 +161,23 @@ async function shareBlob(blob,name){
   showToast('当前浏览器不支持文件分享，已改为下载');
 }
 /* 直接下载：同步触发 a.click() 保留用户手势，兼容老版 Edge msSaveBlob */
+/* ===== APP 内原生保存/分享（Capacitor WebView 无下载管理器，a[download] 与 navigator.share 均不可用） =====
+   流程：blob → base64 → Filesystem 写入缓存目录 → Share 弹系统分享面板（可存到文件管理/发给任意应用）。
+   网页版不含 Capacitor（window.Capacitor 不存在），自动走原 a[download]/navigator.share 路径，互不影响。 */
+async function nativeSaveShare(blob,name){
+  try{
+    const P=(window.Capacitor&&window.Capacitor.Plugins)||null;
+    const FS=P&&P.Filesystem,SH=P&&P.Share;
+    if(!FS||!SH)return false;
+    const b64=await new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(String(r.result).split(',')[1]||'');r.onerror=rej;r.readAsDataURL(blob);});
+    const safe=(name||'file').replace(/[\\/:*?"<>|]/g,'_');
+    const w=await FS.writeFile({path:'xingji_'+Date.now()+'_'+safe,data:b64,directory:'CACHE',recursive:true});
+    await SH.share({title:safe,files:[w.uri],dialogTitle:'保存或分享文件'});
+    return true;
+  }catch(e){try{console.error('nativeSaveShare失败',e);}catch(e2){}return false;}
+}
 function downloadBlob(blob,name){
+  if(typeof inApp==='function'&&inApp()){nativeSaveShare(blob,name).then(ok=>{if(!ok)showToast('当前环境暂不支持下载');});return;}
   const isQQ=/QQ\//i.test(navigator.userAgent)||/MQQBrowser/i.test(navigator.userAgent);
   if(isQQ){
     blob.text().then(t=>showQqBackup(t,name)).catch(()=>showToast('QQ 内置浏览器暂时无法读取备份，请改用系统浏览器'));

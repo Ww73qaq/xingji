@@ -1,12 +1,12 @@
 {
-  "version": "3.27.2",
+  "version": "3.27.3",
   "name": "星迹",
   "ts": "2026-10-12T22:40:00Z",
   "apk": {
-    "version": "3.27.2",
-    "code": 20,
+    "version": "3.27.3",
+    "code": 21,
     "url": "apk/xingji-latest.apk",
     "sizeMB": 8.3,
-    "notes": "回复节奏定稿等比三档 2/6/18秒 + 字卡分组Tab竖排显示每组条数(分组管理同步)"
+    "notes": "修复APP内无法下载/分享文件: 引入Filesystem+Share原生插件, APP内下载改为写缓存+系统分享面板(网页版不受影响)"
   }
 }
