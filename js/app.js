@@ -63,17 +63,38 @@ function renderTaTime(){
   if(el){el.textContent=name+' '+String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');el.title=name+' 的世界时间，与现实有偏差';}
 }
 
-/* 唯一主心跳：原先散落的 4 个 setInterval（1s 时钟/信号、5s 朋友圈、60s 陪伴、15s 信件）
-   合并为一个 1 秒定时器；页面切到后台时暂停（除非「通知开启」→ 保活音频让后台继续跑，
-   保证 TA 消息调度与系统通知在后台也能按时触发），回到前台由 visibilitychange 补跑。 */
-let _tick=0;
-function startHeartbeat(){
-  setInterval(()=>{
-    if(document.hidden&&!keepAliveActive())return;
-    _tick++;
-    updateStatusClock();
-    renderTaTime();
-    renderSignal();
+/* 唯一主心跳 v3.27.3：前台 1s 全速（时钟/信号/状态机），后台 45s 瘦身（跳过 DOM，只留调度兜底与闹钟类）。
+   前后台判定双保险：网页 visibilitychange + Capacitor 原生 appStateChange（修复部分 ROM 切后台不触发
+   visibilitychange 导致后台仍每秒全量跑的耗电问题）。TA「到点回复」不受影响——那是调度器独立的
+   精确 setTimeout，心跳只是兜底巡逻；后台兜底从 1s 变 45s，最坏误差 45s，主动消息本身是小时级冷却。 */
+let _tick=0,_bgMode=false,_heartTimer=0;
+function _applyBg(v){
+  const was=_bgMode;_bgMode=!!v;
+  if(was&&!_bgMode){clearTimeout(_heartTimer);_heartTick();}   // 回前台：立即恢复 1s 心跳并补跑一轮
+  else if(!was&&_bgMode){clearTimeout(_heartTimer);_heartTick();}   // 切后台：立即进入瘦身节拍
+  else return;
+}
+document.addEventListener('visibilitychange',()=>_applyBg(document.hidden));
+try{
+  const _P=(window.Capacitor&&window.Capacitor.Plugins)||null;
+  if(_P&&_P.App&&_P.App.addListener)_P.App.addListener('appStateChange',s=>_applyBg(!s.isActive));
+}catch(e){}
+function _scheduleHeartbeat(){clearTimeout(_heartTimer);_heartTimer=setTimeout(_heartTick,_bgMode?45000:1000);}
+function startHeartbeat(){setTimeout(_heartTick,1000);}   /* 首跳延迟 1s：等 openDB 初始化完成（旧 setInterval 首跳即 1s，行为对齐） */
+function _heartTick(){
+  _scheduleHeartbeat();
+  _tick++;
+  if(_bgMode){
+    /* 后台瘦身节拍（45s）：跳过一切 DOM 刷新；保留闹钟与跨天存档（分钟级敏感）。
+       TA 回复的准点触发由调度器自身 dueTimer 负责，此处仅为兜底。 */
+    if(typeof maybeNoteAlarm==='function')maybeNoteAlarm();
+    if(typeof maybeTodoAlarm==='function')maybeTodoAlarm();
+    if(typeof calMaybeSnap==='function')calMaybeSnap();
+    return;
+  }
+  updateStatusClock();
+  renderTaTime();
+  renderSignal();
     if(_tick%5===0){
       processMomentReplies();
       if(typeof maybeTaStatusChange==='function')maybeTaStatusChange();
@@ -101,7 +122,6 @@ function startHeartbeat(){
         state.stats.companionStart=Date.now();saveKey('stats');
       }
     }
-  },1000);
 }
 
 

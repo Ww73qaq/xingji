@@ -7,6 +7,6 @@
     "code": 21,
     "url": "apk/xingji-latest.apk",
     "sizeMB": 8.3,
-    "notes": "修复APP内无法下载/分享文件: 引入Filesystem+Share原生插件, APP内下载改为写缓存+系统分享面板(网页版不受影响)"
+    "notes": "修复APP内无法下载/分享文件(Filesystem+Share原生插件) + 心跳优化: 前台1秒不变, 后台降频45秒瘦身(原生前后台事件, TA到点回复准点不变)"
   }
 }
