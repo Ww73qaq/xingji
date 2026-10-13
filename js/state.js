@@ -9,7 +9,7 @@ let state = {
   pin:{code:'0000',enabled:1},
   prob:{
     // 回复时间（秒）：从你发送消息到 TA 第一条回复出现的总时长（含「正在输入…」窗口）
-    replyDelaySec:20, typingRatio:0.25,
+    replyDelaySec:10, typingRatio:0.25,
     // 多气泡回复（多条独立消息）
     multiBubbleEnabled:true, multiBubbleProb:30, maxBubbles:3,
     // 字卡拼接（一个气泡里拼几张字卡，与多气泡相互独立）
@@ -131,7 +131,7 @@ function migrateProb(){
   // v3.0：题目必答，删除回答题目概率
   if(p.qaReplyProb!==undefined)delete p.qaReplyProb;
   // v2.0 兜底：replyDelaySec 缺失时补 20
-  if(!(state.prob.replyDelaySec>0))state.prob.replyDelaySec=20;
+  if(!(state.prob.replyDelaySec>0))state.prob.replyDelaySec=10;
   if(!(state.prob.proactiveMinIntervalMin>0))state.prob.proactiveMinIntervalMin=30;
   // 删除 v1.3 残留旧键（v3.24.0：readIgnoreProb 已重启用为「已读不回概率档位派生值」，不再是残留键，移出清理名单）
   ['fastSec','slowSec','c1','c2','c3','c4','c5','normalProb','emojiProb','pokeProb','quoteProb','heartProb','qaProb','proactive','multiEnabled','multiProb','minPerBubble','maxPerBubble','pollProb'].forEach(k=>delete state.prob[k]);
@@ -142,6 +142,8 @@ function migrateProb(){
     if(!sp.replyPace){const d=Number(sp.replyDelaySec);sp.replyPace=(Number.isFinite(d)&&d<=12)?'fast':(d>=30?'slow':'natural');}
     if(!sp.proactiveFreq){const m=Number(sp.proactiveMinIntervalMin);sp.proactiveFreq=(Number.isFinite(m)&&m<=15)?'frequent':(m>=90?'rare':'occasional');}
     if(!sp.cardRatio){const c=Number(sp.customRatio);sp.cardRatio=c>=75?'mine':((Number.isFinite(c)&&c>=35)?'half':'free');}
+    /* v3.27.1：档位底数重派生——REPLY_PACE_VAL 调整后（45/20/8→25/10/4），存量用户 replyDelaySec 自动跟随新档位，不残留旧值 */
+    if(sp.replyPace&&REPLY_PACE_VAL[sp.replyPace]!==sp.replyDelaySec)sp.replyDelaySec=REPLY_PACE_VAL[sp.replyPace];
     /* v3.24.0：已读不回档位迁移——老的数字 readIgnoreProb（若有）映射到三档；数值一律由档位派生 */
     if(!sp.readIgnoreTier){const d=Number(sp.readIgnoreProb);sp.readIgnoreTier=(Number.isFinite(d)&&d<=10)?'rare':((Number.isFinite(d)&&d>=30)?'often':'normal');}
     if(!Number.isFinite(Number(sp.readIgnoreProb)))sp.readIgnoreProb=READ_IGNORE_VAL[sp.readIgnoreTier]||20;

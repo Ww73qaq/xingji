@@ -17,7 +17,7 @@ function taOutputBlocked(){
 }
 
 /* 语义档位 → 底层数值映射（设置页内化；底层值不在 UI 暴露百分比/秒/分钟） */
-const REPLY_PACE_VAL={slow:45,natural:20,fast:8};            // 说话节奏 → replyDelaySec
+const REPLY_PACE_VAL={slow:25,natural:10,fast:4};            // 说话节奏 → replyDelaySec（v3.27.1 三档整体下调：45/20/8 → 25/10/4，用户反馈偏慢）
 const PROACTIVE_FREQ_VAL={rare:120,occasional:30,frequent:10}; // 主动频率 → proactiveMinIntervalMin
 const CARD_RATIO_VAL={mine:90,half:50,free:20};              // 用词比例 → customRatio
 const READ_IGNORE_VAL={rare:10,normal:20,often:30};          // v3.24.0：已读不回三档 → readIgnoreProb（以十整数为一个百分点）
