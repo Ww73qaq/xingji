@@ -33,10 +33,23 @@ async function maybeTaLetter(){
   return taSendLetter();
 }
 async function taSendLetter(){
+  /* v3.27.4 信的字卡节奏（塔罗定案）：短札 20% 1~2 张 / 常态 55% 3~7 张 / 长信 25% 8~10 张；
+     同分组聚焦——先随机定一种情绪（分组），整封信从同一分组抽，不足再从全库补，保证长信不散。 */
   const cards=await dbGetAll('cards').catch(()=>[]);
   const enabled=cards.filter(c=>c.enabled!==false);
-  const n=1+Math.floor(Math.random()*4);          // 1~4 张字卡（用多少张由 TA 的「此刻想说的量」决定）
-  const picks=[];const pool=enabled.slice();
+  let n;
+  const r=Math.random();
+  if(r<0.20)n=1+Math.floor(Math.random()*2);        // 短札 1~2
+  else if(r<0.75)n=3+Math.floor(Math.random()*5);   // 常态 3~7
+  else n=8+Math.floor(Math.random()*3);             // 长信 8~10
+  let pool=enabled.slice();
+  if(pool.length){
+    const gs=[...new Set(pool.map(c=>c.group||'默认'))];
+    const g=gs[Math.floor(Math.random()*gs.length)];
+    const focus=pool.filter(c=>(c.group||'默认')===g);
+    if(focus.length)pool=focus.concat(pool.filter(c=>(c.group||'默认')!==g));   // 同组优先，不足自动落到全库
+  }
+  const picks=[];
   for(let i=0;i<n&&pool.length;i++){const t=pool.splice(Math.floor(Math.random()*pool.length),1)[0].text||'';if(t)picks.push(t);}
   const lead=TA_LETTER_LEADS[Math.floor(Math.random()*TA_LETTER_LEADS.length)];
   const tail=TA_LETTER_TAILS[Math.floor(Math.random()*TA_LETTER_TAILS.length)];
@@ -61,9 +74,16 @@ async function processPendingReplies(){
   const letters=await dbGetAll('letters');
   const due=letters.filter(l=>l.sender==='me'&&l.status==='waiting'&&l.replyAt&&l.replyAt<=now);
   let replied=0;
+  const allCards=await dbGetAll('cards').catch(()=>[]);
+  const cardPool=allCards.filter(c=>c.enabled!==false);
   for(const l of due){
     if(taOutputBlocked())continue;   // 静音期不落回信：该项留在 waiting 队列，解除后下轮再回
-    const text=_buildLetterReply(l);
+    let text=_buildLetterReply(l);
+    /* v3.27.4：40% 概率在回信末尾附 1 张字卡（圣杯侍从的惊喜——多数回信仍是纯文字回响） */
+    if(cardPool.length&&Math.random()<0.4){
+      const card=cardPool[Math.floor(Math.random()*cardPool.length)];
+      if(card&&card.text)text+='\n\n'+card.text;
+    }
     const reply=await dbPut('letters',{sender:'other',title:'RE: '+(l.title||'无标题'),content:text,time:now,status:'replied',read:false,replyTo:l.id,threadId:l.threadId||('letter-'+l.id)});
     l.status='replied';l.repliedId=reply;
     await dbPut('letters',l);

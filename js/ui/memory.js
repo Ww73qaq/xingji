@@ -17,7 +17,9 @@ function backupMigrateHtml(){
     </div>`;
 }
 function openBackupMigrate(){
-  showModal('备份与迁移',backupMigrateHtml(),'<div class="modal-btn-row"><button class="modal-btn" onclick="closeModal()">关闭</button></div>');
+  openApp('backup');   /* v3.27.4：二级页面（非弹窗），与相处节奏同级 */
+  const b=document.getElementById('backup-body');
+  if(b)b.innerHTML=backupMigrateHtml();
 }
 /* 「数据」Tab：只渲染收藏消息（备份/迁移已移到「我的」页） */
 async function renderMemoryDataTab(){
