@@ -532,21 +532,17 @@ async function executeReply(job){
     if(b.answerOf)await _applyPollAnswer(b.answerOf);
   }
   refreshAllBadges();
-  // 系统通知：TA 发来新消息且页面不在前台时，发真正的手机关通知（浏览器 Notification API）
-  if(lastSent&&typeof window.notifySystem==='function'){
-    const preview=(lastSent.content||'');
-    window.notifySystem(`${state.other.name} 发来消息`,preview.slice(0,60),()=>{
-      if(state.currentApp!=='chat')switchTab('chat');
-    });
-  }
-  /* v3.27.5：TA 撤回（此前功能缺失——recalled 渲染早就预留但触发端从未实现，用户从未见过 TA 撤回）
-     逻辑：TA 发出文本后 12% 概率（冷却 20 分钟）在 3~15 秒内撤回（打错话的拟真），
-     再 2~6 秒后从字卡库同组聚焦抽 1 张补发——内容不丢，像真人「发错了重说」。受「允许撤回」开关控制。 */
+  /* v3.27.5 mochi 式 TA 撤回——掷签在发通知之前：
+     命中（12%，冷却 20 分钟，受「允许撤回」开关控制）→ 消息静默落地（不发原内容通知，
+     避免撤回后通知栏残留一句聊天里已没有的话——「墓碑」）→ 1~3 秒内变成「已撤回」（真人犹豫感）
+     → 80% 概率补发字卡 1 张并通知补发内容；不补发则发无预览通知。 */
+  let recallHit=false;
   try{
     const st=state.stats||{};
     const lastRecall=Number(st.taRecallLastAt)||0;
     if(lastSent&&lastSent.type==='text'&&state.chat&&state.chat.allowRecall!==false
        &&Date.now()-lastRecall>20*60000&&Math.random()*100<12){
+      recallHit=true;
       st.taRecallLastAt=Date.now();
       if(typeof saveKey==='function')saveKey('stats');
       const target=lastSent;
@@ -556,6 +552,7 @@ async function executeReply(job){
         await dbPut('messages',target);
         if(state.currentApp==='chat'&&typeof window.refreshMsgRow==='function')window.refreshMsgRow(target.id);
         setTimeout(async()=>{
+          let retext='';
           try{
             const cards=await dbGetAll('cards');
             const enabled=cards.filter(c=>c.enabled!==false);
@@ -563,20 +560,31 @@ async function executeReply(job){
             const g=gs[Math.floor(Math.random()*gs.length)];
             const focus=enabled.filter(c=>(c.group||'默认')===g);
             const pool=focus.length?focus:enabled;
-            if(!pool.length)return;
-            const card=pool[Math.floor(Math.random()*pool.length)];
-            const msg={sender:'other',type:'text',content:card.text||'',time:Date.now(),read:false,source:job.source,replyRoundId:job.roundId};
-            if(!msg.content)return;
-            msg.id=await dbPut('messages',msg);
-            if(state.currentApp==='chat'&&typeof appendMsgRow==='function')appendMsgRow(msg,true);
-            updateTabBadge('chat',1);
-            if(typeof window.notifySystem==='function')window.notifySystem(`${state.other.name} 发来消息`,msg.content.slice(0,60),()=>{if(state.currentApp!=='chat')switchTab('chat');});
-            refreshAllBadges();
+            if(pool.length){
+              const card=pool[Math.floor(Math.random()*pool.length)];
+              if(card.text){
+                const msg={sender:'other',type:'text',content:card.text,time:Date.now(),read:false,source:job.source,replyRoundId:job.roundId};
+                msg.id=await dbPut('messages',msg);
+                if(state.currentApp==='chat'&&typeof appendMsgRow==='function')appendMsgRow(msg,true);
+                updateTabBadge('chat',1);
+                retext=card.text;
+              }
+            }
           }catch(e){}
-        },2000+Math.random()*4000);
-      },3000+Math.random()*12000);
+          if(typeof window.notifySystem==='function')window.notifySystem(`${state.other.name} 发来消息`,(retext||'新消息').slice(0,60),()=>{if(state.currentApp!=='chat')switchTab('chat');});
+          refreshAllBadges();
+        },1500+Math.random()*3500);
+      },1000+Math.random()*2000);   // mochi：落地后 1~3 秒内撤回，真人犹豫感
     }
   }catch(e){}
+  // 系统通知：TA 发来新消息且页面不在前台时，发真正的手机关通知（浏览器 Notification API）
+  // 撤回命中的消息跳过原内容通知（通知改由撤回流程的补发内容替代）
+  if(lastSent&&!recallHit&&typeof window.notifySystem==='function'){
+    const preview=(lastSent.content||'');
+    window.notifySystem(`${state.other.name} 发来消息`,preview.slice(0,60),()=>{
+      if(state.currentApp!=='chat')switchTab('chat');
+    });
+  }
 }
 
 /* ---- 显式导出：调度器通过 window 调用，避免隐式全局依赖 ---- */
