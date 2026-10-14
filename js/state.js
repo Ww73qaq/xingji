@@ -21,7 +21,7 @@ let state = {
     // 回复行为（v3.24.0：已读不回 = 唯一不回复机制；禁言已删）
     readIgnoreEnabled:false, readIgnoreTier:'normal', readIgnoreProb:20, repeatExclude:5, customRatio:90,
     // v3.27.0：通话挂断节奏三档（星币骑士）——natural=60s/3%（原行为放宽）、clingy=150s/1.5%、brief=30s/6%
-    callHangupTier:'natural', callHangupMinSec:60, callHangupProb:3,
+    callHangupTier:'natural', callHangupMinSec:180, callHangupProb:3,
     // 主动消息：只暴露「开关 + 最小间隔（分钟）」，TA 的想不想主动属于内部行为
     proactiveEnabled:true, proactiveMinIntervalMin:30, proactiveCountMin:1, proactiveCountMax:2,
     momentProb:20,
@@ -144,6 +144,12 @@ function migrateProb(){
     if(!sp.cardRatio){const c=Number(sp.customRatio);sp.cardRatio=c>=75?'mine':((Number.isFinite(c)&&c>=35)?'half':'free');}
     /* v3.27.1：档位底数重派生——REPLY_PACE_VAL 调整后（45/20/8→25/10/4），存量用户 replyDelaySec 自动跟随新档位，不残留旧值 */
     if(sp.replyPace&&REPLY_PACE_VAL[sp.replyPace]!==sp.replyDelaySec)sp.replyDelaySec=REPLY_PACE_VAL[sp.replyPace];
+    /* v3.27.5：通话挂断档位重派生（mochi 式重校 60/150/30→180/300/120），存量底数自动跟随 */
+    if(sp.callHangupTier&&CALL_HANGUP_VAL[sp.callHangupTier]){
+      const m=CALL_HANGUP_VAL[sp.callHangupTier];
+      if(sp.callHangupMinSec!==m.minSec)sp.callHangupMinSec=m.minSec;
+      if(sp.callHangupProb!==m.prob)sp.callHangupProb=m.prob;
+    }
     /* v3.24.0：已读不回档位迁移——老的数字 readIgnoreProb（若有）映射到三档；数值一律由档位派生 */
     if(!sp.readIgnoreTier){const d=Number(sp.readIgnoreProb);sp.readIgnoreTier=(Number.isFinite(d)&&d<=10)?'rare':((Number.isFinite(d)&&d>=30)?'often':'normal');}
     if(!Number.isFinite(Number(sp.readIgnoreProb)))sp.readIgnoreProb=READ_IGNORE_VAL[sp.readIgnoreTier]||20;

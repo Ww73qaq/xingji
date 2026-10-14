@@ -186,11 +186,12 @@ function startCall(){
   callIv=setInterval(()=>{
     callSec++;updateCallFloat();
     /* v3.27.0 星币骑士：挂断节奏三档化（prob.callHangupMinSec/callHangupProb，不再写死 40s/4%）；
-       触发时先说告别语（圣杯王后），~9 秒后才真正挂断 */
+       触发时先说告别语（圣杯王后），~9 秒后才真正挂断
+       v3.27.5 mochi 式：判定从「每秒掷」改为「每 60 秒掷一次」——原每秒 3% 期望 1.5 分钟即挂，过短 */
     const hp=state.prob||{};
-    const minS=clamp(num(hp.callHangupMinSec,60),10,600);
+    const minS=clamp(num(hp.callHangupMinSec,180),30,900);
     const hProb=clamp(num(hp.callHangupProb,3),0,100);
-    if(callSec>=minS&&!callFarewell&&Math.random()*100<hProb){
+    if(callSec>=minS&&callSec%60===0&&!callFarewell&&Math.random()*100<hProb){
       callFarewell=true;
       const h=new Date().getHours();
       const pool=(h>=22||h<5)?CALL_FAREWELL_NIGHT:CALL_FAREWELL_DAY;

@@ -34,11 +34,14 @@ function setProactiveFreqTier(tier){
   state.prob.proactiveFreq=tier; state.prob.proactiveMinIntervalMin=PROACTIVE_FREQ_VAL[tier];
   if(typeof scheduleProactive==='function')scheduleProactive();
 }
-/* v3.27.0：通话挂断节奏三档（星币骑士——耐住性子，通话能待得住） */
+/* v3.27.0：通话挂断节奏三档（星币骑士——耐住性子，通话能待得住）
+   v3.27.5 mochi 式重校：判定从「每秒掷骰」改为「每 60 秒掷一次」+ 保护期拉长，
+   否则期望通话仅 ~1.5 分钟。新标尺：恋恋不舍 ≈5 分钟保底+1.5%/分钟（期望 ~70 分钟）、
+   自然 ≈3 分钟保底+3%/分钟（期望 ~36 分钟，mochi 同款）、简短 ≈2 分钟保底+8%/分钟（期望 ~14 分钟）。 */
+const CALL_HANGUP_VAL={clingy:{minSec:300,prob:1.5},natural:{minSec:180,prob:3},brief:{minSec:120,prob:8}};
 function setCallHangupTier(t){
-  const map={clingy:{minSec:150,prob:1.5},natural:{minSec:60,prob:3},brief:{minSec:30,prob:6}};
-  const mm=map[t]||map.natural;
-  state.prob.callHangupTier=(t in map)?t:'natural';
+  const mm=CALL_HANGUP_VAL[t]||CALL_HANGUP_VAL.natural;
+  state.prob.callHangupTier=(t in CALL_HANGUP_VAL)?t:'natural';
   state.prob.callHangupMinSec=mm.minSec;
   state.prob.callHangupProb=mm.prob;
 }

@@ -215,34 +215,45 @@ async function exportCards(){
   const blob=new Blob([JSON.stringify(data)],{type:'application/json'});
   confirmDownload(name,async()=>{showToast('已导出 '+cards.length+' 张字卡及 '+groups.length+' 个分组');return {blob,name};});
 }
+/* v3.27.5：导入字卡改为「先选方式 → 再选文件 → 直接导入」——原流程先弹文件选择器，
+   合并/覆盖弹窗藏在选文件之后，APP 内体验反直觉且像没有功能 */
 function importCards(){
+  showModal('导入字卡',
+    '<div style="font-size:12px;color:var(--sub);line-height:1.9;padding:2px 2px 8px"><b>合并导入</b>：按文本查重，只追加缺失的字卡与分组，现有数据不动。<br><b>覆盖导入</b>：清空现有字卡库（保留「默认」分组），完全以文件为准。不可撤销。</div>',
+    '<div class="modal-btn-row"><button class="modal-btn" onclick="closeModal();pickCardImportFile(\'merge\')">合并导入</button><button class="modal-btn primary" onclick="pickCardImportFile(\'replace\')">覆盖导入</button></div>');
+}
+function pickCardImportFile(mode){
   const input=document.createElement('input');input.type='file';input.accept='.json,application/json';
   input.onchange=async e=>{
     const f=e.target.files&&e.target.files[0];if(!f)return;
     try{
       const data=JSON.parse(await f.text()),groups=Array.isArray(data.cardGroups)?data.cardGroups:[],cards=Array.isArray(data.cards)?data.cards:[];
       if(!groups.length&&!cards.length){showToast('文件里没有可导入的字卡');return;}
-      showModal('导入字卡','<div style="font-size:13px;line-height:1.7;color:var(--sub)">发现 '+cards.length+' 张字卡、'+groups.length+' 个分组。请选择导入方式。</div>',
-        '<div class="modal-btn-row"><button class="modal-btn" onclick="closeModal();window.__cardImportMode(\'merge\')">合并</button><button class="modal-btn primary" onclick="closeModal();window.__cardImportMode(\'replace\')">覆盖字卡</button></div>');
-      window.__cardImportMode=async mode=>{
-        if(mode==='replace'){
-          for(const c of await dbGetAll('cards'))await dbDelete('cards',c.id);
-          for(const g of await dbGetAll('cardGroups'))if(g.name!=='默认')await dbDelete('cardGroups',g.id);
-        }
-        const gs=await dbGetAll('cardGroups'),gn=new Set(gs.map(g=>g.name));
-        for(const g of groups)if(g&&g.name&&!gn.has(g.name)){await dbPut('cardGroups',{name:g.name,enabled:g.enabled!==false});gn.add(g.name);}
-        const existing=await dbGetAll('cards'),seen=new Set(existing.map(c=>c.text));let added=0,skipped=0;
-        for(const c of cards){
-          const text=String(c.text||'').trim();if(!text)continue;
-          if(mode==='merge'&&seen.has(text)){skipped++;continue;}
-          const rec={...c,text,group:c.group||'默认',time:Number(c.time)||Date.now(),useCount:Number(c.useCount)||0};
-          if(mode==='replace')delete rec.id;
-          await dbPut('cards',rec);seen.add(text);added++;
-        }
-        renderCards();showToast('字卡导入完成：新增 '+added+' 张'+(skipped?'，跳过重复 '+skipped+' 张':''));
-      };
+      if(mode==='replace'){
+        appConfirm('覆盖导入','将清空现有字卡库（保留「默认」分组），导入文件中的 '+cards.length+' 张字卡。不可撤销，建议先导出备份。继续？',async()=>{await __cardImportDo(mode,groups,cards);});
+      }else{
+        await __cardImportDo(mode,groups,cards);
+      }
     }catch(err){console.error(err);showToast('字卡导入失败：文件格式不正确');}
-  };input.click();
+  };
+  input.click();
+}
+async function __cardImportDo(mode,groups,cards){
+  if(mode==='replace'){
+    for(const c of await dbGetAll('cards'))await dbDelete('cards',c.id);
+    for(const g of await dbGetAll('cardGroups'))if(g.name!=='默认')await dbDelete('cardGroups',g.id);
+  }
+  const gs=await dbGetAll('cardGroups'),gn=new Set(gs.map(g=>g.name));
+  for(const g of groups)if(g&&g.name&&!gn.has(g.name)){await dbPut('cardGroups',{name:g.name,enabled:g.enabled!==false});gn.add(g.name);}
+  const existing=await dbGetAll('cards'),seen=new Set(existing.map(c=>c.text));let added=0,skipped=0;
+  for(const c of cards){
+    const text=String(c.text||'').trim();if(!text)continue;
+    if(mode==='merge'&&seen.has(text)){skipped++;continue;}
+    const rec={...c,text,group:c.group||'默认',time:Number(c.time)||Date.now(),useCount:Number(c.useCount)||0};
+    if(mode==='replace')delete rec.id;
+    await dbPut('cards',rec);seen.add(text);added++;
+  }
+  renderCards();showToast('字卡导入完成：新增 '+added+' 张'+(skipped?'，跳过重复 '+skipped+' 张':''));
 }
 async function editCard(id){
   const all=await dbGetAll('cards');const c=all.find(x=>x.id===id);if(!c)return;

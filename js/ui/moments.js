@@ -3,6 +3,21 @@
    ========================================================= */
 
 function momentOptOn(k,def=true){const v=state.stats&&state.stats[k];return v===undefined?def:v!==0;}
+/* v3.27.5：朋友圈内容全部来自字卡库（同组聚焦）——对齐 mochi：无内置兜底文案池，字卡库为空则静默跳过 */
+function _momentFocusPool(enabled){
+  if(!enabled||!enabled.length)return null;
+  const gs=[...new Set(enabled.map(c=>c.group||'默认'))];
+  const g=gs[Math.floor(Math.random()*gs.length)];
+  const focus=enabled.filter(c=>(c.group||'默认')===g);
+  return focus.concat(enabled.filter(c=>(c.group||'默认')!==g));   // 同组优先，不足自动落到全库
+}
+function _momentPickTexts(enabled,n){
+  const pool=_momentFocusPool(enabled);
+  if(!pool)return [];
+  const picks=[];
+  for(let i=0;i<n&&pool.length;i++){const t=(pool.splice(Math.floor(Math.random()*pool.length),1)[0].text||'').trim();if(t)picks.push(t);}
+  return picks;
+}
 /* 更多菜单三点（线性，与 ICO 同族；config.js 未收录，本文件自用） */
 const MOMENT_MORE_ICO='<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" stroke="none" style="vertical-align:-3px"><circle cx="5" cy="12" r="1.7"/><circle cx="12" cy="12" r="1.7"/><circle cx="19" cy="12" r="1.7"/></svg>';
 function openMomentsSettings(){
@@ -31,9 +46,10 @@ async function renderMoments(){
   // TA 生成新动态（低频，momentProb）
   const taCount=moments.filter(m=>m.owner==='other'&&!isHiddenMoment(m.id)).length;
   if(taCount<2&&state.stats.momentsAllowPost!==0&&!taOutputBlocked()&&Math.random()<((state.prob.momentProb??25)/100)){
-    const line=TA_MOMENT_LINES[Math.floor(Math.random()*TA_MOMENT_LINES.length)];
-    // 种子发圈＝页内补底：read:true 且用户正在看，不发提醒（避免「点进去却已读」）；不写冷却，与心跳 maybeTaMoment 分工
-    await dbPut('moments',{owner:'other',name:state.other.name,content:line,time:Date.now()-Math.floor(Math.random()*6)*3600000,likes:0,comments:[],read:true});
+    const cards=await dbGetAll('cards').catch(()=>[]);
+    const picks=_momentPickTexts(cards.filter(c=>c.enabled!==false),1+Math.floor(Math.random()*3));
+    // 种子发圈＝页内补底：read:true 且用户正在看，不发提醒；字卡库为空则跳过
+    if(picks.length)await dbPut('moments',{owner:'other',name:state.other.name,content:picks.join('\n'),time:Date.now()-Math.floor(Math.random()*6)*3600000,likes:0,comments:[],read:true});
   }
   moments=await dbGetAll('moments');
   /* 进入朋友圈 → TA 动态 / TA 日记 / TA 评论一律标记已读（红点随之消失） */
@@ -139,10 +155,15 @@ async function sendMomentReply(momentId,commentIndex){
   m.comments.push({name:state.me.name||'我',text:v,time:Date.now(),replyTo,card:cardText||null,smile:smileFlag||null});
   await dbPut('moments',m);closeModal();renderMoments();showToast('回复已发送');
   if(m.owner==='other'&&momentOptOn('momentsAllowComment')){
-    const delay=(Number(state.prob.replyDelaySec)||20)*1000+Math.random()*6000;
-    state.stats.momentReplyQueue=state.stats.momentReplyQueue||[];
-    state.stats.momentReplyQueue.push({id:'mr_'+Date.now().toString(36),momentId,replyToIndex:m.comments.length-1,at:Date.now()+delay});
-    saveKey('stats');
+    /* v3.27.5 对拼衰减：TA 连续回复轮次越多，再回概率越低（80%→40%→15%），杜绝无限对拼 */
+    const taRounds=(m.comments||[]).filter(c=>c.fromTa).length;
+    const p=[0.8,0.4,0.15][Math.min(taRounds,2)];
+    if(Math.random()<p){
+      const delay=(Number(state.prob.replyDelaySec)||20)*1000+Math.random()*6000;
+      state.stats.momentReplyQueue=state.stats.momentReplyQueue||[];
+      state.stats.momentReplyQueue.push({id:'mr_'+Date.now().toString(36),momentId,replyToIndex:m.comments.length-1,at:Date.now()+delay});
+      saveKey('stats');
+    }
   }
 }
 async function pickMomentReplyCard(momentId,commentIndex){
@@ -199,7 +220,7 @@ function isHiddenMoment(id){return (state.stats.hiddenMoments||[]).indexOf(Numbe
    1) 开关 momentsAllowPost!==0（沿用既有朋友圈开关）关闭 → 不写；
    2) 冷却：距上次主动发圈 4~10 小时随机；
    3) 禁言期间（TA 在整理意识 / TA 不想理你）→ 不写；
-   4) 到点后按 momentProb（默认 25%）概率发一条，文案从 TA_MOMENT_LINES 抽。 */
+   4) 到点后按 momentProb（默认 25%）概率发一条，内容从字卡库同组聚焦抽 1~3 张。 */
 const TA_MOMENT_GAP_MIN=4*3600000;
 const TA_MOMENT_GAP_MAX=24*3600000;
 async function maybeTaMoment(){
@@ -212,8 +233,10 @@ async function maybeTaMoment(){
   return false;
 }
 async function taPostMoment(){
-  const line=TA_MOMENT_LINES[Math.floor(Math.random()*TA_MOMENT_LINES.length)];
-  const rec=await dbPut('moments',{owner:'other',name:state.other.name,content:line,time:Date.now(),likes:0,comments:[],read:false});
+  const cards=await dbGetAll('cards').catch(()=>[]);
+  const picks=_momentPickTexts(cards.filter(c=>c.enabled!==false),1+Math.floor(Math.random()*3));   // 1~3 张同组聚焦
+  if(!picks.length)return false;   // 字卡库为空 → 静默跳过（TA 的表达统一来自字卡，无兜底文案）
+  const rec=await dbPut('moments',{owner:'other',name:state.other.name,content:picks.join('\n'),time:Date.now(),likes:0,comments:[],read:false});
   state.stats.taMomentLastAt=Date.now();
   saveKey('stats');
   if(typeof pushNotif==='function')pushNotif({type:'newMoment',from:state.other.name,text:'发布了新动态',momentId:rec});
@@ -238,11 +261,11 @@ async function processMomentReplies(){
   for(const x of processed){   /* v3.9.5：改串行 for..of——原先 forEach(async) 并发读改写，同批到期回评会互相覆盖丢评论 */
     const ms=await dbGetAll('moments');const mm=ms.find(y=>y.id===Number(x.momentId));if(!mm)continue;
     mm.comments=mm.comments||[];
-    let text=MOMENT_COMMENTS[Math.floor(Math.random()*MOMENT_COMMENTS.length)];
+    const cards=await dbGetAll('cards');const enabled=cards.filter(c=>c.enabled!==false);
+    const picks=_momentPickTexts(enabled,1+((Math.random()<0.3)?1:0));   // 评论 = 字卡 1~2 张（同组聚焦）
+    let text=picks.join(' ');
     let cardText=null;
-    if(momentOptOn('momentsAllowCardReply')&&state.prob.cardConcatEnabled&&Math.random()<((Number(state.prob.cardConcatProb)||35)/100)){
-      const cards=await dbGetAll('cards');const enabled=cards.filter(c=>c.enabled!==false);if(enabled.length){const c=enabled[Math.floor(Math.random()*enabled.length)];cardText=c.text||null;}
-    }
+    if(!text){continue;}   // 字卡库为空 → 本条不回
     const target=Number.isInteger(x.replyToIndex)?mm.comments[x.replyToIndex]:null;
     mm.comments.push({name:state.other.name,text:text,time:Date.now(),replyTo:target?{name:target.name,index:x.replyToIndex}:null,card:cardText,fromTa:true,read:false});
     await dbPut('moments',mm);
@@ -321,28 +344,37 @@ function pickMomentImages(){
 }
 function removeMomentImg(i){momentDraftImgs.splice(i,1);const box=document.getElementById('moment-img-preview');const cnt=document.getElementById('moment-img-count');if(box)box.innerHTML=momentDraftImgs.map((u,idx)=>`<div style="position:relative;width:64px;height:64px;border-radius:8px;overflow:hidden;background:var(--input)"><img src="${u}" style="width:100%;height:100%;object-fit:cover"><span style="position:absolute;top:2px;right:2px;width:16px;height:16px;border-radius:50%;background:rgba(0,0,0,.6);color:#fff;font-size:10px;display:flex;align-items:center;justify-content:center;cursor:pointer" onclick="removeMomentImg(${idx})">×</span></div>`).join('');if(cnt)cnt.textContent=momentDraftImgs.length+' 张';}
 async function scheduleTaMomentInteraction(momentId){
-  const delay=3500+Math.random()*9000;
+  /* v3.27.5 mochi 式分层延迟：点赞快（10s~5min），评论慢（1~30min，像刷到了犹豫要不要说） */
   setTimeout(async()=>{
-    if(taOutputBlocked())return;   // 静音期不赞不评：本次放弃（延时已过，不补发）
+    if(taOutputBlocked())return;
     const ms=await dbGetAll('moments');
     const m=ms.find(x=>String(x.id)===String(momentId));
     if(!m||m.owner!=='me')return;
-    let changed=false;
     if(momentOptOn('momentsAllowLike')&&Math.random()<0.8&&!m.taLiked){
-      m.likes=(m.likes||0)+1;m.taLiked=true;changed=true;
+      m.likes=(m.likes||0)+1;m.taLiked=true;
+      await dbPut('moments',m);
       pushNotif({type:'like',from:state.other.name,text:'赞了你的动态',momentId:m.id});
       notifySystem(state.other.name+' 赞了你的动态',(m.content||'').slice(0,50),()=>switchTab('moments'),'moments');
+      if(state.currentApp==='moments')renderMoments();
     }
+  },10000+Math.random()*290000);
+  setTimeout(async()=>{
+    if(taOutputBlocked())return;
+    const ms=await dbGetAll('moments');
+    const m=ms.find(x=>String(x.id)===String(momentId));
+    if(!m||m.owner!=='me')return;
     if(momentOptOn('momentsAllowComment')&&Math.random()<0.65){
+      const cards=await dbGetAll('cards').catch(()=>[]);
+      const picks=_momentPickTexts(cards.filter(c=>c.enabled!==false),1);
+      if(!picks.length)return;
       m.comments=m.comments||[];
-      const text=MOMENT_COMMENTS[Math.floor(Math.random()*MOMENT_COMMENTS.length)];
-      m.comments.push({name:state.other.name,text:text,time:Date.now(),replyTo:null,fromTa:true,read:false});
-      changed=true;
-      pushNotif({type:'comment',from:state.other.name,text:'评论了你的动态：'+text.slice(0,16),momentId:m.id});
-      notifySystem(state.other.name+' 评论了你的动态',text.slice(0,50),()=>switchTab('moments'),'moments');
+      m.comments.push({name:state.other.name,text:picks[0],time:Date.now(),replyTo:null,fromTa:true,read:false});
+      await dbPut('moments',m);
+      pushNotif({type:'comment',from:state.other.name,text:'评论了你的动态：'+picks[0].slice(0,16),momentId:m.id});
+      notifySystem(state.other.name+' 评论了你的动态',picks[0].slice(0,50),()=>switchTab('moments'),'moments');
+      if(state.currentApp==='moments')renderMoments();
     }
-    if(changed){await dbPut('moments',m);if(state.currentApp==='moments')renderMoments();}
-  },delay);
+  },60000+Math.random()*1740000);
 }
 async function saveMoment(){
   const content=(document.getElementById('moment-content')?.value||'').trim();

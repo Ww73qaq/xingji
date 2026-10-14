@@ -3,7 +3,7 @@
    ========================================================= */
 
 /* 版本号 */
-const APP_VERSION='3.27.4';
+const APP_VERSION='3.27.5';
 
 /* ===== 线稿图标（tab bar，24x24 视图，stroke 用 currentColor 跟随选中态） ===== */
 const LINE_ICONS={
@@ -271,16 +271,7 @@ const TA_NOTE_LINES=[
 /* ===== MOMENTS ===== */
 const HEART_ICO='<svg viewBox="0 0 24 24" style="width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:1.8;vertical-align:-2px;margin-right:3px"><path d="M12 20.5s-7.5-4.7-9.2-9.3C1.6 8 3.4 5 6.6 5c1.9 0 3.4 1.1 4.2 2.6h2.4C14 6.1 15.5 5 17.4 5c3.2 0 5 3 3.8 6.2-1.7 4.6-9.2 9.3-9.2 9.3Z"/></svg>';
 const COMMENT_ICO='<svg viewBox="0 0 24 24" style="width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:1.8;vertical-align:-2px;margin-right:3px"><path d="M21 11.5a8.5 8.5 0 0 1-8.5 8.5c-1.4 0-2.7-.3-3.9-.9L3 21l1.9-5.6A8.5 8.5 0 1 1 21 11.5Z"/></svg>';
-const TA_MOMENT_LINES=[
-  '今天的晚霞，想和你一起看。','刚跑完步，微风吹过来的时候在想你。',
-  '偶然听到一首歌，歌词里全是我们的影子。','咖啡店的猫今天一直蹭我，它好像知道我想你。',
-  '整理旧照片，翻到了我们一起的夏天。','月亮好圆，你那边看到了吗？',
-  '今天学会了一道新菜，第一个想让你尝。','路灯下的影子拉得很长，像在等谁。'
-];
-const MOMENT_COMMENTS=[
-  '我也这么觉得。','这句我记下了。','拍得很稳。','下次一起。',
-  '光线很好。','晚点慢慢讲给我听。','你总能发现这些温柔的小事。','夜里还在忙？早点收尾。'
-];
+/* v3.27.5：TA_MOMENT_LINES / MOMENT_COMMENTS 兜底文案池已删——朋友圈内容统一来自字卡库（同组聚焦），字卡库为空则静默跳过 */
 /* ===== TA 主动来信：意识表达 + 字卡承载 =====
    TA 用意识在字卡库里挑选最贴合他想说的话的字卡，配一段意识收束，凑成一封信。
    主动信不强求用几张字卡（随机 1~4 张），字卡不够说的意思就留在收束里。 */
