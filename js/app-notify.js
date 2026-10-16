@@ -77,7 +77,17 @@
     });
   };
   try {
-    Object.defineProperty(XJNotification, 'permission', { get: function () { return window.__xjNPerm; } });
+    /* P1-7(v3.27.6)：permission 改为「读取即回查系统真实状态」（异步回填缓存）——
+       原先 __xjNPerm 只在启动/请求权限时更新，用户在系统设置里改授权后
+       缓存仍是旧值 → notifySystem 永久静默、通知链断裂。 */
+    Object.defineProperty(XJNotification, 'permission', { get: function () {
+      try {
+        LN.checkPermissions().then(function (r) {
+          window.__xjNPerm = r.display === 'granted' ? 'granted' : (r.display === 'denied' ? 'denied' : 'default');
+        }).catch(function () {});
+      } catch (e) {}
+      return window.__xjNPerm;
+    } });
   } catch (e) { XJNotification.permission = 'default'; }
   window.Notification = XJNotification;
 

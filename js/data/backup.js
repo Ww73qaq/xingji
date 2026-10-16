@@ -9,6 +9,9 @@
    单本超过 BOOK_BACKUP_LIMIT 的直接跳过（base64 还要再膨胀 33%，体积与内存都不可控），
    但绝不因此让整份备份失败。 */
 const BOOK_BACKUP_LIMIT=8*1024*1024;
+/* P0-5(v3.27.6)：整架书转 base64 后全部塞进一次 JSON.stringify，峰值内存可达数百 MB（移动端易 OOM）。
+   单本 8MB 之外，再加整架累计上限：超过即停止把更多书写进备份（书仍可在书架页单独导出）。 */
+const BOOK_EXPORT_TOTAL_LIMIT=64*1024*1024;
 function _bkBlobToDataURL(blob){
   return new Promise(res=>{
     try{
@@ -91,19 +94,22 @@ async function _readStoreData(name){
   }
   if(name==='books'){
     const list=await dbGetAll('books');
-    const out=[];let skipped=0;
+    const out=[];let skipped=0,total=0,overTotal=0;
     for(const rec of list){
       const r={...rec};
       const blob=r.blob;delete r.blob;
       if(blob&&blob.size!==undefined){
         if(blob.size>BOOK_BACKUP_LIMIT){skipped++;continue;}
+        if(total+blob.size>BOOK_EXPORT_TOTAL_LIMIT){overTotal++;continue;}
         const d=await _bkBlobToDataURL(blob);
         if(!d){skipped++;continue;}
+        total+=blob.size;              // P0-5：按原始体积累计（dataURL 再膨胀 33% 也已覆盖在余量里）
         r.blobData=d;
       }
       out.push(r);
     }
     if(skipped)try{showToast(skipped+' 本超过 8MB 的书未写入备份，可在书架页单独导出');}catch(e){}
+    if(overTotal)try{setTimeout(()=>showToast(overTotal+' 本因备份总体积超 64MB 未写入，可分批导出或单独导出'),skipped?2600:0);}catch(e){}
     return out;
   }
   return await dbGetAll(name);
@@ -160,8 +166,18 @@ async function _writeStoreData(name,items,mode){
   for(const item of items){
     const rec={...item};
     const pk=dbPrimaryKey(name,rec);
-    if(pk!==undefined&&pk!==null&&!existKeys.has(pk)){await dbPut(name,rec);existKeys.add(pk);}
-    else{delete rec.id;await dbPut(name,rec);}
+    if(pk!==undefined&&pk!==null){
+      /* P0-3(v3.27.6)：主键已存在 → 直接跳过。
+         原逻辑 delete rec.id 重新自增分配 → 反复导入同一备份聊天记录成倍膨胀；
+         且新分配的键不登记，后续显式 id 记录会静默覆盖刚插入的行。 */
+      if(existKeys.has(pk))continue;
+      await dbPut(name,rec);existKeys.add(pk);
+    }else{
+      /* P0-3(v3.27.6)：无主键行插入后，把库自增分配的新键登记进 existKeys，
+         防止同批次后续显式 id 记录撞键静默覆盖。 */
+      const newKey=await dbPut(name,rec);
+      if(newKey!==undefined&&newKey!==null)existKeys.add(newKey);
+    }
   }
 }
 /* 备份里某个类别是否真的有数据（pokeGroups 是对象，其余是数组） */
@@ -274,7 +290,18 @@ async function importBackupText(){
     if(!dirty.length){showToast('备份里没有可恢复的数据');return;}
     const doWrite=async()=>{
       showToast('正在恢复 '+dirty.length+' 类数据…');
-      for(const s of dirty)await _writeStoreData(s,stores[s],importMode);
+      /* P0-4(v3.27.6)：逐 store 导入无跨表事务可回滚，失败时必须明示
+         哪些类别已写入，不再谎报「文件解析失败」。 */
+      const done=[];
+      for(const s of dirty){
+        try{await _writeStoreData(s,stores[s],importMode);done.push(s);}
+        catch(err){
+          console.error('[backup] 导入 '+s+' 失败',err);
+          const doneTxt=done.map(x=>STORE_LABELS[x]||x).join('、');
+          showToast('导入「'+(STORE_LABELS[s]||s)+'」时失败'+(done.length?('；已写入：'+doneTxt):'')+'，其余类别未改动');
+          return;
+        }
+      }
       if(dirty.includes('settings'))await loadSettings();
       _restoreLs(data);
       closeModal();showToast('恢复完成，正在刷新…');setTimeout(()=>location.reload(),700);
@@ -309,8 +336,16 @@ function pickImportFile(mode){
       if(!dirty.length){showToast('文件中没有所选类别的数据');return;}
       const doWrite=async()=>{
         showToast(`正在导入 ${dirty.length} 类…`);
+        /* P0-4(v3.27.6)：同上——失败时明示已写入类别，不谎报「解析失败」。 */
+        const done=[];
         for(const s of dirty){
-          await _writeStoreData(s,stores[s],importMode);
+          try{await _writeStoreData(s,stores[s],importMode);done.push(s);}
+          catch(err){
+            console.error('[backup] 导入 '+s+' 失败',err);
+            const doneTxt=done.map(x=>STORE_LABELS[x]||x).join('、');
+            showToast('导入「'+(STORE_LABELS[s]||s)+'」时失败'+(done.length?('；已写入：'+doneTxt):'')+'，其余类别未改动');
+            return;
+          }
         }
         if(dirty.includes('settings')){await loadSettings();}
         _restoreLs(data);

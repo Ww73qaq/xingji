@@ -7,6 +7,16 @@ if (keystorePropertiesFile.exists()) {
     keystoreProperties.load(new FileInputStream(keystorePropertiesFile))
 }
 
+// v3.27.5: 版本统一——从仓库根 version.json（apk 段）读取 versionCode/versionName，
+// 与网页端 APP_VERSION、sw.js、在线更新通道（www/app-version.json 由 CI 从同一文件生成）同源。
+// 以后发版只改 version.json 一处，云端打包自动同步，不再出现 APK 显示 3.17.0 的旧账。
+import groovy.json.JsonSlurper
+def _versionJsonFile = file("../../../version.json")
+def _vj = new JsonSlurper().parse(_versionJsonFile)
+def _vCode = (_vj.apk.code as Integer)
+def _vName = (_vj.version as String)
+println "[xingji] build version: ${_vName} (code ${_vCode}) from version.json"
+
 android {
     namespace = "com.ww73qaq.xingji"
     compileSdk = rootProject.ext.compileSdkVersion
@@ -14,8 +24,8 @@ android {
         applicationId "com.ww73qaq.xingji"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 2
-        versionName "3.17.0"
+        versionCode _vCode
+        versionName _vName
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.

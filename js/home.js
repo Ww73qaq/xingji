@@ -40,7 +40,7 @@ async function renderHomeTraceWidget(){
     if(!m.time||m.time<start||m.time>=end)return;
     const h=m.sender==='me'?new Date(m.time).getHours():new Date(m.time+off).getHours();
     const bi=(h/2)|0;
-    if(m.sender==='me')meB[bi]++; else if(m.sender==='ta')taB[bi]++;   // TA 按 TA 世界时间归桶
+    if(m.sender==='me')meB[bi]++; else if(m.sender==='other')taB[bi]++;   // P1-3(v3.27.6)：消息落库口径是 sender:'other'（engine.js/chat.js），原 'ta' 永不命中 → TA 折线恒空
   });
   const evs=await dbGetAll('events').catch(()=>[]);
   evs.forEach(e=>{
@@ -374,10 +374,13 @@ async function refreshAllBadges(){
   updateTabBadge('chat',chatUnread);
   const moments=await dbGetAll('moments');
   const diary=await dbGetAll('diaries');
+  /* P1-23(v3.27.6)：角标统计排除已隐藏动态——用户在朋友圈看不到它，
+     红点却永远清不掉 */
+  const _momVisible=m=>!(typeof isHiddenMoment==='function'&&isHiddenMoment(m.id));
   const momUnread=
-      moments.filter(m=>m.owner==='other'&&!m.read).length
+      moments.filter(m=>m.owner==='other'&&!m.read&&_momVisible(m)).length
     + diary.filter(d=>d.owner==='other'&&!d.read).length
-    + moments.reduce((s,m)=>s+(m.comments||[]).filter(c=>c.fromTa&&!c.read).length,0);
+    + moments.filter(_momVisible).reduce((s,m)=>s+(m.comments||[]).filter(c=>c.fromTa&&!c.read).length,0);
   updateTabBadge('moments',momUnread);
   updateTabBadge('cards',0);
 }

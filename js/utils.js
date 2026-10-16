@@ -4,7 +4,7 @@
 /* ---- 随机 / 数值：全项目唯一实现（调度器与引擎共用，勿再重复定义） ---- */
 function _roll(pct){return Math.random()*100 < (Number.isFinite(pct)?pct:0);}
 function _clamp(v,min,max){return Math.max(min,Math.min(max,v));}
-function _randomInt(min,max){min=Math.ceil(min);max=Math.floor(max);return Math.floor(Math.random()*(max-min+1))+min;}
+function _randomInt(min,max){min=Math.ceil(min);max=Math.floor(max);if(min>max){const t=min;min=max;max=t;}   /* P2-9(v3.27.6)：配置倒置时钳制交换，不产出越界结果 */return Math.floor(Math.random()*(max-min+1))+min;}
 
 /* =========================================================
    TA 输出统一门控（v3.7.0 → v3.24.0 废弃）

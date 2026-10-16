@@ -59,7 +59,7 @@ function showVideoStage(){
 }
 
 /* ===== CALL（手机通话：来电 / 去电 / 通话中 / 通话记录） ===== */
-let callSec=0,callIv=null,callMode=null,callMuted=false,callSpeaker=false,ringIv=null,ringOsc=null,callTalkTimer=null,callFarewell=false;
+let callSec=0,callIv=null,callMode=null,callMuted=false,callSpeaker=false,ringIv=null,ringOsc=null,callTalkTimer=null,callFarewell=false,answerTimer=null;   /* P1-22(v3.27.6)：answerTimer 句柄 */
 /* v3.27.0 圣杯王后：TA 挂断前先说一句告别，说完才挂——结束要有温度 */
 const CALL_FAREWELL_DAY=['先聊到这啦，回头找你','我这边有点事，晚点接着说','说得差不多了，去忙啦','嗯嗯，先这样，想你'];
 const CALL_FAREWELL_NIGHT=['不早了，早点睡哦','我要去睡啦，晚安','困了，明天再聊'];
@@ -80,10 +80,14 @@ function setCallBadge(txt,rec){
   b.textContent=txt;b.classList.toggle('rec',!!rec);
 }
 /* Web Audio 铃声 */
+let ringAudioCtx=null;   /* P1-21(v3.27.6)：铃声独立 AudioContext，不再与 chat.js 语音播放互踩 */
 function startRing(){
   try{
-    if(!voiceAudioCtx)voiceAudioCtx=new (window.AudioContext||window.webkitAudioContext)();
-    const ctx=voiceAudioCtx;
+    if(!ringAudioCtx)ringAudioCtx=new (window.AudioContext||window.webkitAudioContext)();
+    const ctx=ringAudioCtx;
+    /* P1-21(v3.27.6)：TA 来电由定时器触发（非用户手势），AudioContext 首建即为
+       suspended → 来电静音。响铃前强制 resume。 */
+    if(ctx.state==='suspended'&&ctx.resume)ctx.resume();
     const tick=()=>{
       if(!state.callActive)return;
       const o=ctx.createOscillator(),g=ctx.createGain();
@@ -162,6 +166,7 @@ function callOutgoing(kind){
 }
 function declineCall(){
   if(!state.callActive)return;
+  if(answerTimer){clearTimeout(answerTimer);answerTimer=null;}   /* P1-22(v3.27.6)：拒绝时清掉接听延迟，杜绝 0 秒通话记录 */
   clearTimeout(callIv);stopRing();
   setCallStatus('已拒绝');
   setTimeout(()=>{if(state.callActive)endCall('declined');},900);
@@ -176,7 +181,10 @@ function answerCall(){
   if(!state.callActive)return;
   clearTimeout(callIv);stopRing();
   setCallStatus('对方已接听…');
-  setTimeout(()=>{if(state.callActive)startCall();},700);
+  /* P1-22(v3.27.6)：句柄可取消（拒绝时清理），并立即重绘按钮为「挂断」 */
+  if(answerTimer){clearTimeout(answerTimer);}
+  answerTimer=setTimeout(()=>{answerTimer=null;if(state.callActive)startCall();},700);
+  renderCallActions('<div class="call-row"><div class="call-col"><button class="call-btn end" onclick="declineCall()">'+IC_PHONE+'</button><span class="call-btn-label">挂断</span></div></div>');
 }
 function startCall(){
   callSec=0;callMode='talk';callFarewell=false;
@@ -360,6 +368,7 @@ function endCall(reason,by){
   const initiator=callInitiator;   /* v3.27.4：先存局部——原代码在消息生成前就把 callInitiator 清成 null，导致"TA 发起"恒显示"你发起" */
   state.callActive=false;callSec=0;callMode=null;callInitiator=null;
   if(callIv){clearInterval(callIv);clearTimeout(callIv);callIv=null;}
+  if(answerTimer){clearTimeout(answerTimer);answerTimer=null;}   /* P1-22(v3.27.6) */
   if(callTalkTimer){clearTimeout(callTalkTimer);callTalkTimer=null;}
   stopRing();
   if(mediaStream){mediaStream.getTracks().forEach(t=>t.stop());mediaStream=null;}

@@ -41,11 +41,14 @@ function _typingWindow(totalMs){
   return _clamp(Math.min(4000,totalMs*ratio),1000,4000);
 }
 
-/* ---- 任务持久化（settings store，按 key 覆盖） ---- */
+/* ---- 任务持久化（settings store，按 key 覆盖） ----
+   P1-1(v3.27.6)：sending 状态也保留持久化（含 sentCount/pendingBubbles 断点）。
+   原逻辑对非 waiting/typing 直接清持久化 → 正好在最易被打断的跨秒发送窗口抹掉记录，
+   发送中途被杀后整轮剩余气泡永久丢失、无任何 catch-up。 */
 function _persistJob(){
   const j=_scheduler.activeJob;
-  if(!j||(j.status!=='waiting'&&j.status!=='typing'))return _clearPersistJob();
-  const value={id:j.id,type:j.type,source:j.source,status:j.status,createdAt:j.createdAt,dueAt:j.dueAt,typingAt:j.typingAt,roundId:j.roundId,contactId:j.contactId,messageIds:j.messageIds,generation:j.generation,deadlineSec:j.deadlineSec,earlySubmitProb:j.earlySubmitProb};
+  if(!j||(j.status!=='waiting'&&j.status!=='typing'&&j.status!=='sending'))return _clearPersistJob();
+  const value={id:j.id,type:j.type,source:j.source,status:j.status,createdAt:j.createdAt,dueAt:j.dueAt,typingAt:j.typingAt,roundId:j.roundId,contactId:j.contactId,messageIds:j.messageIds,generation:j.generation,deadlineSec:j.deadlineSec,earlySubmitProb:j.earlySubmitProb,sentCount:j.sentCount||0,pendingBubbles:j.pendingBubbles||null};
   return dbGet('settings',JOB_KEY)
     .then(row=>{if(row){row.value=value;return dbPut('settings',row);}return dbPut('settings',{key:JOB_KEY,value});})
     .catch(e=>console.warn('[scheduler] persist job failed',e));
@@ -53,8 +56,11 @@ function _persistJob(){
 function _clearPersistJob(){
   return dbDelete('settings',JOB_KEY).catch(e=>console.warn('[scheduler] clear job failed',e));
 }
+/* P1-4(v3.27.6)：避让时间戳随 proactiveNext 一并持久化——
+   原先 lastUserMsgAt/lastTaReplyAt 是纯内存态，刷新归零后
+   「刚打开就被 TA 主动消息突袭」的避让判据恒不成立。 */
 function _persistProactiveNext(){
-  const value={at:_scheduler.proactiveNextAt};
+  const value={at:_scheduler.proactiveNextAt,lastUserMsgAt:_scheduler.lastUserMsgAt||0,lastTaReplyAt:_scheduler.lastTaReplyAt||0};
   return dbGet('settings',PROACTIVE_KEY)
     .then(row=>{if(row){row.value=value;return dbPut('settings',row);}return dbPut('settings',{key:PROACTIVE_KEY,value});})
     .catch(e=>console.warn('[scheduler] persist proactiveNext failed',e));
@@ -201,6 +207,7 @@ function _executeJob(){
 function _finishJob(){
   _scheduler.activeJob=null;
   _scheduler.extraDelayed=0;
+  if(_scheduler.dueTimer){clearTimeout(_scheduler.dueTimer);_scheduler.dueTimer=null;}   /* P1-8(v3.27.6)：清理残留 dueTimer */
   _stopTick();                       // 无任务时停掉每秒倒计时，避免定时器常驻
   _clearPersistJob();
   if(_scheduler.pendingQueue>0){
@@ -289,25 +296,47 @@ function resumeScheduledJobs(){
     if(jrow&&jrow.value){
       const v=jrow.value;
       const now=Date.now();
-      const job={...v};
-      _scheduler.activeJob=job;
-      if(now>=job.dueAt){
+      if(v.status==='sending'){
+        /* P1-1(v3.27.6)：sending 中被打断 → 断点续发剩余气泡（引擎侧 _resumeSendingJob）；
+           引擎不在或无气泡清单则安全放弃，不留脏持久化。 */
+        if(Array.isArray(v.pendingBubbles)&&v.pendingBubbles.length&&typeof window._resumeSendingJob==='function'){
+          const job={...v};
+          _scheduler.activeJob=job;
+          _startTick();
+          _syncSubtitle();
+          window._resumeSendingJob(job).catch(e=>{console.warn('[scheduler] resume sending failed',e);_finishJob();});
+        }else{
+          _clearPersistJob();
+        }
+      }else if(now>=v.dueAt){
+        const job={...v};
+        _scheduler.activeJob=job;
         job.status='typing';
         _executeJob();          // catch-up：补发，不重随机
         return;
+      }else{
+        const job={...v};
+        _scheduler.activeJob=job;
+        job.status=now>=job.typingAt?'typing':'waiting';
+        _persistJob();
+        _scheduleDue();
+        _startTick();
+        _syncSubtitle();
       }
-      job.status=now>=job.typingAt?'typing':'waiting';
-      _persistJob();
-      _scheduleDue();
-      _startTick();
-      _syncSubtitle();
     }
     const prow=list.find(r=>r.key===PROACTIVE_KEY);
     if(prow&&prow.value&&prow.value.at){
       _scheduler.proactiveNextAt=prow.value.at;
+      /* P1-4(v3.27.6)：恢复避让时间戳，过期 proactive 只重排不立即执行 */
+      if(prow.value.lastUserMsgAt)_scheduler.lastUserMsgAt=prow.value.lastUserMsgAt;
+      if(prow.value.lastTaReplyAt)_scheduler.lastTaReplyAt=prow.value.lastTaReplyAt;
       const wait=prow.value.at-Date.now();
       if(_scheduler.proactiveTimer)clearTimeout(_scheduler.proactiveTimer);
-      _scheduler.proactiveTimer=setTimeout(runProactive,Math.max(0,wait)+100);
+      if(wait>0){
+        _scheduler.proactiveTimer=setTimeout(runProactive,wait+100);
+      }else{
+        scheduleProactive();   // 已过期 → 重新随机安排，绝不刚打开就突袭
+      }
     }
   }).catch(e=>console.warn('[scheduler] resume failed',e));
 }

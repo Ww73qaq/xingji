@@ -82,7 +82,17 @@ async function loadSettings(){
     if(v!==undefined)state[k]=typeof v==='object'&&v!==null&&!Array.isArray(v)?{...state[k],...v}:v;
   }
 }
-async function saveKey(key){const v=await dbGet('settings',key);if(v){v.value=state[key];await dbPut('settings',v);}else{await dbPut('settings',{key,value:state[key]});}}
+/* P2-3(v3.27.6)：saveKey 失败不再静默——IDB 写失败（配额/隐私模式）时明确提示，
+   调用方跟着 toast 的「已更新」不再谎报 */
+async function saveKey(key){
+  try{
+    const v=await dbGet('settings',key);
+    if(v){v.value=state[key];await dbPut('settings',v);}else{await dbPut('settings',{key,value:state[key]});}
+  }catch(e){
+    console.warn('[state] saveKey '+key+' failed',e);
+    try{showToast('保存失败（存储不可用），刷新后可能回退');}catch(_){}
+  }
+}
 
 /* ---- 旧概率结构迁移（v1.3 → v2.0 → v3.0，幂等） ---- */
 function migrateProb(){

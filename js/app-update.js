@@ -15,6 +15,9 @@ async function appLocalVersion() {
   } catch (e) { return null; }
 }
 /* manual=true 时给出结果反馈；启动自动检查完全静默 */
+/* P1-6(v3.27.6)：语义版本比较 + versionCode 双端 parseInt。
+   原逻辑只判「字符串相等」和 code < local，code 为字符串时 "3910"<"399" 误判为最新。 */
+function _verToInt(v){const m=String(v||'').match(/(\d+)\.(\d+)\.(\d+)/);return m?(+m[1])*1000000+(+m[2])*1000+(+m[3]):0;}
 async function appUpdateCheck(manual) {
   if (!inApp()) { if (manual) showToast('仅 APP 内可用（网页版刷新即更新）'); return; }
   try {
@@ -23,8 +26,17 @@ async function appUpdateCheck(manual) {
       .then(r => r.ok ? r.json() : null).catch(() => null);
     const apk = rem && rem.apk;
     if (!apk || !apk.version || !apk.url) { if (manual) showToast('暂未获取到更新信息'); return; }
-    if (loc && apk.version === loc.version) { if (manual) showToast('已是最新版本 ' + loc.version); return; }
-    if (loc && apk.code && loc.code && apk.code < loc.code) { if (manual) showToast('已是最新版本'); return; }
+    if (!loc || (!loc.version && loc.code == null)) {
+      /* P1-6：本地版本读取失败 → 降级为仅提示，不再每次都弹「发现新版本」 */
+      if (manual) showToast('远端最新版 ' + apk.version + '（本地版本读取失败）');
+      return;
+    }
+    const rv = _verToInt(apk.version), lv = _verToInt(loc.version);
+    const rc = parseInt(apk.code, 10), lc = parseInt(loc.code, 10);
+    const codeOk = Number.isFinite(rc) && Number.isFinite(lc) && rc > 0 && lc > 0;
+    const latest = apk.version === loc.version ||
+      (codeOk ? rc <= lc : (rv > 0 && lv > 0 && rv <= lv));
+    if (latest) { if (manual) showToast('已是最新版本 ' + (loc.version || apk.version)); return; }
     showAppUpdateModal(apk, loc);
   } catch (e) { if (manual) showToast('检查失败，请稍后再试'); }
 }

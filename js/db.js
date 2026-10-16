@@ -84,17 +84,31 @@ function dbGet(store,key){
 }
 
 function dbPut(store,data){
-  // v3.7.2 性能：写操作同步维护内存缓存（若有），读侧无需立刻回库
-  const memo=_dbMemo[store];
-  if(memo&&memo.v){
-    const arr=memo.v;
-    const kid=(data&&data.id!==undefined)?data.id:(data&&data.key!==undefined?data.key:null);
-    if(kid!==null){
-      const i=arr.findIndex(x=>String(x&&(x.id!==undefined?x.id:x.key))===String(kid));
-      if(i>=0)arr[i]=data;else arr.push(data);
-    }else if(data){arr.push(data);}
-  }
-  return new Promise((res,rej)=>{const tx=DB.transaction(store,'readwrite');const st=tx.objectStore(store);const req=st.put(data);req.onsuccess=()=>res(req.result);req.onerror=()=>rej(req.error);});
+  /* P0-7(v3.27.6)：改为「落库成功后」再更新内存缓存。
+     原逻辑先改 _dbMemo 再写库 → 写库失败时缓存已是脏数据（TTL 内读脏）；
+     且无主键行直接 push（无 id/key）→ 渲染出 data-mid="undefined"。
+     现在：写成功后用 put() 返回的主键回填（自增键也写回 data 本体），
+     失败则缓存保持原样。 */
+  return new Promise((res,rej)=>{
+    const tx=DB.transaction(store,'readwrite');
+    const st=tx.objectStore(store);
+    const req=st.put(data);
+    req.onsuccess=()=>{
+      try{
+        const kp=st.keyPath;
+        if(kp&&data&&data[kp]===undefined&&req.result!==undefined)data[kp]=req.result;
+      }catch(e){}
+      const memo=_dbMemo[store];
+      if(memo&&memo.v&&data){
+        const arr=memo.v;
+        const kid=(data.id!==undefined)?data.id:(data.key!==undefined?data.key:req.result);
+        const i=arr.findIndex(x=>String(x&&(x.id!==undefined?x.id:x.key))===String(kid));
+        if(i>=0)arr[i]=data;else arr.push(data);
+      }
+      res(req.result);
+    };
+    req.onerror=()=>rej(req.error);
+  });
 }
 function dbGetAll(store){return new Promise((res,rej)=>{const tx=DB.transaction(store,'readonly');const req=tx.objectStore(store).getAll();req.onsuccess=()=>res(req.result||[]);req.onerror=()=>rej(req.error);});}
 

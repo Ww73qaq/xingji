@@ -140,6 +140,7 @@ async function replyMomentComment(momentId,commentIndex){
     '<div id="moment-reply-extra" style="font-size:11px;color:var(--hint);margin-top:6px"></div>';
   showModal('回复 '+(c.name||'评论'),body,
     '<div class="modal-btn-row single"><button class="modal-btn primary" type="button" onclick="sendMomentReply(\''+String(momentId)+'\','+commentIndex+')">发送</button></div>');
+  window._momentReplyOpen=true;   /* P1-25(v3.27.6)：回复弹窗开着 → 关闭时清残留 */
   setTimeout(()=>document.getElementById('comment-input')?.focus(),100);
 }
 async function sendMomentReply(momentId,commentIndex){
@@ -180,6 +181,7 @@ function useMomentReplyCard(id){
     const extra=document.getElementById('moment-reply-extra');
     const inp=document.getElementById('comment-input');
     window._momentReplyCardText=c.text||'';
+    window._momentReplyKeep=true;   /* P1-25(v3.27.6)：这次 closeModal 是选字卡中转，不清残留 */
     closeModal();
     const t=window._momentReplyTarget;
     if(t)replyMomentComment(t.momentId,t.commentIndex);
@@ -205,6 +207,12 @@ function openNotifCenter(){
 function goToNotif(nid){
   const n=(state.stats.notifCenter||[]).find(x=>x.id===nid);
   if(n){n.read=true;saveKey('stats');refreshAllBadges();}
+  /* P1-26(v3.27.6)：按 type 分流——来信通知进信箱（letterId 不再无人消费），其余进朋友圈 */
+  if(n&&n.type==='letter'){
+    if(typeof openApp==='function')openApp('mailbox');
+    else if(typeof switchTab==='function')switchTab('mailbox');
+    return;
+  }
   switchTab('moments');
   setTimeout(()=>{
     if(n&&n.momentId){
@@ -345,11 +353,14 @@ function pickMomentImages(){
 function removeMomentImg(i){momentDraftImgs.splice(i,1);const box=document.getElementById('moment-img-preview');const cnt=document.getElementById('moment-img-count');if(box)box.innerHTML=momentDraftImgs.map((u,idx)=>`<div style="position:relative;width:64px;height:64px;border-radius:8px;overflow:hidden;background:var(--input)"><img src="${u}" style="width:100%;height:100%;object-fit:cover"><span style="position:absolute;top:2px;right:2px;width:16px;height:16px;border-radius:50%;background:rgba(0,0,0,.6);color:#fff;font-size:10px;display:flex;align-items:center;justify-content:center;cursor:pointer" onclick="removeMomentImg(${idx})">×</span></div>`).join('');if(cnt)cnt.textContent=momentDraftImgs.length+' 张';}
 async function scheduleTaMomentInteraction(momentId){
   /* v3.27.5 mochi 式分层延迟：点赞快（10s~5min），评论慢（1~30min，像刷到了犹豫要不要说） */
-  setTimeout(async()=>{
+  /* P1-24(v3.27.6)：句柄登记进 _taMomentTimers（可统一清理）＋回调加隐藏判断——
+     隐藏动态后不再收到 TA 点赞/评论通知 */
+  window._taMomentTimers=window._taMomentTimers||[];
+  const t1=setTimeout(async()=>{
     if(taOutputBlocked())return;
     const ms=await dbGetAll('moments');
     const m=ms.find(x=>String(x.id)===String(momentId));
-    if(!m||m.owner!=='me')return;
+    if(!m||m.owner!=='me'||isHiddenMoment(m.id))return;
     if(momentOptOn('momentsAllowLike')&&Math.random()<0.8&&!m.taLiked){
       m.likes=(m.likes||0)+1;m.taLiked=true;
       await dbPut('moments',m);
@@ -358,11 +369,12 @@ async function scheduleTaMomentInteraction(momentId){
       if(state.currentApp==='moments')renderMoments();
     }
   },10000+Math.random()*290000);
-  setTimeout(async()=>{
+  window._taMomentTimers.push(t1);
+  const t2=setTimeout(async()=>{
     if(taOutputBlocked())return;
     const ms=await dbGetAll('moments');
     const m=ms.find(x=>String(x.id)===String(momentId));
-    if(!m||m.owner!=='me')return;
+    if(!m||m.owner!=='me'||isHiddenMoment(m.id))return;
     if(momentOptOn('momentsAllowComment')&&Math.random()<0.65){
       const cards=await dbGetAll('cards').catch(()=>[]);
       const picks=_momentPickTexts(cards.filter(c=>c.enabled!==false),1);
@@ -375,6 +387,7 @@ async function scheduleTaMomentInteraction(momentId){
       if(state.currentApp==='moments')renderMoments();
     }
   },60000+Math.random()*1740000);
+  window._taMomentTimers.push(t2);
 }
 async function saveMoment(){
   const content=(document.getElementById('moment-content')?.value||'').trim();
@@ -384,3 +397,22 @@ async function saveMoment(){
   if(state.currentApp==='moments')renderMoments();
   scheduleTaMomentInteraction(id);
 }
+
+/* P1-25(v3.27.6)：回复弹窗取消/关闭时清掉残留的字卡/表情——
+   原先 _momentReplyCardText/_momentReplySmile 会串到下一次回复 */
+(function(){
+  const _origClose=closeModal;
+  window.closeModal=function(){
+    try{
+      if(window._momentReplyKeep){window._momentReplyKeep=false;}
+      else if(window._momentReplyOpen){
+        window._momentReplyOpen=false;
+        window._momentReplyCardText='';
+        window._momentReplySmile=false;
+        const extra=document.getElementById('moment-reply-extra');
+        if(extra)extra.innerHTML='';
+      }
+    }catch(e){}
+    return _origClose.apply(this,arguments);
+  };
+})();

@@ -19,15 +19,19 @@ function _buildLetterReply(l){
    3) 禁言期间（TA 在整理意识 / TA 不想理你）→ 不写（不强行传达，符合设定）；
    4) 到点后 70% 概率写一封。
    主动信内容：从字卡库随机挑 1~4 张字卡（承载想说的意思）＋ 一段意识收束。 */
-const TA_LETTER_GAP_MIN=72*3600000;
-const TA_LETTER_GAP_MAX=72*3600000;
-const TA_LETTER_PROB=50;
+/* P1-20(v3.27.6)：常量对齐注释口径（12~36h / 70%）——原 72h/50% 与注释「12~36 小时随机 / 70% 概率」不符 */
+const TA_LETTER_GAP_MIN=12*3600000;
+const TA_LETTER_GAP_MAX=36*3600000;
+const TA_LETTER_PROB=70;
 function taLetterEnabled(){return (state.stats.taLetterEnabled===undefined)?true:!!state.stats.taLetterEnabled;}
 async function maybeTaLetter(){
   if(!taLetterEnabled())return;
   const last=Number(state.stats.taLetterLastAt)||0;
+  /* P1-20(v3.27.6)：last=0（新装/首跑）也做冷却处理——登记基线时间后本轮直接返回，
+     杜绝「新装用户首个心跳就有概率立刻收到主动来信」 */
+  if(!last){state.stats.taLetterLastAt=Date.now();saveKey('stats');return;}
   const gap=(TA_LETTER_GAP_MIN+Math.random()*(TA_LETTER_GAP_MAX-TA_LETTER_GAP_MIN))*proactiveGapScale();
-  if(last&&Date.now()-last<gap)return;
+  if(Date.now()-last<gap)return;
   if(taOutputBlocked())return;
   if(!_roll(TA_LETTER_PROB))return;
   return taSendLetter();
@@ -59,7 +63,7 @@ async function taSendLetter(){
   const rec=await dbPut('letters',{sender:'other',title:'',content,time:Date.now(),status:'received',read:false});
   state.stats.taLetterLastAt=Date.now();
   saveKey('stats');
-  updateTabBadge('chat',await countUnreadLetters());
+  refreshAllBadges();   /* P1-19(v3.27.6)：不再把聊天角标覆盖成「仅信件未读」，统一走全量刷新 */
   if(typeof pushNotif==='function')pushNotif({type:'letter',from:state.other.name,text:'写了一封信给你',letterId:rec});
   notifySystem(`${state.other.name} 写信给你`,content.slice(0,50),()=>openApp('mailbox'),'letters');
   if(navStack.length||document.getElementById('app-pages').classList.contains('on')){
@@ -93,7 +97,7 @@ async function processPendingReplies(){
     showToast('收到 '+replied+' 封新回信');
     if((state.notify||{}).letters!==false)notifySystem(`${state.other.name} 回信了`,'收到 '+replied+' 封新回信',()=>openApp('mailbox'));
   }
-  updateTabBadge('chat',await countUnreadLetters());
+  refreshAllBadges();   /* P1-19(v3.27.6)：不再把聊天角标覆盖成「仅信件未读」，统一走全量刷新 */
   return replied;
 }
 
@@ -112,7 +116,7 @@ function importLetters(){
       const arr=JSON.parse(txt);
       if(!Array.isArray(arr))throw new Error('格式错误');
       let n=0;
-      for(const l of arr){if(l&&l.content){await dbPut('letters',{sender:l.sender==='other'?'other':'me',content:l.content,time:Number(l.time)||Date.now(),status:l.status||'replied',read:true,replyAt:l.replyAt});n++;}}
+      for(const l of arr){if(l&&l.content){/* P2-1(v3.27.6)：保留 threadId/replyTo——否则导出再导入后往来会话被拆成独立信 */await dbPut('letters',{sender:l.sender==='other'?'other':'me',content:l.content,time:Number(l.time)||Date.now(),status:l.status||'replied',read:true,replyAt:l.replyAt,threadId:l.threadId||null,replyTo:l.replyTo||null});n++;}}
       showToast('已导入 '+n+' 封信件');renderMailbox();
     }catch(err){showToast('导入失败：文件格式不正确');}
   };

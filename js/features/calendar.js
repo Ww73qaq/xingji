@@ -552,7 +552,9 @@ function calDelTodoOnly(srcId,date){
 /* 删除整个周期（源记录+全部勾选状态） */
 function calDelTodoSeries(srcId){
   dbGetAll('calendar').then(async all=>{
-    const src=all.find(x=>x.id===srcId);
+    /* P0-6(v3.27.6)：srcId 可能是字符串 '12' 而记录 id 是数字 12，=== 永远 false
+       → 「删除整个周期」删不掉源记录。统一走 _calKey 归一化后再比。 */
+    const src=all.find(x=>String(x.id)===String(srcId));
     if(src)await dbDelete('calendar',_calKey(srcId));
     const m={};Object.assign(m,state.todoDoneByDay||{});
     Object.keys(m).forEach(k=>{if(String(k).indexOf(srcId+':')===0)delete m[k];});

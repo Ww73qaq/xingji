@@ -335,7 +335,7 @@ const STORES=['messages','letters','diaries','moments','cardGroups','cards','emo
 const STORE_LABELS={messages:'聊天记录',letters:'信件',diaries:'日记',moments:'朋友圈',cardGroups:'字卡分组',cards:'字卡',emojis:'表情包',pokeGroups:'拍一拍',calendar:'日历',events:'心念轨迹',books:'书架',settings:'设置'};
 /* 备份格式里的 schemaVersion，跟随 IndexedDB 的实际版本号（db.js 的 indexedDB.open('xingji',5)）。
    旧备份里写的是 3，导入侧不据此拦截，只作为信息记录。 */
-const SCHEMA_VERSION=5;
+const SCHEMA_VERSION=6;   /* P2-13(v3.27.6)：对齐 db.js 实际 v6（indexedDB.open('xingji',6)），备份自描述版本不再谎报 */
 const CALL_BG=[
   '大家都在吃饭吗','刚看到你的消息','忙完了吗','我这边下雨了',
   '在做什么呀','有点想听你说话','今天累不累','睡了吗'

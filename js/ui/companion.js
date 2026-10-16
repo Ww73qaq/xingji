@@ -75,8 +75,12 @@ function renderCompanionTiming(body){
       </div>
     </div>`;
 }
+let _cpPrevStatus=null;   /* P1-27(v3.27.6)：记录开始陪伴前的我的状态，结束时恢复 */
 function startCompanion(sc,minutes){
+  /* P1-27(v3.27.6)：开始前先结算旧会话——刷新残留的 companionStart 不结算就被覆盖，旧时长凭空丢失 */
+  settleCompanion();
   companionSession={scene:sc.id,endAt:Date.now()+minutes*60000,total:minutes*60000};
+  _cpPrevStatus=state.me.status||'';
   state.me.status=sc.name;saveKey('me');
   // v3.9.5：会话起点一律重新盖章——旧数据/刷新残留的 companionStart 不能再把空闲时间算进来
   state.stats.companionStart=Date.now();saveKey('stats');
@@ -87,7 +91,10 @@ function startCompanion(sc,minutes){
     if(!companionSession)return;
     if(Date.now()>=companionSession.endAt){
       clearInterval(companionTick);companionTick=null;
-      companionSession=null;settleCompanion();renderCompanion();
+      companionSession=null;settleCompanion();
+      /* P1-27(v3.27.6)：结束恢复原状态，不再把「一起学习」永久残留到「我的」页 */
+      if(_cpPrevStatus!==null){state.me.status=_cpPrevStatus;_cpPrevStatus=null;saveKey('me');}
+      renderCompanion();
       pushSys('陪伴时间到，这次陪得刚刚好');
       setTimeout(()=>pushReply('陪你到时间刚好，下次继续。'),2500);
       showToast('本次陪伴结束');
@@ -102,7 +109,9 @@ function startCompanion(sc,minutes){
 }
 function endCompanion(){
   if(companionTick)clearInterval(companionTick);companionTick=null;
-  companionSession=null;settleCompanion();renderCompanion();showToast('已结束陪伴');
+  companionSession=null;settleCompanion();
+  if(_cpPrevStatus!==null){state.me.status=_cpPrevStatus;_cpPrevStatus=null;saveKey('me');}   /* P1-27(v3.27.6) */
+  renderCompanion();showToast('已结束陪伴');
 }
 function enterCompanion(id){
   const sc=allCompanionScenes().find(x=>x.id===id);if(!sc)return;

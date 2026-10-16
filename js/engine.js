@@ -23,7 +23,7 @@ async function _getCardPool(){
 async function _getReplySourcePool(){
   const p=state.prob||{};
   const custom=await _getCardPool();
-  const ratio=_clamp(Number(p.customRatio)||90,0,100);
+  const ratio=_clamp(_numCfg(p.customRatio,90),0,100);
   if(custom.length&&Math.random()*100<ratio){
     return {cards:custom,kind:'custom'};
   }
@@ -117,6 +117,11 @@ const QA_REPLY_POOL=[
   '当然可以。','放心，没事的。','嗯嗯。','我觉得挺好。','那我们一起吧。'
 ];
 
+/* P1-2(v3.27.6)：概率/数值读取统一走这里。
+   原先 Number(x)||默认 会把合法的 0 顶回默认值，「设为 0 关掉」永远做不到
+   （对比 readIgnoreProb 已用 Number.isFinite，此处属遗漏补齐）。 */
+function _numCfg(v,def){const n=Number(v);return Number.isFinite(n)?n:def;}
+
 /* ---- 一个气泡的基础内容（字卡拼接 / 单卡 / 意图素材 / 系统池回退） ---- */
 async function _buildBaseBubbleText(src,roundUsed,usage,bubbleUsed,markUsed,intent){
   const p=state.prob||{};
@@ -124,7 +129,7 @@ async function _buildBaseBubbleText(src,roundUsed,usage,bubbleUsed,markUsed,inte
   let picked=[];
   /* v3.6.4 颜文字字卡独立概率：命中则本轮基础回复直接抽「颜文字」分组字卡（单张成条，不参与拼接），
      与「表情回应」emojiReplyProb 相互独立（后者是通用表情池，不占字卡）。 */
-  if(cards&&cards.length&&_roll(Number(p.emojiCardProb)||20)){
+  if(cards&&cards.length&&_roll(_numCfg(p.emojiCardProb,20))){
     const emo=cards.filter(c=>c.group==='颜文字');
     if(emo.length){
       const c=_pickBalanced(emo,new Set([...roundUsed,...bubbleUsed]));
@@ -136,10 +141,10 @@ async function _buildBaseBubbleText(src,roundUsed,usage,bubbleUsed,markUsed,inte
       }
     }
   }
-  const useConcat=p.cardConcatEnabled!==false&&_roll(Number(p.cardConcatProb)||35);
+  const useConcat=p.cardConcatEnabled!==false&&_roll(_numCfg(p.cardConcatProb,35));
   if(cards&&cards.length){
-    const min=_clamp(Number(p.minCardsPerBubble)||1,1,6);
-    const max=_clamp(Number(p.maxCardsPerBubble)||3,min,6);
+    const min=_clamp(_numCfg(p.minCardsPerBubble,1),1,6);
+    const max=_clamp(_numCfg(p.maxCardsPerBubble,3),min,6);
     const n=useConcat?_randomInt(min,max):1;
     for(let i=0;i<n;i++){
       const exclude=new Set([...roundUsed,...bubbleUsed]);
@@ -214,7 +219,7 @@ const INTENT_POOLS={
 async function buildReply(context){
   const p=state.prob||{};
   const src=await _getReplySourcePool();
-  const roundUsed=await _getRecentUsed(Number(p.repeatExclude)||5);
+  const roundUsed=await _getRecentUsed(_numCfg(p.repeatExclude,5));
   const usage={};
   const markUsed=(c,u)=>{u[c.id]=(u[c.id]||0)+1;};
   const intent=_detectIntent(context);
@@ -222,20 +227,23 @@ async function buildReply(context){
   const bubbles=[];
   // 多气泡回复：multiBubbleEnabled × 概率 → 1~maxBubbles 个独立气泡
   let bubbleCount=1;
-  if(p.multiBubbleEnabled!==false&&_roll(Number(p.multiBubbleProb)||30)){
-    bubbleCount=_randomInt(1,_clamp(Number(p.maxBubbles)||3,1,5));
+  if(p.multiBubbleEnabled!==false&&_roll(_numCfg(p.multiBubbleProb,30))){
+    bubbleCount=_randomInt(1,_clamp(_numCfg(p.maxBubbles,3),1,5));
   }
   let extraInteractions=0;
   const MAX_EXTRA=2;
 
   const latest=context.latestUserMsg||null;
   const isPollMsg=!!latest&&(latest.type==='poll'||latest.type==='survey')&&!!(latest.poll||latest.survey);
-  const shouldQuote=!!latest&&_roll(Number(p.quoteReplyProb)||20);
+  const shouldQuote=!!latest&&_roll(_numCfg(p.quoteReplyProb,20));
   // 题目必答：poll / survey 消息不走任何概率（用户已明确提交问题，TA 必须回答）
   const mustAnswer=isPollMsg;
-  const emojiRoll=_roll(Number(p.emojiReplyProb)||15);
-  const pokeRoll=_roll(Number(p.pokeReplyProb)||8);
-  const giftRoll=_roll(Number(p.giftReplyProb)||5);
+  /* P1-5(v3.27.6)：必答时强制单气泡——原逻辑多气泡掷骰在 mustAnswer 判定前已执行，
+     i>=1 仍走通用字卡池 → 答完题再跟 1~2 条随机字卡，与「答完题不顺带撩」注释冲突。 */
+  if(mustAnswer)bubbleCount=1;
+  const emojiRoll=_roll(_numCfg(p.emojiReplyProb,15));
+  const pokeRoll=_roll(_numCfg(p.pokeReplyProb,8));
+  const giftRoll=_roll(_numCfg(p.giftReplyProb,5));
 
   for(let i=0;i<bubbleCount;i++){
     const bubbleUsed=new Set();
@@ -345,7 +353,7 @@ async function makeTaQuote(){
   if(!items.length)return null;
   const it=items[Math.floor(Math.random()*items.length)];
   const tpl=TA_QUOTE_TEMPLATES[Math.floor(Math.random()*TA_QUOTE_TEMPLATES.length)];
-  return tpl.replace('{item}',it.name);
+  return tpl.replace('{item}',()=>it.name);   /* P2-10(v3.27.6)：传函数——用户文本含 $&/$' 时不再错乱 */
 }
 
 /* ---- 题目回答生成（单选 / 多选 / 问卷）
@@ -478,7 +486,7 @@ async function executeReply(job){
     if(unread.length&&state.currentApp==='chat'&&typeof refreshReadTicks==='function')refreshReadTicks();
   }
   const proactiveCount=job.source==='proactive'
-    ?_randomInt(_clamp(Number(p.proactiveCountMin)||1,1,5),_clamp(Number(p.proactiveCountMax)||2,1,5))
+    ?_randomInt(_clamp(_numCfg(p.proactiveCountMin,1),1,5),_clamp(_numCfg(p.proactiveCountMax,2),1,5))
     :1;
   // 上下文：优先「本轮任务对应的题目」，否则取最近一条我方消息
   const latestUserMsg=job.source==='proactive'?null:(pollTarget||(await _latestUserMsg()));
@@ -508,6 +516,10 @@ async function executeReply(job){
     return;
   }
   // 逐条发送（自然间隔 800~2400ms）
+  /* P1-1(v3.27.6)：发送前把气泡清单挂到 job 并持久化；每发一条更新 sentCount 断点。
+     发送中途被杀 → resumeScheduledJobs 依 _resumeSendingJob 从断点续发，不再整轮丢失。 */
+  job.pendingBubbles=totalBubbles;job.sentCount=0;
+  if(typeof _persistJob==='function')_persistJob();
   let lastSent=null;
   for(let i=0;i<totalBubbles.length;i++){
     const b=totalBubbles[i];
@@ -528,6 +540,8 @@ async function executeReply(job){
     if(state.currentApp==='chat')appendMsgRow(msg,true);
     updateTabBadge('chat',1);
     lastSent=msg;
+    job.sentCount=i+1;
+    if(typeof _persistJob==='function')_persistJob();
     // 题目/问卷：作答结果回写到那条消息上（气泡立刻变成「已作答」）
     if(b.answerOf)await _applyPollAnswer(b.answerOf);
   }
@@ -591,3 +605,30 @@ async function executeReply(job){
 window.buildReply=buildReply;
 window.executeReply=executeReply;
 window.buildAndSendReply=executeReply;   // 兼容旧调用名
+
+/* P1-1(v3.27.6)：发送中断点续发——resumeScheduledJobs 恢复到 status==='sending'
+   的持久化任务时调用：从 job.sentCount 起继续把剩余气泡发完，然后正常收尾。 */
+window._resumeSendingJob=async function(job){
+  try{
+    const bubbles=(job&&job.pendingBubbles)||[];
+    for(let i=Math.max(0,job.sentCount||0);i<bubbles.length;i++){
+      const b=bubbles[i];
+      if(taOutputBlocked())break;
+      if(i>0){await new Promise(r=>setTimeout(r,800+Math.random()*1600));}
+      const msg={
+        sender:'other',type:b.type,content:b.content,time:Date.now(),
+        read:false,quote:b.quote||null,isPoke:b.isPoke||false,
+        proactive:b.proactive||false,source:job.source||'passive',
+        replyRoundId:job.roundId,cardIds:b.cardIds||[]
+      };
+      msg.id=await dbPut('messages',msg);
+      _scheduler.lastTaReplyAt=Date.now();
+      if(state.currentApp==='chat')appendMsgRow(msg,true);
+      updateTabBadge('chat',1);
+      job.sentCount=i+1;
+      if(typeof _persistJob==='function')_persistJob();
+      if(b.answerOf)await _applyPollAnswer(b.answerOf);
+    }
+  }catch(e){console.warn('[engine] resume sending failed',e);}
+  if(typeof _finishJob==='function')_finishJob();
+};

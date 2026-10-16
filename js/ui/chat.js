@@ -82,8 +82,8 @@ function bubbleInnerHtml(m){
     case 'image':{
       const imgs=(m.images&&m.images.length)?m.images:[m.content];
       const n=imgs.length;
-      if(n===1)return q+`<div class="msg-bubble img"><img class="msg-img msg-img-1" src="${imgs[0]}" onclick="openImageViewer(this,'${esc(msgPreviewText(m))}',0)"></div>`;
-      return q+`<div class="msg-bubble img"><div class="msg-img-grid">${imgs.slice(0,9).map((u,i)=>`<img class="msg-img" src="${u}" onclick="openImageViewer(this,'',${i})">`).join('')}</div></div>`;
+      if(n===1)return q+`<div class="msg-bubble img"><img class="msg-img msg-img-1" src="${esc(imgs[0])}" onclick="openImageViewer(this,'${esc(msgPreviewText(m))}',0)"></div>`;
+      return q+`<div class="msg-bubble img"><div class="msg-img-grid">${imgs.slice(0,9).map((u,i)=>`<img class="msg-img" src="${esc(u)}" onclick="openImageViewer(this,'',${i})">`).join('')}</div></div>`;
     }
     case 'voice':{
       const sec=m.sec||2,w=Math.min(160,60+sec*4);
@@ -292,7 +292,7 @@ let chatPageSize=100;   // 聊天窗口化：默认只渲染最近 100 条，历
 let chatJumpTimer=null;   // v3.9.5：跳转定位的 1 秒重定位定时器（新跳转先取消旧的，避免两次跳转互相拉扯）
 async function renderChat(scrollBottom){
   const el=document.getElementById('chat-content');if(!el)return;
-  const msgs=(await dbGetAll('messages')).filter(m=>!m.deleted).sort((a,b)=>a.time-b.time);
+  const msgs=(await dbGetAll('messages')).filter(m=>!m.deleted).sort((a,b)=>(a.time-b.time)||((a.id||0)-(b.id||0)));   /* P1-17(v3.27.6)：同毫秒消息加 id 次级键，保证全量渲染与增量 append 顺序一致 */
   const oldH=el.scrollHeight,oldTop=el.scrollTop;
   const keep=el.scrollTop+el.clientHeight>=el.scrollHeight-60;
   const stick=(scrollBottom===true)||keep||chatFirstPaint;
@@ -339,13 +339,15 @@ async function renderChat(scrollBottom){
 }
 /* 长按 / 右键 → 消息操作面板 */
 function bindMsgGestures(row,m){
-  let timer=null,moved=false,sx=0,sy=0;
+  let timer=null,moved=false,sx=0,sy=0,supClick=false;
   const start=e=>{
     if(m.sender==='sys')return;
     moved=false;
     const p=e.touches?e.touches[0]:e;
     sx=p.clientX;sy=p.clientY;
-    timer=setTimeout(()=>{timer=null;haptic();openCtxMenu(m.id,e);},480);
+    /* P1-10(v3.27.6)：长按打开菜单后抑制紧随的一次 click——
+       否则长按语音会同时播放语音、长按图片会同时打开查看器 */
+    timer=setTimeout(()=>{timer=null;haptic();supClick=true;openCtxMenu(m.id,e);},480);
   };
   const move=e=>{
     const p=e.touches?e.touches[0]:e;
@@ -357,6 +359,7 @@ function bindMsgGestures(row,m){
   row.addEventListener('pointerup',end);
   row.addEventListener('pointercancel',end);
   row.addEventListener('pointerleave',end);
+  row.addEventListener('click',e=>{if(supClick){supClick=false;e.stopPropagation();e.preventDefault();}},true);
   row.addEventListener('contextmenu',e=>{e.preventDefault();if(m.sender!=='sys')openCtxMenu(m.id,e);});
 }
 /* =========================================================
@@ -380,7 +383,8 @@ async function openCtxMenu(id,ev){
 
   const items=[];
   if(m.type==='text'||m.type==='poll'||m.type==='survey')items.push({key:'copy',label:'复制',fn:()=>copyMsg(m)});
-  items.push({key:'quote',label:'引用',fn:()=>startQuote(m)});
+  /* P1-13(v3.27.6)：尊重「允许引用」开关——原先 state.chat.showQuote 从不被引用逻辑读取，开关是死的 */
+  if(state.chat.showQuote!==0)items.push({key:'quote',label:'引用',fn:()=>startQuote(m)});
   items.push({key:'fav',label:m.fav?'取消收藏':'收藏',fn:()=>toggleFav(m)});
   if((m.type==='poll'||m.type==='survey')&&isMe)items.push({key:'edit',label:'修改并重发',fn:()=>editPollAndResend(m)});
   if(canRecall)items.push({key:'recall',label:'撤回',fn:()=>recallMsg(m)});
@@ -421,7 +425,7 @@ function startQuote(m){
   const bar=document.getElementById('quote-input');
   document.getElementById('quote-input-text').innerHTML=`<b>${esc(who(m.sender))}：</b>${esc(quoteTarget.text)}`;
   bar.classList.add('show');
-  closeEmojiPanel();
+  closeAllInputPanels('quote');   /* P1-15：统一互斥 */
   const inp=document.getElementById('chat-input');inp.focus();
   if(window.innerWidth<520)setTimeout(()=>inp.scrollIntoView({block:'nearest'}),60);
 }
@@ -441,7 +445,9 @@ async function deleteMsg(m){
   });
 }
 async function recallMsg(m){
-  m.recalled=1;m.content='';m.images=null;m.sec=0;await dbPut('messages',m);
+  /* P1-18(v3.27.6)：撤回时清掉 m.audio——真实录音残留库中会随备份导出，
+     与「撤回即不可见」不符 */
+  m.recalled=1;m.content='';m.images=null;m.audio=null;m.sec=0;await dbPut('messages',m);
   await dbPut('messages',{sender:'sys',type:'text',content:'你撤回了一条消息',time:Date.now()+1,action:'reedit',ref:{id:m.id,text:msgPreviewText(m)}});
   renderChat();showToast('已撤回');
 }
@@ -556,12 +562,28 @@ function isAppVisible(){return navStack[navStack.length-1]==='chat'&&!document.h
 /* 语音：按住说话（真实 MediaRecorder 录音，不可用时回退到合成音） */
 let voiceMode=false,recording=false,recordStart=0,mediaRec=null,mediaStream=null,mediaChunks=[],recTimer=null;
 function toggleVoiceMode(){
+  /* P1-9(v3.27.6)：录音中切走必须先结束录音——原逻辑只切 UI，
+     recording 仍 true、mediaRec 继续采集，麦克风在「已退出语音」后仍在录 */
+  if(recording){finishVoiceRecord(document.getElementById('talk-btn'));return;}
   voiceMode=!voiceMode;
   const input=document.getElementById('chat-input'),talk=document.getElementById('talk-btn'),btn=document.getElementById('btn-voice');
   if(input){input.style.display=voiceMode?'none':'';if(voiceMode)input.blur();}
   if(talk)talk.classList.toggle('show',voiceMode);
   if(btn)btn.innerHTML=voiceMode?'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="6" width="12" height="12" rx="2"/><path d="M10 9l4 6M14 9l-4 6"/></svg>':'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a4 4 0 0 1 4 4v5a4 4 0 0 1-8 0V7a4 4 0 0 1 4-4Z"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg>';
-  if(voiceMode)closeEmojiPanel();
+  if(voiceMode)closeAllInputPanels('voice');
+}
+/* P1-15(v3.27.6)：输入区三类面板（表情 / 「+」/ 引用条）统一互斥关闭。
+   原先两两互斥各写各的、有遗漏，可同时展开互相遮挡。 */
+function closeAllInputPanels(except){
+  if(except!=='emoji'&&typeof closeEmojiPanel==='function')closeEmojiPanel();
+  if(except!=='more'){
+    const more=document.getElementById('more-panel');
+    if(more&&more.classList.contains('show')){
+      more.classList.remove('show');
+      const b=document.getElementById('btn-plus');if(b)b.classList.remove('off');
+    }
+  }
+  if(except!=='quote'&&quoteTarget)cancelQuoteInput();
 }
 let voiceRecTick=null;
 function initVoiceTalk(){
@@ -648,7 +670,7 @@ function stopRealRecord(){
     try{rec.stop();}catch(e){res(null);}
   });
 }
-let voiceAudioCtx=null,voicePlayingId=null,voiceAudioEl=null;
+let voiceAudioCtx=null,voicePlayingId=null,voiceAudioEl=null,simVoiceSrc=null;
 function playSimVoice(sec){
   try{
     if(!voiceAudioCtx)voiceAudioCtx=new (window.AudioContext||window.webkitAudioContext)();
@@ -662,7 +684,10 @@ function playSimVoice(sec){
     const src=ctx.createBufferSource();src.buffer=buf;
     const g=ctx.createGain();g.gain.value=0.22;
     src.connect(g);g.connect(ctx.destination);src.start();
-    setTimeout(()=>{try{src.stop();}catch(e){}},dur*1000);
+    /* P1-16(v3.27.6)：模拟音源登记到 simVoiceSrc，统一由 stopVoiceAudio 管理——
+       原先无法停止、快速点两条会叠加播放 */
+    simVoiceSrc=src;
+    setTimeout(()=>{try{if(simVoiceSrc===src)simVoiceSrc=null;src.stop();}catch(e){}},dur*1000);
   }catch(e){}
 }
 async function playVoiceMsg(id,sec,isMe){
@@ -671,7 +696,15 @@ async function playVoiceMsg(id,sec,isMe){
   voicePlayingId=id;
   const icon=document.getElementById('vicon-'+id);if(icon)icon.classList.add('playing');
   const msgs=await dbGetAll('messages');const m=msgs.find(x=>x.id===id);
+  /* P1-16(v3.27.6)：await 后校验仍是当前播放对象——快速连点两条时不串台 */
+  if(voicePlayingId!==id){if(icon)icon.classList.remove('playing');return;}
   if(isMe===false&&m){m.unread=0;await dbPut('messages',m);}   // v3.9.5：播放期间这条被删掉时 m 为 undefined，直接读 m.unread 会抛错、async 静默 reject，红点/播放态再也清不掉
+  /* P1-11(v3.27.6)：播放即刷新该行——语音未读红点立刻消失，不等下次全量渲染 */
+  if(isMe===false){
+    const row=document.querySelector(`.msg-row[data-mid="${id}"]`);
+    const dot=row&&row.querySelector('.voice-unread');
+    if(dot)dot.remove();
+  }
   if(m&&m.audio){
     stopVoiceAudio();
     voiceAudioEl=new Audio(m.audio);
@@ -680,7 +713,10 @@ async function playVoiceMsg(id,sec,isMe){
   }else playSimVoice(sec||2);
   setTimeout(()=>{if(voicePlayingId===id){voicePlayingId=null;if(icon)icon.classList.remove('playing');}},Math.max(800,(sec||2)*1000+300));
 }
-function stopVoiceAudio(){if(voiceAudioEl){try{voiceAudioEl.pause();}catch(e){}voiceAudioEl=null;}}
+function stopVoiceAudio(){
+  if(voiceAudioEl){try{voiceAudioEl.pause();}catch(e){}voiceAudioEl=null;}
+  if(simVoiceSrc){try{simVoiceSrc.stop();}catch(e){}simVoiceSrc=null;}   /* P1-16 */
+}
 function appendEmojiPlus(body,fn){
   const d=document.createElement('div');
   d.className='emoji-item';d.style.border='1.5px dashed #d0d0cd';d.style.background='#fafafa';d.style.fontSize='20px';d.style.color='#b5b5b0';
@@ -731,9 +767,12 @@ function renderEmojiPanel(){
   }
   if(emojiTab==='sticker'){
     dbGetAll('emojis').then(list=>{
+      /* P1-14(v3.27.6)：异步回调必须校验当前 tab——快速切 tab/关面板后，
+         表情包格子会串进表情网格 */
+      if(!emojiOpen||emojiTab!=='sticker')return;
       if(!list.length){body.innerHTML='<div class="emoji-empty">还没有表情包<br>去「表情」页面上传</div>';return;}
       list.forEach(e=>{const d=document.createElement('div');d.className='sticker-cell';d.title=e.name||'';
-        if(e.src)d.innerHTML=`<img src="${e.src}" alt="">`;else d.innerHTML=`<span class="stk-fallback">${esc((e.name||'?').slice(0,1))}</span>`;
+        if(e.src)d.innerHTML=`<img src="${esc(e.src)}" alt="">`;else d.innerHTML=`<span class="stk-fallback">${esc((e.name||'?').slice(0,1))}</span>`;
         d.onclick=()=>sendMessageObject({type:'image',images:[e.src],content:e.src,sticker:1});
         body.appendChild(d);});
     });
@@ -788,9 +827,8 @@ function chatPickImage(multi){
 /* 聊天内「+」面板：从输入区向下展开（only 相册/视频通话/礼物/单选/多选/问卷） */
 function showPlusMenu(){
   const more=document.getElementById('more-panel');
-  const emojiP=document.getElementById('emoji-panel');
   if(!more)return;
-  if(emojiP&&emojiP.classList.contains('show')){closeEmojiPanel();}
+  closeAllInputPanels('more');   /* P1-15：统一互斥 */
   const open=more.classList.contains('show');
   more.classList.toggle('show',!open);
   document.getElementById('btn-plus').classList.toggle('off',!open);
@@ -942,7 +980,9 @@ async function pushReply(text){
   if(typeof touchInteract==='function')touchInteract();   // v3.6.0：TA 回复 → 连接频率上升
   msg.id=await dbPut('messages',msg);
   // 增量追加：不在聊天页时才弹 Toast + 角标 + 系统通知
-  if(isAppVisible())appendMsgRow(msg,true);
+  /* P1-12(v3.27.6)：stick=false——用户上翻看历史时被强拉到底、丢失阅读位置；
+     是否贴底交给 appendMsgRow 内部的 atBottom 判断 */
+  if(isAppVisible())appendMsgRow(msg,false);
   else{showToast(`${state.other.name}：${text}`);updateTabBadge('chat',1);notifySystem(`${state.other.name} 发来消息`,text,()=>openApp('chat'));}
 }
 /* 单条消息原地重绘（题目被作答后刷新气泡，不整屏重绘） */
@@ -1012,7 +1052,7 @@ function renderChatSearch(){
   const input=document.getElementById('chat-search-input');
   const q=(input?input.value:'').trim();
   dbGetAll('messages').then(all=>{
-    let list=all.filter(m=>!m.recalled).sort((a,b)=>b.time-a.time);
+    let list=all.filter(m=>!m.recalled).sort((a,b)=>(b.time-a.time)||((b.id||0)-(a.id||0)));
     if(!q)list=list.filter(m=>m.sender==='other');   // 索引：只有 TA 的信息
     if(q)list=list.filter(m=>m.sender==='other'&&(msgPreviewText(m).toLowerCase().includes(q.toLowerCase())||(m.content||'').toLowerCase().includes(q.toLowerCase())));
     const dates=[...new Set(list.map(m=>fmtChatDate(m.time)))];
@@ -1037,7 +1077,7 @@ function onChatSearch(q){
   if(!q){renderChatSearch();return;}
   dbGetAll('messages').then(all=>{
     // 搜索结果只来自 TA（§56）
-    const list=all.filter(m=>m.sender==='other'&&!m.recalled&&msgPreviewText(m).toLowerCase().includes(q.toLowerCase())).sort((a,b)=>b.time-a.time);
+    const list=all.filter(m=>m.sender==='other'&&!m.recalled&&msgPreviewText(m).toLowerCase().includes(q.toLowerCase())).sort((a,b)=>(b.time-a.time)||((b.id||0)-(a.id||0)));
     if(!list.length){box.innerHTML='<div class="empty">没有找到 TA 的相关消息</div>';return;}
     box.innerHTML=`<div class="cs-group"><div class="cs-item" style="cursor:default"><span class="cs-ico"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg></span><span class="cs-label">${list.length} 条结果</span></div></div>`
       +list.map(m=>{

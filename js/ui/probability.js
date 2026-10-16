@@ -109,6 +109,7 @@ function resetProb(){
   setReplyPace('natural');
   setProactiveFreqTier('occasional');
   setCardRatioTier('mine');
+  setCallHangupTier('natural');   /* P2-2(v3.27.6)：补上「通话节奏」档复位——原先点恢复默认该项不变 */
   state.surveySettings={deadlineSec:60,earlySubmitProb:30,multiMin:1,multiMax:6};
   saveKey('prob');saveKey('surveySettings');renderProbability();scheduleProactive();showToast('已恢复默认');
 }
