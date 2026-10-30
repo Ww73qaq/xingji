@@ -617,3 +617,28 @@ html[data-theme="amethyst"] .xj-music-btn{background:rgba(255,255,255,.38)}
   border-radius:9px;padding:5px 10px;font-size:12px;cursor:pointer;letter-spacing:0}
 .dv-mini:active{transform:scale(.97)}
 .dv-mini.danger{color:var(--danger);border-color:var(--line)}
+
+/* ===== 4.0：桌面分页 =====
+   .widget-area 固定不动，.desk-pages 横向 scroll-snap 分页，圆点跟随。 */
+.desk-dots{position:absolute;left:0;right:0;bottom:calc(var(--tabbar-h) + var(--sab) + 24px);
+  display:flex;justify-content:center;align-items:center;gap:7px;z-index:21;pointer-events:none}
+.desk-dots i{display:block;width:6px;height:6px;border-radius:50%;
+  background:rgba(38,32,28,.22);opacity:1;transition:width .22s var(--ease),background .22s var(--ease)}
+[data-theme="amethyst"] .desk-dots i{background:rgba(107,88,123,.24)}
+.desk-dots i.on{width:16px;border-radius:3px;background:var(--signal-on);opacity:1}
+
+/* 第 2 页应用网格：从第一排第一格开始排，整体靠上，不要被拉到底部 */
+#app-grid2{align-content:start;flex:0 0 auto;padding-top:24px}
+#app-grid2 .app-label{min-height:14px}
+
+/* ===== 4.0：寻踪（TA 此刻的动静，只读展示） ===== */
+.xz-card{border:1px solid var(--line);border-radius:15px;background:var(--accent-softer);padding:4px 14px}
+.xz-row{display:flex;gap:12px;align-items:baseline;padding:11px 0;border-top:1px solid var(--line)}
+.xz-row:first-child{border-top:0}
+.xz-k{font-size:11px;color:var(--hint);letter-spacing:.14em;flex-shrink:0;width:34px}
+.xz-v{font-size:14px;color:var(--text);line-height:1.65;word-break:break-word}
+.xz-say{margin-top:12px;padding:13px 14px;border-radius:15px;
+  border:1px solid var(--line);background:var(--glass-strong)}
+.xz-say-label{font-size:11px;color:var(--hint);letter-spacing:.1em}
+.xz-say-text{margin-top:6px;font-size:15px;color:var(--text);line-height:1.75;word-break:break-word}
+.xz-hint{margin-top:10px;font-size:11px;color:var(--hint);line-height:1.7}

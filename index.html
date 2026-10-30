@@ -27,9 +27,9 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'%3E%3Crect width='180' height='180' rx='40' fill='%23f7f6f3'/%3E%3Ctext x='90' y='122' font-size='96' text-anchor='middle' fill='%231a1a1a' font-family='serif'%3E%E2%97%86%3C/text%3E%3C/svg%3E">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23f7f6f3'/%3E%3Ctext x='32' y='45' font-size='34' text-anchor='middle' fill='%231a1a1a' font-family='serif'%3E%E2%97%86%3C/text%3E%3C/svg%3E">
-<link rel="stylesheet" href="js/vendor/fonts/lxgw-wenkai-regular.css?v=3.28.5">
-<link rel="stylesheet" href="css/styles.css?v=3.28.5">
-<link rel="stylesheet" href="css/polish.css?v=3.28.5">
+<link rel="stylesheet" href="js/vendor/fonts/lxgw-wenkai-regular.css?v=3.28.6">
+<link rel="stylesheet" href="css/styles.css?v=3.28.6">
+<link rel="stylesheet" href="css/polish.css?v=3.28.6">
 </head>
 <body>
 <div id="phone">
@@ -123,7 +123,19 @@
     <div class="app-item" onclick="openApp('trace')"><div class="app-icon" style="background:#c99a7a"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V10M10 20V4M16 20v-8M22 20H2"/></svg></div><div class="app-label">轨迹</div></div>
   </div>
   </div><!-- /desk-page 1 -->
+
+  <!-- 第2页：两排四列，从第一排第一格开始放「独立」功能（占卜/问TA 这类聊天附加功能不放桌面） -->
+  <div class="desk-page">
+    <div class="app-grid" id="app-grid2">
+      <div class="app-item" onclick="openMusicPanel()"><div class="app-icon" style="background:#8d7a63"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V6l10-2v12"/><circle cx="6.5" cy="18" r="2.5"/><circle cx="16.5" cy="16" r="2.5"/></svg></div><div class="app-label">音乐</div></div>
+      <div class="app-item" onclick="openXunzong()"><div class="app-icon" style="background:#8fa39b"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="6.4"/><path d="m20 20-4.3-4.3"/><path d="M8.6 11.2c.9 0 1.6-.7 1.6-1.6"/></svg></div><div class="app-label">寻踪</div></div>
+      <!-- 此间 / 五子棋 / 互动回应 落地后按 第一排第3格起 依次填入 -->
+    </div>
+  </div><!-- /desk-page 2 -->
   </div><!-- /desk-pages -->
+
+  <!-- 桌面分页圆点（两页；由 syncDeskDots 跟随滑动更新） -->
+  <div class="desk-dots" id="desk-dots" aria-hidden="true"><i class="on"></i><i></i></div>
   <!-- 手机底部标签栏（4 个一级入口，与网格互斥） -->
   <div class="tabbar" id="tabbar">
     <div class="tab-item" data-tab="chat" onclick="switchTab('chat')"><span class="tab-ico" data-ico="chat"></span><span class="tab-name">聊天</span><span class="badge" id="tab-badge-chat" style="display:none">0</span></div>
@@ -425,46 +437,47 @@
 
 </div>
 
-<script src="js/config.js?v=3.28.5"></script>
-<script src="js/utils.js?v=3.28.5"></script>
-<script src="js/db.js?v=3.28.5"></script>
-<script src="js/state.js?v=3.28.5"></script>
-<script src="js/modal.js?v=3.28.5"></script>
-<script src="js/nav.js?v=3.28.5"></script>
-<script src="js/features/theme-editor.js?v=3.28.5"></script>
-<script src="js/home.js?v=3.28.5"></script>
-<script src="js/ui/lock.js?v=3.28.5"></script>
-<script src="js/ui/version.js?v=3.28.5"></script>
-<script src="js/app-update.js?v=3.28.5"></script>
-<script src="js/app-notify.js?v=3.28.5"></script>
-<script src="js/ui/action-bar.js?v=3.28.5"></script>
-<script src="js/ui/chat.js?v=3.28.5"></script>
-<script src="js/features/poll.js?v=3.28.5"></script>
-<script src="js/features/call.js?v=3.28.5"></script>
-<script src="js/features/selector.js?v=3.28.5"></script>
-<script src="js/features/divination.js?v=3.28.5"></script>
-<script src="js/ui/moments.js?v=3.28.5"></script>
-<script src="js/ui/mailbox.js?v=3.28.5"></script>
-<script src="js/features/envelope.js?v=3.28.5"></script>
-<script src="js/ui/diary.js?v=3.28.5"></script>
-<script src="js/ui/profile.js?v=3.28.5"></script>
-<script src="js/features/mood.js?v=3.28.5"></script>
-<script src="js/features/stickers.js?v=3.28.5"></script>
-<script src="js/ui/memory.js?v=3.28.5"></script>
+<script src="js/config.js?v=3.28.6"></script>
+<script src="js/utils.js?v=3.28.6"></script>
+<script src="js/db.js?v=3.28.6"></script>
+<script src="js/state.js?v=3.28.6"></script>
+<script src="js/modal.js?v=3.28.6"></script>
+<script src="js/nav.js?v=3.28.6"></script>
+<script src="js/features/theme-editor.js?v=3.28.6"></script>
+<script src="js/home.js?v=3.28.6"></script>
+<script src="js/ui/lock.js?v=3.28.6"></script>
+<script src="js/ui/version.js?v=3.28.6"></script>
+<script src="js/app-update.js?v=3.28.6"></script>
+<script src="js/app-notify.js?v=3.28.6"></script>
+<script src="js/ui/action-bar.js?v=3.28.6"></script>
+<script src="js/ui/chat.js?v=3.28.6"></script>
+<script src="js/features/poll.js?v=3.28.6"></script>
+<script src="js/features/call.js?v=3.28.6"></script>
+<script src="js/features/selector.js?v=3.28.6"></script>
+<script src="js/features/divination.js?v=3.28.6"></script>
+<script src="js/features/whereabouts.js?v=3.28.6"></script>
+<script src="js/ui/moments.js?v=3.28.6"></script>
+<script src="js/ui/mailbox.js?v=3.28.6"></script>
+<script src="js/features/envelope.js?v=3.28.6"></script>
+<script src="js/ui/diary.js?v=3.28.6"></script>
+<script src="js/ui/profile.js?v=3.28.6"></script>
+<script src="js/features/mood.js?v=3.28.6"></script>
+<script src="js/features/stickers.js?v=3.28.6"></script>
+<script src="js/ui/memory.js?v=3.28.6"></script>
 <!-- PDF.js 3.11.174（自托管经典 UMD 全局 pdfjsLib；defer=解析不阻塞、解析完成后才执行，因此 books.js 顶部不能再配置 workerSrc，改由 books.js 的 bkPdfWorkerSrc() 在使用前设置；worker 自托管于 js/vendor/pdf.worker.min.js） -->
 <script defer src="js/vendor/pdf.min.js"></script>
-<script src="js/features/books.js?v=3.28.5"></script>
-<script src="js/ui/companion.js?v=3.28.5"></script>
-<script src="js/ui/probability.js?v=3.28.5"></script>
-<script src="js/features/reply-library.js?v=3.28.5"></script>
-<script src="js/features/calendar.js?v=3.28.5"></script>
-<script src="js/features/group-chat.js?v=3.28.5"></script>
-<script src="js/ui/room.js?v=3.28.5"></script>
-<script src="js/ui/trace.js?v=3.28.5"></script>
-<script src="js/data/backup.js?v=3.28.5"></script>
-<script src="js/scheduler.js?v=3.28.5"></script>
-<script src="js/engine.js?v=3.28.5"></script>
-<script src="js/app.js?v=3.28.5"></script>
-<script src="js/features/music-player.js?v=3.28.5"></script>
+<script src="js/features/books.js?v=3.28.6"></script>
+<script src="js/ui/companion.js?v=3.28.6"></script>
+<script src="js/ui/probability.js?v=3.28.6"></script>
+<script src="js/features/reply-library.js?v=3.28.6"></script>
+<script src="js/features/calendar.js?v=3.28.6"></script>
+<script src="js/features/group-chat.js?v=3.28.6"></script>
+<script src="js/ui/room.js?v=3.28.6"></script>
+<script src="js/ui/trace.js?v=3.28.6"></script>
+<script src="js/data/backup.js?v=3.28.6"></script>
+<script src="js/scheduler.js?v=3.28.6"></script>
+<script src="js/engine.js?v=3.28.6"></script>
+<script src="js/app.js?v=3.28.6"></script>
+<script src="js/features/music-player.js?v=3.28.6"></script>
 </body>
 </html>

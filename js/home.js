@@ -427,3 +427,28 @@ function paintTabIcons(){
     if(LINE_ICONS[k]&&!el.firstChild)el.innerHTML=LINE_ICONS[k];
   });
 }
+
+/* =========================================================
+   4.0 · 桌面分页
+   —— 头像/名字/状态/签名（.widget-area）固定不动；
+      下面的 .desk-pages 横向滑动分页（scroll-snap），底部圆点跟随。
+   —— 第 1 页：便签 + 心跳轨迹 + 应用网格；第 2 页：两排四列的应用位（当前为音乐）。
+   ========================================================= */
+function syncDeskDots(){
+  const wrap=document.getElementById('desk-pages');if(!wrap)return;
+  const dots=document.getElementById('desk-dots');if(!dots)return;
+  const w=wrap.clientWidth||1;
+  const idx=Math.max(0,Math.min(dots.children.length-1,Math.round(wrap.scrollLeft/w)));
+  [...dots.children].forEach((d,k)=>d.classList.toggle('on',k===idx));
+}
+function initDeskPaging(){
+  const wrap=document.getElementById('desk-pages');
+  if(!wrap||wrap.dataset.paged==='1')return;
+  wrap.dataset.paged='1';
+  let t=null;
+  /* 滑动结束才更新圆点，避免滚动中频繁重排 */
+  wrap.addEventListener('scroll',()=>{clearTimeout(t);t=setTimeout(syncDeskDots,80);},{passive:true});
+  window.addEventListener('resize',()=>{clearTimeout(t);t=setTimeout(syncDeskDots,120);});
+  syncDeskDots();
+}
+

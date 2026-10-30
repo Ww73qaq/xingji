@@ -175,6 +175,20 @@
     syncVisibility();
   }
   window.setMusicPlayerVisible=setMusicPlayerVisible;
+  /* 4.0：桌面第 2 页的「音乐」图标入口——
+     播放器没开就先打开开关，再把播放列表面板展开（不是只显隐）。 */
+  window.openMusicPanel=function(){
+    if(typeof state!=='undefined'&&state&&state.musicOn!==true){
+      state.musicOn=true;
+      if(typeof saveKey==='function')saveKey('musicOn');
+    }
+    syncVisibility();
+    if(!root||!panel)return;
+    if(open){render();return;}
+    open=true;root.classList.add('open');
+    if(typeof placePanel==='function')placePanel();
+    render();
+  };
   function init(){
     phone=document.getElementById('phone');if(!phone||document.getElementById('xj-music'))return;
     root=document.createElement('section');root.id='xj-music';root.className='xj-music';root.setAttribute('aria-label','全局音乐播放器');root.innerHTML=template();

@@ -62,6 +62,7 @@ function enterSpace(){
   history.replaceState({d:1},'');
   history.pushState({d:1},'');
   updateHome();
+  if(typeof initDeskPaging==='function')initDeskPaging();
   updateTabBar();
   refreshAllBadges();
   startProactive();
