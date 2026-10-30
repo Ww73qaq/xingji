@@ -83,13 +83,13 @@ async function renderHomeTraceWidget(){
   // 红心（心里是我和他首字母）：沿各自折线从原点「电流式」传输到最后一个有值点，到达后持续心跳
   const lastIdx=arr=>{for(let i=arr.length-1;i>=0;i--)if(arr[i]>0)return i;return -1;};
   const subPath=(arr,last)=>{let s='M'+x(0).toFixed(1)+','+y(arr[0]).toFixed(1);for(let i=1;i<=last;i++)s+=' L'+x(i).toFixed(1)+','+y(arr[i]).toFixed(1);return s;};
-  const heart=(ch,pathStr)=>`<g class="tw-heart" style="offset-path:path('${pathStr}')"><path d="M0 2.2 C-2.8 -0.6 -5.4 -2.6 -5.4 -5 C-5.4 -6.9 -3.4 -7.8 -1.7 -7.1 C-0.8 -6.7 0 -5.8 0 -5.1 C0 -5.8 0.8 -6.7 1.7 -7.1 C3.4 -7.8 5.4 -6.9 5.4 -5 C5.4 -2.6 2.8 -0.6 0 2.2 Z" fill="#e05c5c" stroke="#fff" stroke-width="0.4"/><text x="0" y="1.4" text-anchor="middle" font-size="3.8" fill="#fff" font-weight="700">${esc(ch)}</text></g>`;
+  const heart=(pathStr,isTa)=>`<g class="tw-heart${isTa?' tw-ta':''}" style="offset-path:path('${pathStr}')"><circle class="tw-point-halo" cx="0" cy="0" r="7"/><circle class="tw-point-core" cx="0" cy="0" r="3.2"/></g>`;
   const total=meB.reduce((a,b)=>a+b,0)+taB.reduce((a,b)=>a+b,0);
   if(total>0){
-    out+=mkLine(meL,'#54c0a6')+mkLine(taL,'#f0a485');
+    out+=mkLine(meL,'var(--track-me)')+mkLine(taL,'var(--track-ta)');
     const mi=lastIdx(meL),ti=lastIdx(taL);
-    if(mi>=0)out+=heart((state.me.name||'我').slice(0,1),subPath(meL,mi));
-    if(ti>=0)out+=heart((state.other.name||'TA').slice(0,1),subPath(taL,ti));
+    if(mi>=0)out+=heart(subPath(meL,mi),false);
+    if(ti>=0)out+=heart(subPath(taL,ti),true);
   }
   else out+=`<line x1="${PADL}" y1="${(PADT+ih/2).toFixed(1)}" x2="${W-PADR}" y2="${(PADT+ih/2).toFixed(1)}" stroke="var(--hint)" stroke-width="1" opacity=".35"/>`;
   g.innerHTML=out;
@@ -415,7 +415,8 @@ function renderSignal(){
   for(let i=0;i<bars.length;i++){
     // v3.7.5：黑白极简渐变——点亮格由浅灰(72%)逐格加深到墨黑(20%)，空格淡灰 90%，强度一目了然
     const on=i<_sigLevel;
-    bars[i].style.background=on?'hsl(0,0%,'+(72-13*i)+'%)':'hsl(0,0%,90%)';
+    bars[i].classList.toggle('on',on);
+    bars[i].style.background=on?'var(--signal-on)':'var(--signal-off)';
     bars[i].style.opacity=on?1:.9;
     bars[i].style.transform=on?'scaleY(1)':'scaleY(.6)';
   }

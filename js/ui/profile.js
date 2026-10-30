@@ -18,6 +18,10 @@ function renderProfile(){
         <div class="cs-hero-sub" onclick="editStatus('me')" style="cursor:pointer">${esc(state.me.status||'在线')}<span style="opacity:.55;margin-left:5px;vertical-align:-2px">${ICO_EDIT}</span></div>
       </div>
     </div>
+    <div class="cs-group-title">外观</div>
+    <div class="cs-group">
+      <div class="cs-item" onclick="openThemeSettings()"><span class="cs-ico">${ICO.star}</span><span class="cs-label">全局主题</span><span class="cs-val">${(typeof SKIN_META!=='undefined'&&SKIN_META[state.skin.themeId])?SKIN_META[state.skin.themeId].name:'墨白'}</span><span class="cs-arrow">&#8250;</span></div>
+    </div>
     <div class="cs-group">
       <div class="cs-item" onclick="editName('me')"><span class="cs-ico">${ICO.user}</span><span class="cs-label">我的昵称</span><span class="cs-val">${esc(state.me.name)}</span><span class="cs-arrow">&#8250;</span></div>
       <div class="cs-item" onclick="pickAvatar('me')"><span class="cs-ico">${ICO.cam}</span><span class="cs-label">我的头像</span><span class="cs-thumb">${avatarHtml('me')}</span><span class="cs-arrow">&#8250;</span></div>
