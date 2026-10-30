@@ -30,6 +30,13 @@ const _scheduler={
    v3.7.0：固定秒数加 ±20% 随机偏置，消除每轮整 20s 的机械定时器感 */
 function _replyTotalMs(){
   const p=state.prob||{};
+  /* v3.28.2：支持「回复速度最短~最长」区间（设置页裸露秒数）；
+     未设置区间时退回旧单值 replyDelaySec + ±20% 偏置，兼容老数据。 */
+  const min=Number(p.replyDelayMinSec),max=Number(p.replyDelayMaxSec);
+  if(Number.isFinite(min)&&Number.isFinite(max)&&min>0&&max>=min){
+    const sec=min+Math.random()*(max-min);
+    return Math.max(600,sec*1000);
+  }
   const sec=Math.max(1,Number(p.replyDelaySec)||20);
   const bias=0.8+Math.random()*0.4;   // 0.8 ~ 1.2
   return sec*1000*bias;

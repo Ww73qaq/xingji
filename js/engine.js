@@ -554,8 +554,10 @@ async function executeReply(job){
   try{
     const st=state.stats||{};
     const lastRecall=Number(st.taRecallLastAt)||0;
+    const wProb=Number.isFinite(Number(state.prob&&state.prob.withdrawProb))?Number(state.prob.withdrawProb):12;
+    const rProb=Number.isFinite(Number(state.prob&&state.prob.withdrawReissueProb))?Number(state.prob.withdrawReissueProb):80;
     if(lastSent&&lastSent.type==='text'&&state.chat&&state.chat.allowRecall!==false
-       &&Date.now()-lastRecall>20*60000&&Math.random()*100<12){
+       &&Date.now()-lastRecall>20*60000&&_roll(wProb)){
       recallHit=true;
       st.taRecallLastAt=Date.now();
       if(typeof saveKey==='function')saveKey('stats');
@@ -567,6 +569,10 @@ async function executeReply(job){
         if(state.currentApp==='chat'&&typeof window.refreshMsgRow==='function')window.refreshMsgRow(target.id);
         setTimeout(async()=>{
           let retext='';
+          if(!_roll(rProb)){   /* 补发概率未命中 → 撤回后什么都不再发，仅无预览通知 */
+            if(typeof window.notifySystem==='function')window.notifySystem(`${state.other.name} 撤回了一条消息`,'',()=>{if(state.currentApp!=='chat')switchTab('chat');});
+            refreshAllBadges();return;
+          }
           try{
             const cards=await dbGetAll('cards');
             const enabled=cards.filter(c=>c.enabled!==false);

@@ -10,6 +10,10 @@ let state = {
   prob:{
     // 回复时间（秒）：从你发送消息到 TA 第一条回复出现的总时长（含「正在输入…」窗口）
     replyDelaySec:10, typingRatio:0.25,
+    // v3.28.2：回复速度区间（秒）——设置页裸露；0 表示不启用区间
+    replyDelayMinSec:4, replyDelayMaxSec:9,
+    // v3.28.2：撤回概率 / 撤回补发概率（%）
+    withdrawProb:12, withdrawReissueProb:80,
     // 多气泡回复（多条独立消息）
     multiBubbleEnabled:true, multiBubbleProb:30, maxBubbles:3,
     // 字卡拼接（一个气泡里拼几张字卡，与多气泡相互独立）
