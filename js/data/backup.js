@@ -275,8 +275,16 @@ function showImportMenu(){
     '<div class="modal-item" onclick="closeModal();pickImportFile(\'merge\')">合并导入（保留现有，仅追加缺失）</div>'
     +'<div class="modal-item" onclick="closeModal();showImportOverwrite()">覆盖导入（替换所选类别）</div>'
     +'<div class="modal-item" onclick="closeModal();pickImportFile(\'full\')">完整导入（覆盖全部数据）</div>'
-    +'<div class="modal-item" onclick="showImportText(\'merge\')">从备份文本恢复（QQ 兜底）</div>',
+    +'<div class="modal-item" onclick="showImportText(\'merge\')">从备份文本恢复（QQ 兜底）</div>'
+    +'<div class="modal-item" onclick="pickMochiFile()">导入 mochi 备份（字卡/聊天）</div>',
     '<div class="modal-btn-row"><button class="modal-btn" onclick="closeModal()">取消</button></div>');
+}
+function pickMochiFile(){
+  closeModal();
+  const input=document.createElement('input');
+  input.type='file';input.accept='.json,application/json';
+  input.onchange=e=>{ const f=e.target.files&&e.target.files[0]; if(f) importMochiBackup(f); };
+  input.click();
 }
 let importMode='merge',importSel=new Set(STORES);
 function showImportText(mode='merge'){

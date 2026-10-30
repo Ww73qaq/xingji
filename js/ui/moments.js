@@ -71,7 +71,10 @@ async function renderMoments(){
   const notifUnread=(state.stats.notifCenter||[]).filter(n=>!n.read).length;
   moments.sort((a,b)=>b.time-a.time);
   moments=moments.filter(m=>!(m.owner==='other'&&isHiddenMoment(m.id)));
-  if(!moments.length){body.innerHTML='<div class="empty">还没有朋友圈<br>分享你的第一条动态吧</div>';return;}
+  /* 4.2：回忆闪回「那年今天」——若 30/90/365 天前有动态，置顶一张记忆卡（每天最多一次） */
+  const fb=await buildFlashback();
+  if(fb)body.innerHTML+=fb;
+  if(!moments.length){body.innerHTML+='<div class="empty">还没有朋友圈<br>分享你的第一条动态吧</div>';return;}
   for(const m of moments){
     const likeByMe=m.likedByMe?'已赞':'赞';
     const imgs=(m.images||[]).filter(Boolean);
@@ -96,6 +99,45 @@ async function renderMoments(){
   }
 }
 function openImageViewerFromUrl(url){openImageViewer({src:url},'图片');}
+
+/* 4.2：回忆闪回「那年今天」 */
+async function buildFlashback(){
+  try{
+    const today=String(state.stats.lastFlashbackDate||'');
+    const now=new Date();
+    const ymd=now.getFullYear()+'-'+(now.getMonth()+1)+'-'+now.getDate();
+    if(today===ymd)return '';   // 今天已经出现过，不再弹
+    const all=await dbGetAll('moments');
+    const daysAgo=[30,90,365];
+    let hit=null;
+    for(const d of daysAgo){
+      const target=now.getTime()-d*86400000;
+      const found=all.find(m=>{
+        if(!m||m.owner!=='me')return false;
+        const t=new Date(m.time);
+        return Math.abs((new Date(t.getFullYear(),t.getMonth(),t.getDate()).getTime())-(new Date(new Date(target).getFullYear(),new Date(target).getMonth(),new Date(target).getDate()).getTime()))<1000;
+      });
+      if(found){hit={m:found,days:d};break;}
+    }
+    if(!hit)return '';
+    state.stats.lastFlashbackDate=ymd;saveKey('stats');
+    const d=hit.days;
+    const label=d===30?'一个月前':d===90?'三个月前':'一年前';
+    return `<div class="flashback" onclick="goToMoment('${hit.m.id}')">
+      <div class="fb-tag">那年今天 · ${label}</div>
+      <div class="fb-text">${esc((hit.m.content||'').slice(0,60))}${(hit.m.content||'').length>60?'…':''}</div>
+      <div class="fb-time">${fmtFull(hit.m.time)}</div>
+    </div>`;
+  }catch(e){return '';}
+}
+function goToMoment(id){
+  /* 跳到那条动态：滚动定位 + 高亮 */
+  const el=document.querySelector('.moment-card[data-mid="'+id+'"]');
+  if(!el)return;
+  el.scrollIntoView({block:'center',behavior:'smooth'});
+  el.classList.add('flash');
+  setTimeout(()=>el.classList.remove('flash'),1600);
+}
 async function likeMoment(id,el){
   const moments=await dbGetAll('moments');
   const m=moments.find(x=>String(x.id)===String(id));if(!m)return;

@@ -83,6 +83,8 @@ function enterPage(id){
     divination:(typeof renderDivination==='function'?renderDivination:null),
     music:(typeof renderMusicPage==='function'?renderMusicPage:null),
     whereabouts:(typeof renderWhereabouts==='function'?renderWhereabouts:null),
+    cijian:(typeof renderCijian==='function'?renderCijian:null),
+    goban:(typeof gobanStart==='function'?gobanStart:null),
     cards:renderCards, emoji:renderEmojis, memory:renderMemory,
     letter:(typeof renderLetterPage==='function'?renderLetterPage:null),
     sense:initRoom, books:renderBookshelf, calendar:renderCalendar,

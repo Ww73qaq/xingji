@@ -928,3 +928,39 @@ html[data-theme="amethyst"] .xj-music-btn{background:rgba(255,255,255,.38)}
 .cdir{border:1px solid var(--line);background:transparent;color:var(--hint);
   border-radius:18px;padding:5px 13px;font-size:12px;cursor:pointer}
 .cdir.on{background:var(--text);color:var(--bg);border-color:var(--text)}
+
+/* ===== 4.2：此间（氛围页） ===== */
+.cj-hero{border:1px solid var(--line);border-radius:16px;background:var(--glass-strong);
+  padding:15px 16px;margin-bottom:12px}
+.cj-hero-top{display:flex;justify-content:space-between;font-size:11px;color:var(--hint);letter-spacing:.1em}
+.cj-mood{margin-top:14px;font-size:15px;color:var(--text);line-height:1.7}
+.cj-doing{margin-top:8px;font-size:14px;color:var(--text);line-height:1.7}
+.cj-image-card{margin-top:12px}
+.cj-image{margin-top:8px;font-size:13.5px;color:var(--sub);line-height:1.8}
+.cj-again{width:100%;margin-top:12px;padding:11px 0;letter-spacing:0}
+.cj-hint{margin-top:10px;font-size:11px;color:var(--hint);line-height:1.7;text-align:center}
+
+/* ===== 4.2：回忆闪回「那年今天」 ===== */
+.flashback{border:1px solid var(--line);border-radius:16px;background:var(--accent-softer);
+  padding:13px 15px;margin-bottom:12px;cursor:pointer}
+.fb-tag{font-size:11px;color:var(--sub);letter-spacing:.08em}
+.fb-text{margin-top:6px;font-size:13.5px;color:var(--text);line-height:1.7;word-break:break-word}
+.fb-time{margin-top:6px;font-size:10px;color:var(--hint)}
+.moment-card.flash{animation:fbFlash 1.5s ease}
+@keyframes fbFlash{0%,60%{background:var(--accent-soft)}100%{background:transparent}}
+
+/* ===== 4.2：五子棋 ===== */
+.gob-status{text-align:center;font-size:14px;color:var(--sub);padding:4px 0 12px;letter-spacing:.02em}
+.gob-board{display:flex;flex-direction:column;border:1px solid var(--line-strong);
+  border-radius:8px;overflow:hidden;background:var(--glass-strong);max-width:100%}
+.gob-row{display:flex}
+.gob-cell{flex:1;aspect-ratio:1;position:relative;cursor:pointer}
+.gob-cell::before{content:"";position:absolute;inset:0;border-right:0.5px solid var(--line);border-bottom:0.5px solid var(--line);pointer-events:none}
+.gob-row:last-child .gob-cell::before{border-bottom:0}
+.gob-cell:last-child::before{border-right:0}
+.gob-cell i{position:absolute;inset:12%;border-radius:50%;display:block}
+.gob-cell i.gob{background:#2c2c2a}
+.gob-cell i.gow{background:#f4f1ec;border:1px solid var(--line-strong)}
+.gob-cell.last i{box-shadow:0 0 0 2px var(--sub)}
+.gob-actions{display:flex;gap:8px;margin-top:14px}
+.gob-actions .btn-pill{flex:1;padding:11px 0;letter-spacing:0;font-size:13px}

@@ -3,7 +3,7 @@
    ========================================================= */
 
 /* 版本号 */
-const APP_VERSION='4.2.3';
+const APP_VERSION='4.2.4';
 
 /* ===== 线稿图标（tab bar，24x24 视图，stroke 用 currentColor 跟随选中态） ===== */
 const LINE_ICONS={
