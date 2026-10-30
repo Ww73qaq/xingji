@@ -1,2 +1,6 @@
 .workbuddy/
 .playwright-cli/
+
+# 本地工具（不随仓库分发）
+push-hotspot.cmd
+make-bundle.cmd
