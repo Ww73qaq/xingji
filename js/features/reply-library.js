@@ -9,6 +9,7 @@
    3) 其余一律按 26 个字母排序（中文走拼音：Intl.Collator zh-Hans-CN）。
    即：默认是字母序，「使用次数」这一维度优先于字母序。 */
 let cardGroupFilter='全部',selectedCardIds=new Set();
+let cardDirFilter='all';   // 4.2：方向库筛选 all / ta（他对我）/ me（我对他）
 const _cardCollator=(typeof Intl!=='undefined'&&Intl.Collator)?new Intl.Collator('zh-Hans-CN',{numeric:true,sensitivity:'base'}):null;
 /* 4.0：内置字卡导入后「全部」里有一万八千条，纯字母序会把颜文字（ASCII）全挤到最前面，
    第一屏全是 :-D / :( 这种东西。改为先按分组排，组内再按字母。
@@ -181,6 +182,11 @@ async function renderCards(){
       导入的字卡存在本机，可以随时改、删、停用。
       ${state.lastCardPack&&state.lastCardPack.count?`<div class="card-import-last">上次导入：${esc(state.lastCardPack.name||'字卡包')} · ${state.lastCardPack.count} 条</div>`:''}
     </div>
+    <div class="card-dirbar">
+      <button class="cdir${cardDirFilter==='all'?' on':''}" onclick="setCardDir('all')">全部</button>
+      <button class="cdir${cardDirFilter==='ta'?' on':''}" onclick="setCardDir('ta')">他对我</button>
+      <button class="cdir${cardDirFilter==='me'?' on':''}" onclick="setCardDir('me')">我对他</button>
+    </div>
     <div class="tabs" style="overflow-x:auto;flex-wrap:nowrap">${names.map((n,i)=>{const cnt=n==='全部'?all.length:all.filter(c=>(c.group||'默认')===n).length;return `<button class="tab${cardGroupFilter===n?' active':''}" style="flex:0 0 auto;padding:6px 14px;min-width:60px" onclick="pickCardGroup(${i})"><span style="display:block;font-size:13px;line-height:1.35">${esc(n)}</span><span style="display:block;font-size:10px;opacity:.62;line-height:1.3">${cnt} 条</span></button>`;}).join('')}</div>
     <div class="card-toolbar" style="color:var(--hint);font-size:11px">用过的排在前面 · 再按分组 · 组内按字母</div>
     <div class="search-bar"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg><input type="text" id="card-search" placeholder="搜索字卡" oninput="filterCards(this.value)"></div>
@@ -190,17 +196,21 @@ async function renderCards(){
   filterCards('');
 }
 let cardGroupNames=[];
+function setCardDir(d){cardDirFilter=d;renderCardList();}
 function pickCardGroup(i){cardGroupFilter=cardGroupNames[i]||'全部';renderCards();}
 /* v3.6.14 字卡性能：分批渲染（每批 60 条），滚动到底部再追加，避免字卡上千时一次性渲染卡顿 */
 let _cardList=[],_cardHits=[],_cardRenderN=60,_cardSearchQ='';   // v3.9.5：_cardHits 单独存搜索命中，_cardList 始终保留全量（分组过滤后）
 function cardHtml(c){
   const n=Number(c.useCount)||0;
   const meta=n?(' · '+n+' 次使用'+(c.lastUsedAt?(' · 最近 '+fmtChatDate(c.lastUsedAt)):'')):'';
-  return `<div class="list-card" style="display:flex;align-items:center;gap:10px" data-t="${esc(c.text||'')}"><input class="card-select" type="checkbox" ${selectedCardIds.has(c.id)?'checked':''} onchange="toggleCardSelect(${c.id},this.checked)"><div style="flex:1;min-width:0;cursor:pointer" onclick="sendCardPoke('${esc(c.text)}')"><div class="list-card-title">${esc(c.text)}</div><div class="list-card-sub">${esc(c.group||'默认')}${meta}</div></div><button class="btn-pill ghost" style="padding:6px 10px" onclick="editCard(${c.id})">改</button><button class="btn-pill ghost" style="padding:6px 10px;color:${c.enabled===false?'#c0392b':'var(--sub)'}" onclick="toggleCardEnabled(${c.id})">${c.enabled===false?'启用':'停用'}</button><button class="btn-pill ghost" style="padding:6px 10px" onclick="delCard(${c.id})">删</button></div>`;
+  return `<div class="list-card" style="display:flex;align-items:center;gap:10px" data-t="${esc(c.text||'')}"><input class="card-select" type="checkbox" ${selectedCardIds.has(c.id)?'checked':''} onchange="toggleCardSelect(${c.id},this.checked)"><div style="flex:1;min-width:0;cursor:pointer" onclick="sendCardPoke('${esc(c.text)}')"><div class="list-card-title">${esc(c.text)}</div><div class="list-card-sub">${esc(c.group||'默认')}${c.direction==='me'?' · 我对他':''}${meta}</div></div><button class="btn-pill ghost" style="padding:6px 10px" onclick="editCard(${c.id})">改</button><button class="btn-pill ghost" style="padding:6px 10px;color:${c.enabled===false?'#c0392b':'var(--sub)'}" onclick="toggleCardEnabled(${c.id})">${c.enabled===false?'启用':'停用'}</button><button class="btn-pill ghost" style="padding:6px 10px" onclick="delCard(${c.id})">删</button></div>`;
 }
 function renderCardList(reset){
   dbGetAll('cards').then(all=>{
     let list=all.filter(c=>cardGroupFilter==='全部'||(c.group||'默认')===cardGroupFilter);
+    /* 4.2：方向库——ta=他对我说（默认，含未标注的老卡），me=我对他说 */
+    if(cardDirFilter==='ta')list=list.filter(c=>c.direction!=='me');
+    else if(cardDirFilter==='me')list=list.filter(c=>c.direction==='me');
     list.sort(cardCompare);
     _cardList=list;   // v3.9.5：全量（分组过滤后）始终留在 _cardList，搜索命中另存 _cardHits（否则后续搜索只在上一次命中的子集里找）
     if(_cardSearchQ)list=list.filter(c=>(c.text||'').toLowerCase().includes(_cardSearchQ));
@@ -274,6 +284,8 @@ async function addSingleCard(){
   const opts=groups.map(g=>`<option value="${esc(g.name)}">${esc(g.name)}</option>`).join('');
   showModal('添加字卡',`<div style="font-size:12px;color:var(--sub);margin-bottom:6px">选择分组</div>
     <select class="app-input" id="card-new-group" style="width:100%;padding:9px 12px;background:var(--input);border:none;border-radius:10px">${opts}</select>
+    <div style="font-size:12px;color:var(--sub);margin:10px 0 6px">方向</div>
+    <select class="app-input" id="card-new-dir" style="width:100%;padding:9px 12px;background:var(--input);border:none;border-radius:10px"><option value="ta">他对我（TA 会说的话）</option><option value="me">我对他（我想说的话）</option></select>
     <div style="font-size:12px;color:var(--sub);margin:10px 0 6px">内容</div>
     <textarea class="app-input auto-grow" id="card-new-text" placeholder="例如：早安" style="width:100%;resize:none;min-height:90px" oninput="autosize(this)"></textarea>`,
     '<div class="modal-btn-row"><button class="modal-btn" onclick="closeModal()">取消</button><button class="modal-btn primary" onclick="saveCardSingle()">保存</button></div>');
@@ -281,11 +293,12 @@ async function addSingleCard(){
 }
 async function saveCardSingle(){
   const group=document.getElementById('card-new-group').value||'默认';
+  const dir=(document.getElementById('card-new-dir')||{}).value||'ta';
   const text=(document.getElementById('card-new-text').value||'').trim();
   if(!text){showToast('内容不能为空');return;}
   const all=await dbGetAll('cards');
   if(all.some(c=>c.text===text)){showToast('已存在相同字卡');return;}
-  await dbPut('cards',{text:text,group:group,time:Date.now(),useCount:0});
+  await dbPut('cards',{text:text,group:group,direction:dir,time:Date.now(),useCount:0});
   closeModal();renderCards();showToast('已添加字卡');
 }
 async function saveCardsBatch(){

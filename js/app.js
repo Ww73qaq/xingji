@@ -112,6 +112,7 @@ function _heartTick(){
       maybeTaWriteNote();            // TA 低频写便签（约 90~160 分钟一次机会，内部概率 30%）
       if(typeof maybeTaLetter==='function')maybeTaLetter();   // v3.6.12 TA 主动来信（冷却 12~36h，字卡承载）
       if(typeof maybeTaMoment==='function')maybeTaMoment();   // v3.6.12 TA 主动发朋友圈（冷却 4~10h，频率略高）
+      if(typeof maybeTaInteract==='function')maybeTaInteract();   // 4.2 TA 主动互动（提问/好奇/选择/打卡/邀请/吐槽）
     }
     if(_tick%15===0){
       processPendingReplies().then(n=>{if(n&&navStack[navStack.length-1]==='mailbox')renderMailbox();refreshAllBadges();});

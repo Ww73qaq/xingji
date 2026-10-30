@@ -3,7 +3,7 @@
    ========================================================= */
 
 /* 版本号 */
-const APP_VERSION='4.2.2';
+const APP_VERSION='4.2.3';
 
 /* ===== 线稿图标（tab bar，24x24 视图，stroke 用 currentColor 跟随选中态） ===== */
 const LINE_ICONS={
@@ -54,19 +54,30 @@ const EMOJIS=[].concat(...EMOJI_GROUPS.map(g=>g.items));
 /* ---- 消息渲染 ---- */
 const TYPE_LABEL={text:'[文字]',image:'[图片]',voice:'[语音]',music:'[音乐]',card:'[字卡]',location:'[位置]',file:'[文件]',poll:'[题目]'};
 /* 内置小黄脸拍一拍动作（其他数据保持空态真空，仅拍一拍内置） */
+/* 4.2：贴贴分两个方向——「我对他」是我能主动做的动作，「他对我」是 TA 偶发、极轻地回应的动作。
+   下面 POKE_ACTIONS 是「我对他」；他对我由 TA_POKE_ACTIONS 承载（语气是被接住的柔软，不是主动索取）。 */
 const POKE_ACTIONS=[
-  {name:'😊 戳一戳',action:'戳了戳'},
-  {name:'🥺 蹭一蹭',action:'蹭了蹭'},
-  {name:'😳 戳脸颊',action:'戳了戳你的脸颊'},
-  {name:'🥰 抱抱',action:'伸手抱了抱'},
-  {name:'😤 捏脸',action:'轻轻捏了捏你的脸'},
-  {name:'😴 靠肩',action:'把脑袋靠在了你的肩上'},
-  {name:'😏 挑眉',action:'朝你挑了挑眉'},
-  {name:'😭 晃胳膊',action:'晃了晃你的胳膊'},
-  {name:'😌 摸头',action:'抬手摸了摸你的头'},
-  {name:'😘 比心',action:'朝你比了个心'},
-  {name:'🤔 歪头',action:'歪头看了你一眼'},
-  {name:'🙄 翻白眼',action:'无奈地翻了个白眼'},
+  {name:'戳一戳',action:'戳了戳'},
+  {name:'蹭一蹭',action:'蹭了蹭'},
+  {name:'戳脸颊',action:'戳了戳你的脸颊'},
+  {name:'抱抱',action:'伸手抱了抱'},
+  {name:'牵牵手',action:'轻轻牵起你的手'},
+  {name:'额头相抵',action:'把额头轻轻靠向你'},
+  {name:'靠一靠肩膀',action:'把脑袋靠在你的肩上'},
+  {name:'捏脸',action:'轻轻捏了捏你的脸'},
+  {name:'摸头',action:'抬手摸了摸你的头'},
+  {name:'比心',action:'朝你比了个心'},
+  {name:'挑眉',action:'朝你挑了挑眉'},
+  {name:'歪头',action:'歪头看了你一眼'},
+];
+/* 4.2：他对我——贴贴的「被接住」方向，克制、极轻、偶发 */
+const TA_POKE_ACTIONS=[
+  {name:'被你抱住',action:'被你抱住后，没有再动'},
+  {name:'把额头靠过来',action:'很轻地把额头抵了回来'},
+  {name:'回握了一下',action:'回握了一下你的手，又松开'},
+  {name:'往你肩上靠',action:'不动声色地往你肩上靠了靠'},
+  {name:'抬手碰了碰你',action:'抬手，很轻地碰了碰你的发梢'},
+  {name:'看着你笑',action:'看着你，眼里很浅地笑了一下'},
 ];
 /* 礼物图案：与 GIFT_NAMES 一一对应（v3.5.0 修正错位：原表里 奶茶=🥰、水果=🌹、巧克力=🍭、明信片=🏛…）
    顺序不可改动，index 与 GIFT_NAMES[index] 严格对齐。 */

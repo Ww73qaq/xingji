@@ -313,9 +313,18 @@ async function buildReply(context){
       extraInteractions++;
     }
     if(pokeRoll&&extraInteractions<MAX_EXTRA){
-      const pokes=await _allPokeTexts();
-      const poke=(pokes.length?pokes[Math.floor(Math.random()*pokes.length)]:'拍了拍你');
-      bubbles.push({type:'poke',content:(state.other.name||'TA')+'拍了拍你：'+poke,isPoke:true,cardIds:[],intent:'poke'});
+      /* 4.2：TA 回拍走「他对我」方向——若命中刚被我拍过，回一个克制、被接住的动作；
+         否则退回我自建的拍一拍字卡库（老行为）。 */
+      const recentlyPoked = (context.latestUserMsg&&context.latestUserMsg.type==='poke');
+      let poke;
+      if(recentlyPoked && typeof TA_POKE_ACTIONS!=='undefined' && TA_POKE_ACTIONS.length && Math.random()<0.6){
+        const a=TA_POKE_ACTIONS[Math.floor(Math.random()*TA_POKE_ACTIONS.length)];
+        poke=a.action;
+      }else{
+        const pokes=await _allPokeTexts();
+        poke=(pokes.length?pokes[Math.floor(Math.random()*pokes.length)]:'拍了拍你');
+      }
+      bubbles.push({type:'poke',content:(state.other.name||'TA')+poke,isPoke:true,cardIds:[],intent:'poke'});
       extraInteractions++;
     }
     if(giftRoll&&extraInteractions<MAX_EXTRA){
