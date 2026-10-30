@@ -6,7 +6,7 @@
     "version": "3.28.1",
     "code": 26,
     "url": "apk/xingji-latest.apk",
-    "sizeMB": 8.9,
+    "sizeMB": 8.5,
     "notes": "修复：日历手机端溢出(空格子误中.empty占位样式)；单选/多选「让TA帮我决定」勾选失效；播放器墨白主题配色/默认底部居中/吸附左中右/胶囊缩短"
   }
 }
