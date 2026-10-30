@@ -527,3 +527,25 @@ html[data-theme="amethyst"] .xj-music-btn{background:rgba(255,255,255,.38)}
   *,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;scroll-behavior:auto!important;transition-duration:.01ms!important}
   .xj-music-pill::before{display:none}
 }
+
+/* ===== 4.0：问 TA 选择器（选项组 · 胶囊横排，多了自动换行） =====
+   只走主题令牌，墨白 / 紫晶两套主题自动跟随，不写死颜色。 */
+.sel-wrap{display:flex;flex-direction:column;gap:12px}
+.sel-hint{font-size:12px;color:var(--hint);line-height:1.7}
+.sel-pills{display:flex;flex-wrap:wrap;gap:8px}
+.sel-pills .sel-pill{padding:10px 16px;font-size:14px;display:inline-flex;align-items:center;gap:6px;letter-spacing:0}
+.sel-pill.editing{border:1px dashed var(--line-strong)}
+.sel-x{font-size:12px;opacity:.55;line-height:1}
+.sel-plus{border:1px dashed var(--line-strong);color:var(--sub);background:transparent}
+.sel-add{display:flex;flex-direction:column;gap:8px}
+.sel-add-row{display:flex;gap:8px;justify-content:flex-end}
+.sel-add-row .btn-pill{padding:9px 18px}
+.sel-result{border:1px solid var(--line);border-radius:14px;background:var(--accent-softer);padding:12px 14px}
+.sel-res-head{font-size:11px;color:var(--hint);letter-spacing:.08em}
+.sel-res-pick{font-size:22px;font-weight:600;color:var(--text);margin-top:5px;line-height:1.35;word-break:break-word}
+.sel-res-card{margin-top:11px;padding-top:11px;border-top:1px dashed var(--line-strong);font-size:14px;color:var(--text);line-height:1.68;word-break:break-word}
+.sel-res-label{display:block;font-size:11px;color:var(--hint);margin-bottom:5px;letter-spacing:.06em}
+.sel-res-line{font-size:13px;color:var(--sub);letter-spacing:.04em}
+.sel-send{margin-top:11px;padding:8px 16px;font-size:13px}
+.sel-actions{display:flex;gap:8px}
+.sel-actions .btn-pill{flex:1;padding:11px 0;letter-spacing:0}
