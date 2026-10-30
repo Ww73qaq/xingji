@@ -6,7 +6,7 @@
     "version": "3.28.9",
     "code": 34,
     "url": "apk/xingji-latest.apk",
-    "sizeMB": 8.7,
+    "sizeMB": 8.5,
     "notes": "4.0批8：字卡改为「导入字卡包」(本地文件·不再随仓库分发第三方字卡)；开屏新增许可与署名(mochi/@言序)"
   }
 }
