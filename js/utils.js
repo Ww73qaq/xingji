@@ -99,17 +99,21 @@ function autoGrow(el){
 }
 
 /* 图片：导入即压缩（防存储爆满） */
-function compressImage(file){
+function compressImage(file,opts){
+  /* 4.2：opts={max,quality} —— 表情包等小图用 max:512 / quality:.82（更省空间），
+     聊天图片仍走默认 1080 / .72，互不影响。 */
+  const MAX=(opts&&opts.max)||1080;
+  const Q0=(opts&&opts.quality)||0.72;
   return new Promise((res,rej)=>{
     const reader=new FileReader();
     reader.onload=e=>{
       const img=new Image();
       img.onload=()=>{
-        const MAX=1080;let w=img.width,h=img.height;
+        let w=img.width,h=img.height;
         if(w>MAX||h>MAX){const r=Math.min(MAX/w,MAX/h);w=Math.round(w*r);h=Math.round(h*r);}
         const c=document.createElement('canvas');c.width=w;c.height=h;
         c.getContext('2d').drawImage(img,0,0,w,h);
-        let q=0.72,url=c.toDataURL('image/jpeg',q);
+        let q=Q0,url=c.toDataURL('image/jpeg',q);
         let guard=0;
         while(url.length>1.3*1024*1024&&q>0.35&&guard<6){q-=0.12;url=c.toDataURL('image/jpeg',q);guard++;}
         res(url);
