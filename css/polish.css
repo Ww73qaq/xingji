@@ -549,3 +549,71 @@ html[data-theme="amethyst"] .xj-music-btn{background:rgba(255,255,255,.38)}
 .sel-send{margin-top:11px;padding:8px 16px;font-size:13px}
 .sel-actions{display:flex;gap:8px}
 .sel-actions .btn-pill{flex:1;padding:11px 0;letter-spacing:0}
+
+/* ===== 4.0：占卜（塔罗 / 雷诺曼） =====
+   牌面全部用 CSS + 字形绘制，不使用任何第三方牌图；颜色只走主题令牌。 */
+.dv-note{font-size:12px;color:var(--hint);line-height:1.75}
+.dv-label{font-size:14px;color:var(--text)}
+.dv-label .dv-opt{font-size:11px;color:var(--hint);margin-left:5px}
+.dv-row{display:flex;gap:8px}
+.dv-row .dv-count{flex:1;padding:10px 0;letter-spacing:0}
+.dv-draw{width:100%;margin-top:12px;padding:13px 0;letter-spacing:.12em;font-size:15px}
+.dv-draw.off{opacity:.55;pointer-events:none}
+
+/* 牌桌 */
+.dv-stage{display:flex;gap:10px;justify-content:center;align-items:flex-start;
+  perspective:1000px;margin:4px 0 14px;min-height:0}
+.dv-card{width:94px;height:150px;position:relative;flex-shrink:0;
+  transform-style:preserve-3d;transition:transform .55s var(--ease)}
+.dv-card.flipped{transform:rotateY(180deg)}
+.dv-card.no-anim{transition:none}
+.dv-card.dv-shuffling{animation:dvShuffle .7s var(--ease) both}
+@keyframes dvShuffle{
+  0%{transform:translateY(0) rotate(0deg)}
+  30%{transform:translateY(-12px) rotate(-6deg)}
+  60%{transform:translateY(-4px) rotate(5deg)}
+  100%{transform:translateY(0) rotate(0deg)}
+}
+.dv-face{position:absolute;inset:0;border-radius:13px;backface-visibility:hidden;
+  -webkit-backface-visibility:hidden;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;overflow:hidden;border:1px solid var(--line)}
+.dv-back{background:linear-gradient(158deg,var(--accent-soft),var(--accent-softer));
+  box-shadow:var(--shadow-sm) inset 0 0 0 1px rgba(255,255,255,.35)}
+.dv-back-mark{font-size:20px;color:var(--sub);opacity:.42}
+.dv-front{transform:rotateY(180deg);background:var(--glass-strong);padding:10px 8px;gap:5px;
+  box-shadow:var(--shadow-sm)}
+.dv-num{font-size:10px;letter-spacing:.16em;color:var(--hint);line-height:1}
+.dv-glyph{font-size:30px;line-height:1;color:var(--text)}
+.dv-glyph.rev{opacity:.58}   /* 逆位不旋转字形：'9' 转过来会被看成 '6'，反而误导；改用淡出 + 逆位标签区分 */
+.dv-name{font-size:12px;color:var(--text);text-align:center;line-height:1.35;letter-spacing:.02em}
+.dv-pos{font-size:10px;color:var(--hint);letter-spacing:.1em;border:1px solid transparent;border-radius:20px;padding:1px 7px}
+.dv-pos.rev{color:var(--sub);border-color:var(--line-strong)}
+
+/* 解读 */
+.dv-result .dv-res-head{font-size:16px;font-weight:600;color:var(--text);line-height:1.55}
+.dv-res-body{font-size:14px;color:var(--text);line-height:1.85;margin-top:8px;white-space:pre-wrap}
+.dv-cards-detail{margin-top:12px;padding-top:11px;border-top:1px dashed var(--line-strong);display:flex;flex-direction:column;gap:9px}
+.dv-line{font-size:13px;color:var(--text);line-height:1.6}
+.dv-line-name{font-weight:600}
+.dv-line-pos{font-size:11px;color:var(--hint);margin-left:6px}
+.dv-line-mean{font-size:13px;color:var(--sub);margin-top:2px}
+.dv-res-action{margin-top:12px;padding:10px 12px;border-radius:12px;
+  background:var(--accent-softer);font-size:13px;color:var(--text);line-height:1.7}
+.dv-res-btns{display:flex;gap:8px;margin-top:12px}
+.dv-res-btns .btn-pill{flex:1;padding:9px 0;letter-spacing:0;font-size:13px}
+
+/* 记录 */
+.dv-empty{font-size:13px;color:var(--hint);line-height:1.8;margin-top:8px}
+.dv-rec-list{display:flex;flex-direction:column;gap:10px;margin-top:10px}
+.dv-rec{border:1px solid var(--line);border-radius:13px;padding:10px 12px;background:var(--accent-softer)}
+.dv-rec-top{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.dv-rec-deck{font-size:11px;color:var(--sub);letter-spacing:.08em}
+.dv-rec-time{font-size:11px;color:var(--hint)}
+.dv-rec-q{font-size:13px;color:var(--text);margin-top:5px;line-height:1.6;word-break:break-word}
+.dv-rec-noq{color:var(--hint)}
+.dv-rec-cards{font-size:12px;color:var(--sub);margin-top:4px;line-height:1.5;word-break:break-word}
+.dv-rec-btns{display:flex;gap:6px;margin-top:9px;flex-wrap:wrap}
+.dv-mini{border:1px solid var(--line);background:transparent;color:var(--sub);
+  border-radius:9px;padding:5px 10px;font-size:12px;cursor:pointer;letter-spacing:0}
+.dv-mini:active{transform:scale(.97)}
+.dv-mini.danger{color:var(--danger);border-color:var(--line)}

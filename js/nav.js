@@ -80,6 +80,7 @@ function enterPage(id){
     chatinfo:renderChatInfo, chatsearch:renderChatSearch,
     mailbox:renderMailbox, diary:renderDiary, moments:renderMoments,
     probability:renderProbability,
+    divination:(typeof renderDivination==='function'?renderDivination:null),
     cards:renderCards, emoji:renderEmojis, memory:renderMemory,
     sense:initRoom, books:renderBookshelf, calendar:renderCalendar,
     trace:renderTrace, profile:renderProfile, data:renderDataPage

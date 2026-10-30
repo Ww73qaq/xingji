@@ -76,12 +76,14 @@ let state = {
   // 全局音乐播放器开关（默认关）；开时顶部悬浮胶囊播放器才显示
   musicOn:false,
   // 4.0：「问 TA」选择器的选项组（可增删，默认是/否/再想一想）
-  selectorOptions:['是','否','再想一想']
+  selectorOptions:['是','否','再想一想'],
+  // 4.0：占卜记录（最多保留 60 条，见 divination.js dvSaveRecord）
+  divinations:[]
 };
 
 async function loadSettings(){
   // v3.7.2 性能：原 43 次 dbGet 串行事务 → 一次 dbGetAll 全表读（settings 按 key 索引）
-  const keys=['me','other','skin','pin','prob','meetTime','quote','splashText','stats','chat','muteEndTime','muteRequest','surveySettings','notify','notes','taMuteMeEndTime','taMuteReqCoolAt','diaryReqAt','taMuteLastEnd','taMuteReqAt','statusPool','moodPool','taStatusUntil','taStatusCoolAt','taMuteCycleSkip','taCallCycleSkip','taMuteReason','taStatusLockMin','calLastSnapDate','customGifts','taSenseCoolAt','myDiaryReqCoolAt','taDiaryDenied','noteAlarmDone','taSchedSettings','todoAlarmDone','todoDoneByDay','todoExclByDay','lastSenseDir','taTimeOffset','musicOn','selectorOptions'];
+  const keys=['me','other','skin','pin','prob','meetTime','quote','splashText','stats','chat','muteEndTime','muteRequest','surveySettings','notify','notes','taMuteMeEndTime','taMuteReqCoolAt','diaryReqAt','taMuteLastEnd','taMuteReqAt','statusPool','moodPool','taStatusUntil','taStatusCoolAt','taMuteCycleSkip','taCallCycleSkip','taMuteReason','taStatusLockMin','calLastSnapDate','customGifts','taSenseCoolAt','myDiaryReqCoolAt','taDiaryDenied','noteAlarmDone','taSchedSettings','todoAlarmDone','todoDoneByDay','todoExclByDay','lastSenseDir','taTimeOffset','musicOn','selectorOptions','divinations'];
   const map={};
   try{
     const all=await dbGetAll('settings');
