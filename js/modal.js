@@ -163,3 +163,36 @@ function askTextCancel(){
 window.askText=askText;
 window.askTextOk=askTextOk;
 window.askTextCancel=askTextCancel;
+
+/* =========================================================
+   4.0 · 许可与署名
+   mochi 的许可要求：借鉴功能必须标注灵感来源，署名不得删除或修改。
+   这里把「借鉴了什么、我们没做什么、字卡从哪来」讲清楚。
+   ========================================================= */
+function showLicenses(){
+  showModal('许可与署名',
+    `<div class="lic-body">
+      <h4>这是什么</h4>
+      <p>星迹是一个独立编写的个人字卡传讯作品，<b>不是 mochi 的二改版本</b>，代码与界面均为自行实现。</p>
+
+      <h4>借鉴自 mochi 的部分</h4>
+      <p class="lic-dim">mochi · 作者：小红书 <b>@言序</b>（1842523578）<br>仓库：github.com/ling233330-star/mochi</p>
+      <ul>
+        <li>字卡传讯（按字卡库抽句回复）的整体思路</li>
+        <li>回复概率 / 秒数 / 条数的可调设计</li>
+        <li>占卜（塔罗 / 雷诺曼）的形态</li>
+        <li>桌面组件与分页的思路</li>
+        <li>表情包概率、音乐播放器的交互形态</li>
+      </ul>
+      <p class="lic-dim">以上仅为功能形态上的借鉴，星迹的界面、代码、解读文案均为自行编写。</p>
+
+      <h4>字卡从哪来</h4>
+      <p>星迹<b>不随应用分发任何第三方字卡</b>。字卡由使用者自己导入本地文件（.json / .js），导入后只存在这台设备上。</p>
+      <p class="lic-dim">若你导入的字卡来自他人作品，请自行确认你有权使用；本应用不代为分发、也不上传到任何服务器。</p>
+
+      <h4>数据</h4>
+      <p>全部数据存在本机（IndexedDB / localStorage），不上传、不同步、不联网校验。</p>
+    </div>`,
+    '<div class="modal-btn-row"><button class="modal-btn" onclick="closeModal()">知道了</button></div>');
+}
+window.showLicenses=showLicenses;

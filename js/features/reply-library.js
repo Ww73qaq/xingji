@@ -49,59 +49,112 @@ async function ensureDefaultCardGroups(){
   }
 }
 /* =========================================================
-   4.0 · 内置字卡导入
-   —— 内置包 js/data/builtin-cards.js 体积约 600KB，**只在点这个按钮时才加载**，不进首屏。
-   —— 幂等：已存在的同句直接跳过，重复点不会产生重复卡。
-   —— 打 direction:'ta' 标记，供引擎与「我对他」方向库区分。
+   4.0 · 导入字卡包（本地文件）
+   —— 不再随应用内置别人的字卡包：内容留在你自己手里，仓库里只有代码。
+   —— 支持三种格式：
+       ① 星迹字卡包 {version, groups:{组名:[句子,...]}}
+       ② mochi 字卡库导出 {text:[[组名,[句子...]],...], kaomoji, poke}
+       ③ 纯分组数组 [[组名,[句子...]],...]
+   —— 导入即本地字卡：可改可删，重复句自动跳过。
    ========================================================= */
-const BUILTIN_CARDS_VER=1;
-function loadBuiltinCardsPack(){
-  return new Promise((resolve,reject)=>{
-    if(window.XJ_BUILTIN_CARDS)return resolve(window.XJ_BUILTIN_CARDS);
-    const sc=document.createElement('script');
-    sc.src='js/data/builtin-cards.js?v='+(typeof APP_VERSION!=='undefined'?APP_VERSION:'4');
-    sc.onload=()=>resolve(window.XJ_BUILTIN_CARDS||null);
-    sc.onerror=()=>reject(new Error('内置字卡包加载失败'));
-    document.head.appendChild(sc);
-  });
+const CARD_PACK_DROP_GROUPS = {'拼句词根':1,'次元设定':1,'吵':1};   /* 不是完整句 / 世界观会串味 */
+
+function _packPush(out, group, text){
+  const g = String(group||'默认').trim() || '默认';
+  if(CARD_PACK_DROP_GROUPS[g]) return;
+  let t = String(text==null?'':text).replace(/\s+/g,' ').trim();
+  if(!t || t.length < 2 || t.length > 60) return;
+  if(/[<>]/.test(t)) return;
+  (out[g] || (out[g]=[])).push(t);
 }
-async function importBuiltinCards(){
-  let pack=null;
-  try{pack=await loadBuiltinCardsPack();}catch(e){}
-  if(!pack||!pack.groups){showToast('内置字卡包读取失败，请检查网络或稍后再试');return;}
-  const groupNames=Object.keys(pack.groups);
-  const total=groupNames.reduce((n,g)=>n+(pack.groups[g]||[]).length,0);
-  appConfirm('导入内置字卡',
-    `会加入 ${total} 条内置字卡，分 ${groupNames.length} 组。<br>已存在的同句会自动跳过，重复点不会加重复。`,
+function normalizeCardPack(obj){
+  if(!obj || typeof obj!=='object') return null;
+  const out = {};
+  const pairs = list=>{
+    if(!Array.isArray(list))return;
+    list.forEach(item=>{
+      if(Array.isArray(item) && item.length>=2 && Array.isArray(item[1])){
+        item[1].forEach(t=>_packPush(out, item[0], t));
+      }
+    });
+  };
+  if(obj.groups && typeof obj.groups==='object' && !Array.isArray(obj.groups)){
+    Object.keys(obj.groups).forEach(g=>{
+      const arr = obj.groups[g];
+      if(Array.isArray(arr)) arr.forEach(t=>_packPush(out, g, t));
+    });
+  }else if(obj.text || obj.kaomoji || obj.poke){
+    pairs(obj.text);
+    pairs(obj.kaomoji);
+    pairs(obj.poke);
+  }else if(Array.isArray(obj)){
+    pairs(obj);
+  }
+  const names = Object.keys(out).filter(g=>(out[g]||[]).length);
+  if(!names.length) return null;
+  const groups = {};
+  names.forEach(g=>{
+    /* 组内去重，保留首次出现的顺序 */
+    const seen = new Set();
+    groups[g] = out[g].filter(t=>{const k=t.replace(/\s+/g,'');if(seen.has(k))return false;seen.add(k);return true;});
+  });
+  return {groups};
+}
+function importCardPack(){
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = '.json,.js,application/json,text/javascript,text/plain';
+  input.onchange = e=>{
+    const f = e.target.files && e.target.files[0];
+    if(f) doImportCardPack(f);
+  };
+  input.click();
+}
+async function doImportCardPack(file){
+  showToast('正在读取 '+(file.name||'文件')+'…');
+  let text = '';
+  try{ text = await file.text(); }catch(e){ showToast('这个文件读不出来'); return; }
+  let pack = null;
+  try{ pack = normalizeCardPack(JSON.parse(text)); }catch(e){
+    /* .js 形式的包：截取第一个 { 到最后一个 } 再解析 */
+    const a = text.indexOf('{'), b = text.lastIndexOf('}');
+    if(a >= 0 && b > a){
+      try{ pack = normalizeCardPack(JSON.parse(text.slice(a, b+1))); }catch(_){}
+    }
+  }
+  if(!pack){ showToast('没认出这个文件里的字卡（支持 .json / .js 字卡包）'); return; }
+
+  const groupNames = Object.keys(pack.groups);
+  const total = groupNames.reduce((n,g)=>n+pack.groups[g].length,0);
+  appConfirm('导入字卡包',
+    `《${esc(file.name||'字卡包')}》<br>共 ${total} 条，分 ${groupNames.length} 组。<br>已存在的同句会自动跳过。`,
     async ()=>{
-      const existing=new Set();
-      try{(await dbGetAll('cards')).forEach(c=>existing.add(String(c.text||'').trim()));}catch(e){}
-      const rows=[];
+      const existing = new Set();
+      try{ (await dbGetAll('cards')).forEach(c=>existing.add(String(c.text||'').trim())); }catch(e){}
+      const rows = [];
       for(const g of groupNames){
-        for(const t of pack.groups[g]||[]){
-          const txt=String(t||'').trim();
-          if(!txt||existing.has(txt))continue;
-          existing.add(txt);
-          rows.push({text:txt,group:g,direction:'ta',builtin:1,enabled:1,time:Date.now()});
+        for(const t of pack.groups[g]){
+          if(existing.has(t)) continue;
+          existing.add(t);
+          rows.push({text:t, group:g, direction:'ta', imported:1, enabled:1, time:Date.now()});
         }
       }
-      if(!rows.length){showToast('内置字卡已经全部在了，不用再导');return;}
+      if(!rows.length){ showToast('这些字卡已经都在了，不用再导'); return; }
       showToast('正在导入，请不要退出…');
-      let ok=0;
+      let ok = 0;
       try{
-        ok=await dbBulkPut('cards',rows,(d,n)=>{if(d%4000<n&&d%4000===0)showToast('正在导入 '+d+'/'+n);});
-      }catch(e){showToast('导入中断，已写入的部分会保留');}
-      /* 分组也要建出来，否则字卡页看不到这些分组 */
+        ok = await dbBulkPut('cards', rows, (d,n)=>{ if(d % 4000 === 0 && d < n) showToast('正在导入 '+d+'/'+n); });
+      }catch(e){ showToast('导入中断，已写入的部分会保留'); }
       try{
-        const gs=await dbGetAll('cardGroups');
-        const have=new Set(gs.map(x=>x.name));
-        const add=groupNames.filter(g=>!have.has(g)).map(g=>({name:g,enabled:1}));
-        if(add.length)await dbBulkPut('cardGroups',add);
+        const gs = await dbGetAll('cardGroups');
+        const have = new Set(gs.map(x=>x.name));
+        const add = groupNames.filter(g=>!have.has(g)).map(g=>({name:g, enabled:1}));
+        if(add.length) await dbBulkPut('cardGroups', add);
       }catch(e){}
-      state.builtinCardsVer=BUILTIN_CARDS_VER;
-      try{saveKey('builtinCardsVer');}catch(e){}
+      state.lastCardPack = {name:String(file.name||''), count:ok, time:Date.now()};
+      try{ saveKey('lastCardPack'); }catch(e){}
       renderCards();
-      showToast('已导入 '+ok+' 条内置字卡');
+      showToast('已导入 '+ok+' 条字卡');
     });
 }
 
@@ -121,7 +174,12 @@ async function renderCards(){
     <div class="card-actions" style="display:flex;gap:8px;padding:2px 0 8px">
       <button class="btn-pill" style="flex:1" onclick="addCard()">＋ 字卡</button>
       <button class="btn-pill ghost" style="flex:1" onclick="manageCardGroups()">分组管理</button>
-      <button class="btn-pill ghost" style="flex:1" onclick="importBuiltinCards()">内置字卡</button>
+      <button class="btn-pill ghost" style="flex:1" onclick="importCardPack()">导入字卡包</button>
+    </div>
+    <div class="card-import-hint">
+      还没有字卡？点「导入字卡包」选一个 <b>.json / .js</b> 文件（星迹字卡包、mochi 字卡库导出都认）。<br>
+      导入的字卡存在本机，可以随时改、删、停用。
+      ${state.lastCardPack&&state.lastCardPack.count?`<div class="card-import-last">上次导入：${esc(state.lastCardPack.name||'字卡包')} · ${state.lastCardPack.count} 条</div>`:''}
     </div>
     <div class="tabs" style="overflow-x:auto;flex-wrap:nowrap">${names.map((n,i)=>{const cnt=n==='全部'?all.length:all.filter(c=>(c.group||'默认')===n).length;return `<button class="tab${cardGroupFilter===n?' active':''}" style="flex:0 0 auto;padding:6px 14px;min-width:60px" onclick="pickCardGroup(${i})"><span style="display:block;font-size:13px;line-height:1.35">${esc(n)}</span><span style="display:block;font-size:10px;opacity:.62;line-height:1.3">${cnt} 条</span></button>`;}).join('')}</div>
     <div class="card-toolbar" style="color:var(--hint);font-size:11px">用过的排在前面 · 再按分组 · 组内按字母</div>

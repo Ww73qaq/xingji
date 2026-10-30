@@ -653,3 +653,26 @@ html[data-theme="amethyst"] .xj-music-btn{background:rgba(255,255,255,.38)}
 .xj-music-track-del:active{opacity:1;color:#c0392b}
 .xj-music-track.xj-removable .xj-music-track-dot{display:none}
 .xj-music-empty{padding:14px 4px;font-size:11px;color:var(--mx-sub);text-align:center;line-height:1.7}
+
+/* ===== 4.0：开屏许可与署名（mochi 许可要求标注灵感来源） ===== */
+.splash-credit{margin-top:34px;padding-top:18px;border-top:1px solid var(--line);
+  max-width:330px;animation:splashFade 1.6s .95s ease both}
+.splash-credit-line{font-size:10px;line-height:1.95;color:var(--hint);letter-spacing:.02em}
+.splash-credit-line b{font-weight:600;color:var(--sub)}
+.splash-credit-more{margin-top:9px;border:0;background:transparent;color:var(--hint);
+  font-size:10px;letter-spacing:.16em;text-decoration:underline;text-underline-offset:3px;cursor:pointer;padding:4px 6px}
+.splash-credit-more:active{opacity:.6}
+.lic-body{font-size:13px;line-height:1.9;color:var(--text)}
+.lic-body h4{font-size:12px;letter-spacing:.1em;color:var(--hint);font-weight:600;margin:14px 0 6px}
+.lic-body h4:first-child{margin-top:0}
+.lic-body p{margin:0 0 8px}
+.lic-body ul{margin:0 0 8px;padding-left:18px}
+.lic-body li{margin-bottom:4px}
+.lic-body .lic-dim{color:var(--sub);font-size:12px}
+
+/* ===== 4.0：字卡页导入提示 ===== */
+.card-import-hint{margin:-2px 0 10px;padding:10px 12px;border-radius:12px;
+  background:var(--accent-softer);border:1px solid var(--line);
+  font-size:11px;line-height:1.85;color:var(--hint)}
+.card-import-hint b{color:var(--sub);font-weight:600}
+.card-import-last{margin-top:6px;padding-top:6px;border-top:1px dashed var(--line-strong);color:var(--sub)}
