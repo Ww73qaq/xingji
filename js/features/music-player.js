@@ -12,7 +12,7 @@
     {title:'X',artist:'刘柏辛 Lexie',file:'刘柏辛Lexie - X.mp3'},
     {title:'沉浸式想念',artist:'赵希予（戏庭画）/ 肖倾月',file:'赵希予（戏庭画） 肖倾月 - 沉浸式想念.mp3'}
   ].map((t,i)=>({...t,id:i,url:MUSIC_BASE+encodeURIComponent(t.file)}));
-  const STORE_KEY='xingji.music.ui.v1';
+  const STORE_KEY='xingji.music.ui.v2'; /* v3.28.1：换键——新默认「底部居中」对老用户也生效一次，之后仍记忆拖动位置 */
   const ICONS={
     play:'<svg viewBox="0 0 24 24" aria-hidden="true"><path class="xj-fill" d="M8 5.5v13l10-6.5z"/></svg>',
     pause:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5v14M15 5v14"/></svg>',
@@ -117,7 +117,8 @@
   }
   function restorePosition(){
     const b=bounds();
-    let x=Number.isFinite(saved.x)?saved.x:b.w-b.pw-12;
+    /* v3.28.1：默认停靠底部水平居中（不再默认靠右遮挡内容），仍可拖动并记忆 */
+    let x=Number.isFinite(saved.x)?saved.x:(b.w-b.pw)/2;
     let y=Number.isFinite(saved.y)?saved.y:b.h-b.ph-88;
     setPosition(x,y,false);
   }
@@ -146,7 +147,15 @@
     const finish=e=>{
       if(!drag||drag.id!==e.pointerId)return;
       root.classList.remove('dragging');
-      if(dragMoved){const b=bounds();setPosition((saved.x+b.pw/2)>b.w/2?b.w-b.pw-10:10,saved.y,true);}
+      /* v3.28.1：松手吸附到最近的停靠位（左缘 / 底部居中 / 右缘），不再强制贴边 */
+      if(dragMoved){
+        const b=bounds(),cx=saved.x+b.pw/2;
+        let tx;
+        if(cx<b.w*.28)tx=10;
+        else if(cx>b.w*.72)tx=b.w-b.pw-10;
+        else tx=(b.w-b.pw)/2;
+        setPosition(tx,saved.y,true);
+      }
       drag=null;setTimeout(()=>{dragMoved=false;},0);
     };
     pill.addEventListener('pointerup',finish);pill.addEventListener('pointercancel',finish);

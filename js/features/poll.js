@@ -146,8 +146,9 @@ async function submitPoll(multi,isEdit){
   if(!question){showToast('请输入题目');return;}
   if(opts.length<2){showToast('至少 2 个选项');return;}
   const poll={question,options:opts,multi:!!multi};
-  // v3.7.1：单选弹窗新增「让 TA 帮我决定」开关 → TA 选完再抽一张字卡补充意思
-  if(!multi){
+  // v3.28.1：单选/多选都要读取「让 TA 帮我决定」——此前只在单选分支读取，
+  // 多选勾了也不生效（engine.js v3.27.4 已支持多选抽卡，这里补上提交端）。
+  {
     const dc=document.getElementById('poll-decide');
     if(dc&&dc.checked)poll.decide=1;
   }

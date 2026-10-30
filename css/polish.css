@@ -347,6 +347,12 @@ input[type=checkbox],input[type=radio]{accent-color:var(--primary)}
 .cal-nav,.trw-nav{background:var(--accent-softer);border:1px solid var(--line);color:var(--primary)}
 .cal-today,.cal-cell.today .cal-num{color:var(--primary)}
 .cal-cell{border:1px solid transparent;background:var(--accent-softer);border-radius:13px;min-height:70px}
+/* v3.28.1：修复日历手机端横向溢出——空单元格的 .empty 类会命中全局占位符样式
+   （padding:54px 24px + ::before 34px 装饰线），把最小内容宽度撑到 84px，
+   1fr 轨道被顶爆导致整网格超出屏幕。这里收回占位样式并给轨道加 minmax(0,1fr) 双保险。 */
+.cal-grid{grid-template-columns:repeat(7,minmax(0,1fr))}
+.cal-cell.empty{padding:4px 2px;min-width:0}
+.cal-cell.empty::before{display:none}
 .cal-cell.today{outline:0;border-color:var(--primary);background:var(--accent-soft)}
 .cal-cell.empty{border-color:transparent}.cal-op-btn{background:var(--accent-softer);border-color:var(--line);border-radius:12px;min-height:36px}
 .cal-todo-check.on{background:var(--primary);border-color:var(--primary)}
@@ -393,18 +399,38 @@ input[type=checkbox],input[type=radio]{accent-color:var(--primary)}
 .xj-theme-check{position:absolute;right:20px;bottom:16px;width:7px;height:7px;border-radius:50%;background:var(--primary);opacity:0}
 .xj-theme-option.on .xj-theme-check{opacity:1}
 
-/* 全局紫晶播放器 */
+/* 全局音乐播放器（v3.28.1：墨白/紫晶双主题配色，胶囊 238px）
+   墨白 = 默认（纸墨）；html[data-theme="amethyst"] 时切换为紫晶色板。 */
 .xj-music{
-  --music-w:248px;position:absolute;z-index:210;width:var(--music-w);left:0;top:0;
-  color:#3b294d;font-family:inherit;user-select:none;-webkit-user-select:none;
-  filter:drop-shadow(0 12px 24px rgba(89,58,125,.16));transition:filter .2s
+  --music-w:238px;
+  --mx-fg:#2f2b27; --mx-sub:#8f8a82; --mx-ico:#57534d;
+  --mx-play-bg:rgba(26,26,26,.08); --mx-play-ring:rgba(26,26,26,.05);
+  --mx-disc:linear-gradient(135deg,#5a554d,#211f1c);
+  --mx-accent:#8f8a82; --mx-chip:rgba(26,26,26,.07); --mx-on:#1a1a1a;
+  --mx-pill:linear-gradient(135deg,rgba(255,255,255,.94),rgba(243,241,235,.9));
+  --mx-pill-bd:rgba(26,26,26,.08);
+  --mx-panel:linear-gradient(150deg,rgba(255,255,255,.97),rgba(247,246,243,.95));
+  --mx-glow:rgba(0,0,0,.12);
+  position:absolute;z-index:210;width:var(--music-w);left:0;top:0;
+  color:var(--mx-fg);font-family:inherit;user-select:none;-webkit-user-select:none;
+  filter:drop-shadow(0 12px 24px var(--mx-glow));transition:filter .2s
 }
-.xj-music[hidden]{display:none!important}.xj-music.dragging{filter:drop-shadow(0 18px 30px rgba(89,58,125,.24))}
+html[data-theme="amethyst"] .xj-music{
+  --mx-fg:#3b294d; --mx-sub:#a087b5; --mx-ico:#7c5b9c;
+  --mx-play-bg:rgba(206,180,230,.38); --mx-play-ring:rgba(141,103,176,.08);
+  --mx-disc:linear-gradient(135deg,#d8c1eb,#b99bd4);
+  --mx-accent:#a785c6; --mx-chip:rgba(200,168,224,.24); --mx-on:#573873;
+  --mx-pill:linear-gradient(135deg,rgba(255,255,255,.92),rgba(239,226,250,.82));
+  --mx-pill-bd:rgba(255,255,255,.9);
+  --mx-panel:linear-gradient(150deg,rgba(255,255,255,.95),rgba(240,228,250,.91));
+  --mx-glow:rgba(89,58,125,.16)
+}
+.xj-music[hidden]{display:none!important}.xj-music.dragging{filter:drop-shadow(0 18px 30px var(--mx-glow))}
 .xj-music-pill{
   position:relative;height:54px;display:flex;align-items:center;gap:8px;padding:6px 8px;
-  border:1px solid rgba(255,255,255,.9);border-radius:22px;
-  background:linear-gradient(135deg,rgba(255,255,255,.92),rgba(239,226,250,.82));
-  box-shadow:inset 0 1px 0 #fff,inset 0 -1px 0 rgba(155,115,190,.08),0 7px 22px rgba(109,74,143,.13);
+  border:1px solid var(--mx-pill-bd);border-radius:22px;
+  background:var(--mx-pill);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.6),0 7px 22px var(--mx-glow);
   backdrop-filter:blur(22px) saturate(1.2);-webkit-backdrop-filter:blur(22px) saturate(1.2);
   overflow:hidden;touch-action:none;cursor:grab
 }
@@ -416,27 +442,28 @@ input[type=checkbox],input[type=radio]{accent-color:var(--primary)}
 @keyframes xjMusicShine{0%,30%{left:-40%;opacity:0}45%{opacity:.9}70%,100%{left:120%;opacity:0}}
 .xj-music-btn{
   position:relative;z-index:1;width:38px;height:38px;flex:0 0 38px;border:0;border-radius:14px;
-  display:inline-flex;align-items:center;justify-content:center;background:rgba(255,255,255,.38);color:#7c5b9c;
+  display:inline-flex;align-items:center;justify-content:center;background:rgba(255,255,255,.42);color:var(--mx-ico);
   cursor:pointer;transition:transform .16s var(--ease),background .16s
 }
+html[data-theme="amethyst"] .xj-music-btn{background:rgba(255,255,255,.38)}
 .xj-music-btn:hover{background:rgba(255,255,255,.74)}.xj-music-btn:active{transform:scale(.92)}
 .xj-music-btn svg{width:19px;height:19px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
 .xj-music-btn .xj-fill{fill:currentColor;stroke:none}
-.xj-music-play{background:rgba(206,180,230,.38);box-shadow:inset 0 0 0 1px rgba(141,103,176,.08)}
+.xj-music-play{background:var(--mx-play-bg);box-shadow:inset 0 0 0 1px var(--mx-play-ring)}
 .xj-music-title{
   position:relative;z-index:1;flex:1;min-width:0;overflow:hidden;white-space:nowrap;mask-image:linear-gradient(90deg,transparent,#000 7%,#000 93%,transparent)
 }
 .xj-music-title span{display:inline-block;font-size:12px;font-weight:600;letter-spacing:.15px;padding-left:4px}
 .xj-music.playing .xj-music-title.marquee span{animation:xjMusicTitle 12s linear infinite}
 @keyframes xjMusicTitle{0%,16%{transform:translateX(0)}82%,100%{transform:translateX(var(--scroll-x,0))}}
-.xj-music-index{position:relative;z-index:1;font-size:10px;color:#a087b5;font-variant-numeric:tabular-nums;white-space:nowrap}
+.xj-music-index{position:relative;z-index:1;font-size:10px;color:var(--mx-sub);font-variant-numeric:tabular-nums;white-space:nowrap}
 .xj-music-expand{width:30px;flex-basis:30px;background:transparent}
 .xj-music-expand svg{transition:transform .22s var(--ease)}.xj-music.open .xj-music-expand svg{transform:rotate(180deg)}
 .xj-music-panel{
   position:absolute;left:0;bottom:62px;width:min(310px,calc(100vw - 28px));max-height:min(440px,70dvh);
-  display:flex;flex-direction:column;padding:14px;border:1px solid rgba(255,255,255,.92);border-radius:24px;
-  background:linear-gradient(150deg,rgba(255,255,255,.95),rgba(240,228,250,.91));
-  box-shadow:inset 0 1px 0 #fff,0 18px 46px rgba(86,54,116,.20);
+  display:flex;flex-direction:column;padding:14px;border:1px solid var(--mx-pill-bd);border-radius:24px;
+  background:var(--mx-panel);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.6),0 18px 46px var(--mx-glow);
   backdrop-filter:blur(26px) saturate(1.18);-webkit-backdrop-filter:blur(26px) saturate(1.18);
   opacity:0;visibility:hidden;transform:translateY(10px) scale(.97);transform-origin:bottom right;
   transition:opacity .2s var(--ease),transform .2s var(--ease),visibility .2s
@@ -446,34 +473,34 @@ input[type=checkbox],input[type=radio]{accent-color:var(--primary)}
 .xj-music.panel-below.panel-above-right .xj-music-panel{transform-origin:top left}
 .xj-music.open .xj-music-panel{opacity:1;visibility:visible;transform:translateY(0) scale(1)}
 .xj-music-head{display:flex;align-items:center;gap:8px;padding:1px 2px 10px}
-.xj-music-head b{font-size:13px;letter-spacing:.4px}.xj-music-head span{font-size:10px;color:#a087b5}
+.xj-music-head b{font-size:13px;letter-spacing:.4px}.xj-music-head span{font-size:10px;color:var(--mx-sub)}
 .xj-music-close{margin-left:auto;width:30px;height:30px;flex-basis:30px;background:transparent}
 .xj-music-now{display:flex;align-items:center;gap:10px;padding:11px 12px;border-radius:16px;background:rgba(255,255,255,.45);border:1px solid rgba(255,255,255,.65)}
-.xj-music-disc{width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#d8c1eb,#b99bd4);color:#fff;box-shadow:0 4px 12px rgba(128,90,160,.18)}
+.xj-music-disc{width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:var(--mx-disc);color:#fff;box-shadow:0 4px 12px var(--mx-glow)}
 .xj-music.playing .xj-music-disc{animation:xjMusicDisc 5s linear infinite}
 @keyframes xjMusicDisc{to{transform:rotate(360deg)}}
 .xj-music-disc svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.8}
 .xj-music-now-text{flex:1;min-width:0}.xj-music-now-text b,.xj-music-now-text span{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.xj-music-now-text b{font-size:12px}.xj-music-now-text span{font-size:10px;color:#9a82ae;margin-top:3px}
-.xj-music-wave{display:flex;align-items:center;gap:2px;height:20px}.xj-music-wave i{width:2px;height:5px;border-radius:3px;background:#a785c6}
+.xj-music-now-text b{font-size:12px}.xj-music-now-text span{font-size:10px;color:var(--mx-sub);margin-top:3px}
+.xj-music-wave{display:flex;align-items:center;gap:2px;height:20px}.xj-music-wave i{width:2px;height:5px;border-radius:3px;background:var(--mx-accent)}
 .xj-music.playing .xj-music-wave i{animation:xjMusicWave .8s ease-in-out infinite alternate}.xj-music.playing .xj-music-wave i:nth-child(2){animation-delay:.18s}.xj-music.playing .xj-music-wave i:nth-child(3){animation-delay:.36s}
 @keyframes xjMusicWave{from{height:4px}to{height:17px}}
 .xj-music-controls{display:flex;align-items:center;justify-content:center;gap:15px;padding:10px 0 6px}
 .xj-music-controls .xj-music-play{width:44px;height:44px;flex-basis:44px;border-radius:16px}
-.xj-music-repeat.on{color:#684588;background:rgba(200,168,224,.28)}
-.xj-music-progress{display:flex;align-items:center;gap:7px;padding:0 3px 8px;color:#a087b5;font-size:9px;font-variant-numeric:tabular-nums}
-.xj-music-progress input{flex:1;min-width:0;height:16px;accent-color:#a785c6;cursor:pointer}
-.xj-music-list{overflow-y:auto;min-height:0;border-top:1px solid rgba(133,96,164,.09);padding-top:6px;scrollbar-width:thin;scrollbar-color:#d7c3e8 transparent}
+.xj-music-repeat.on{color:var(--mx-on);background:var(--mx-chip)}
+.xj-music-progress{display:flex;align-items:center;gap:7px;padding:0 3px 8px;color:var(--mx-sub);font-size:9px;font-variant-numeric:tabular-nums}
+.xj-music-progress input{flex:1;min-width:0;height:16px;accent-color:var(--mx-accent);cursor:pointer}
+.xj-music-list{overflow-y:auto;min-height:0;border-top:1px solid var(--mx-pill-bd);padding-top:6px;scrollbar-width:thin;scrollbar-color:var(--mx-accent) transparent}
 .xj-music-track{
   width:100%;min-height:44px;display:flex;align-items:center;gap:9px;padding:7px 8px;border:0;border-radius:12px;
-  background:transparent;color:#5e476f;text-align:left;cursor:pointer
+  background:transparent;color:var(--mx-fg);text-align:left;cursor:pointer
 }
-.xj-music-track:hover{background:rgba(255,255,255,.45)}.xj-music-track.on{background:rgba(200,168,224,.24);color:#573873}
-.xj-music-track-n{width:20px;font-size:10px;color:#a58bb8;text-align:center;font-variant-numeric:tabular-nums}
+.xj-music-track:hover{background:rgba(255,255,255,.45)}.xj-music-track.on{background:var(--mx-chip);color:var(--mx-on)}
+.xj-music-track-n{width:20px;font-size:10px;color:var(--mx-sub);text-align:center;font-variant-numeric:tabular-nums}
 .xj-music-track-text{flex:1;min-width:0}.xj-music-track-text b,.xj-music-track-text span{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.xj-music-track-text b{font-size:11.5px;font-weight:600}.xj-music-track-text span{font-size:9.5px;color:#9e87b1;margin-top:2px}
+.xj-music-track-text b{font-size:11.5px;font-weight:600}.xj-music-track-text span{font-size:9.5px;color:var(--mx-sub);margin-top:2px}
 .xj-music-track-dot{width:5px;height:5px;border-radius:50%;background:currentColor;opacity:0}.xj-music-track.on .xj-music-track-dot{opacity:1;box-shadow:0 0 8px currentColor}
-.xj-music-error{padding:8px 4px 2px;color:#a75366;font-size:10px;line-height:1.5}
+.xj-music-error{padding:8px 4px 2px;color:var(--ov-danger,#a75366);font-size:10px;line-height:1.5}
 
 /* 桌面预览与减少动态 */
 @media (min-width:700px){
