@@ -23,6 +23,7 @@ const PROB_META={
   quoteReplyProb:{min:0,max:100,step:5,unit:'%',hint:'引用你的话'},
   giftReplyProb:{min:0,max:100,step:1,unit:'%',hint:'送礼物'},
   stickerReplyProb:{min:0,max:100,step:1,unit:'%',hint:'发表情包'},
+  taMusicSwitchProb:{min:0,max:100,step:1,unit:'%',hint:'换播放模式'},
   emojiCardProb:{min:0,max:100,step:5,unit:'%',hint:'颜文字字卡'},
   withdrawProb:{min:0,max:100,step:1,unit:'%',hint:'撤回概率'},
   withdrawReissueProb:{min:0,max:100,step:5,unit:'%',hint:'撤回后补发'},
@@ -176,6 +177,11 @@ function renderProbability(){
       <div class="list-card-title">主动频率</div>
       <div class="list-card-sub">TA 多久会想主动找你说说话。</div>
       ${_tierRow(p.proactiveFreq||'occasional',[['rare','安静独处'],['occasional','偶尔想起'],['frequent','常来看看']],'applyProactiveFreq')}
+    </div>
+    <div class="list-card">
+      <div class="list-card-title">音乐</div>
+      <div class="list-card-sub">你在听歌的时候，他偶尔会伸手改一下。</div>
+      ${_numRow('taMusicSwitchProb','换播放模式概率','他在你听歌时把循环方式改掉的几率；0 = 从不插手')}
     </div>`;
   }
 
@@ -215,7 +221,7 @@ function resetProb(){
     replyDelaySec:20,typingRatio:0.25,replyDelayMinSec:4,replyDelayMaxSec:9,
     multiBubbleEnabled:true,multiBubbleProb:30,maxBubbles:3,
     cardConcatEnabled:true,cardConcatProb:35,minCardsPerBubble:1,maxCardsPerBubble:3,
-    emojiReplyProb:15,pokeReplyProb:8,quoteReplyProb:20,giftReplyProb:5,stickerReplyProb:10,
+    emojiReplyProb:15,pokeReplyProb:8,quoteReplyProb:20,giftReplyProb:5,stickerReplyProb:10,taMusicSwitchProb:8,
     emojiCardProb:20,
     withdrawProb:12,withdrawReissueProb:80,
     readIgnoreEnabled:false,readIgnoreTier:'normal',readIgnoreProb:20,repeatExclude:5,customRatio:90,

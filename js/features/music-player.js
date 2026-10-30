@@ -4,14 +4,24 @@
 (function(){
   'use strict';
   const MUSIC_BASE='https://ww73qaq.github.io/music/';
-  const TRACKS=[
+  const BUILTIN=[
     {title:'Lowkey',artist:'Aamir',file:'Aamir - Lowkey.mp3'},
     {title:'SEE ME 4 ME',artist:'Leah Marie Perez / Notkyle',file:'Leah Marie Perez Notkyle - SEE ME 4 ME.mp3'},
     {title:'Out of my system',artist:'Nia Nkuna',file:'Nia Nkuna - Out of my system.mp3'},
     {title:'call you tonight',artist:'郭小成 · Remix',file:'郭小成 - call you tonight (郭小成 Remix).mp3'},
     {title:'X',artist:'刘柏辛 Lexie',file:'刘柏辛Lexie - X.mp3'},
     {title:'沉浸式想念',artist:'赵希予（戏庭画）/ 肖倾月',file:'赵希予（戏庭画） 肖倾月 - 沉浸式想念.mp3'}
-  ].map((t,i)=>({...t,id:i,url:MUSIC_BASE+encodeURIComponent(t.file)}));
+  ].map((t,i)=>({...t,id:i,kind:'builtin',url:MUSIC_BASE+encodeURIComponent(t.file)}));
+
+  /* 4.0：三个音源合成一条播放列表
+     builtin = 仓库里那 6 首在线歌；net = 网易云歌单导入（存 localStorage 的元数据）；local = 本地音乐（Blob 存在 IndexedDB 的 music 表） */
+  const IMP_KEY='xingji.music.imported.v1';
+  let imported=[];
+  try{const raw=JSON.parse(localStorage.getItem(IMP_KEY)||'[]');imported=Array.isArray(raw)?raw.filter(t=>t&&t.url):[];}catch(_){imported=[];}
+  let localTracks=[];
+  let TRACKS=BUILTIN.slice();
+  let listDirty=true;
+  let curObjectUrl=null;
   const STORE_KEY='xingji.music.ui.v3'; /* v3.28.2：换键——新默认「顶部居中」对老用户也生效一次，之后仍记忆拖动位置 */
   const TOP_OFFSET=56; /* 播放器默认停靠：状态栏下方一点，顶部居中 */
   const ICONS={
@@ -31,6 +41,30 @@
   let repeat=saved.repeat==='one'?'one':'all';
   let open=false,errorText='',dragMoved=false;
   let audio,root,panel,phone,positionTimer=0;
+  /* 合辑重建：内置 → 导入 → 本地，顺序固定，index 越界时回到第一首 */
+  function rebuildTracks(){
+    const list=BUILTIN.slice();
+    imported.forEach((t,i)=>list.push({id:'net-'+i,kind:'net',title:t.title||'未命名',artist:t.artist||'网易云歌单',url:t.url}));
+    localTracks.forEach((t,i)=>list.push({id:'loc-'+t.id,kind:'local',localId:t.id,title:t.title||'本地音乐',artist:t.artist||'本地文件'}));
+    TRACKS=list;
+    if(!TRACKS.length)return;
+    if(!Number.isInteger(index)||index<0||index>=TRACKS.length)index=0;
+  }
+  /* 本地文件每次播放现开一个 objectURL，切歌时释放上一条，避免内存泄漏 */
+  function trackUrl(t){
+    if(!t)return '';
+    if(t.kind==='local'){
+      const rec=localTracks.find(x=>x.id===t.localId);
+      if(!rec||!rec.blob)return '';
+      if(curObjectUrl){try{URL.revokeObjectURL(curObjectUrl);}catch(_){}}
+      curObjectUrl=URL.createObjectURL(rec.blob);
+      return curObjectUrl;
+    }
+    return t.url||'';
+  }
+  function saveImported(){
+    try{localStorage.setItem(IMP_KEY,JSON.stringify(imported));}catch(_){}
+  }
   const save=()=>{
     try{localStorage.setItem(STORE_KEY,JSON.stringify({index,repeat,volume:audio?audio.volume:.75,x:saved.x,y:saved.y}));}catch(_){}
   };
@@ -38,11 +72,12 @@
   const fmt=s=>Number.isFinite(s)&&s>=0?Math.floor(s/60)+':'+String(Math.floor(s%60)).padStart(2,'0'):'0:00';
   function template(){
     return '<div class="xj-music-panel" id="xj-music-panel" aria-label="播放列表">'
-      +'<div class="xj-music-head"><b>此刻的声音</b><span>'+TRACKS.length+' 首在线歌曲</span><button class="xj-music-btn xj-music-close" type="button" data-action="close" aria-label="收起播放列表">'+ICONS.close+'</button></div>'
+      +'<div class="xj-music-head"><b>此刻的声音</b><span id="xj-music-count"></span><button class="xj-music-btn xj-music-close" type="button" data-action="close" aria-label="收起播放列表">'+ICONS.close+'</button></div>'
       +'<div class="xj-music-now"><div class="xj-music-disc">'+ICONS.note+'</div><div class="xj-music-now-text"><b id="xj-music-now-title"></b><span id="xj-music-now-artist"></span></div><div class="xj-music-wave" aria-hidden="true"><i></i><i></i><i></i></div></div>'
       +'<div class="xj-music-controls"><button class="xj-music-btn" type="button" data-action="prev" aria-label="上一首">'+ICONS.prev+'</button><button class="xj-music-btn xj-music-play" type="button" data-action="play" aria-label="播放或暂停">'+ICONS.play+'</button><button class="xj-music-btn" type="button" data-action="next" aria-label="下一首">'+ICONS.next+'</button><button class="xj-music-btn xj-music-repeat" type="button" data-action="repeat" aria-label="切换循环模式">'+ICONS.repeat+'</button></div>'
       +'<div class="xj-music-progress"><span id="xj-music-current">0:00</span><input id="xj-music-seek" type="range" min="0" max="1000" value="0" aria-label="播放进度"><span id="xj-music-duration">0:00</span></div>'
-      +'<div class="xj-music-list" id="xj-music-list">'+TRACKS.map(t=>'<button class="xj-music-track" type="button" data-track="'+t.id+'"><span class="xj-music-track-n">'+String(t.id+1).padStart(2,'0')+'</span><span class="xj-music-track-text"><b>'+esc(t.title)+'</b><span>'+esc(t.artist)+'</span></span><i class="xj-music-track-dot"></i></button>').join('')+'</div>'
+      +'<div class="xj-music-tools"><button class="xj-music-tool" type="button" data-tool="local">本地音乐</button><button class="xj-music-tool" type="button" data-tool="net">导入歌单</button></div>'
+      +'<div class="xj-music-list" id="xj-music-list"></div>'
       +'<div class="xj-music-error" id="xj-music-error" hidden></div></div>'
       +'<div class="xj-music-pill" id="xj-music-pill" aria-label="可拖动的音乐播放器">'
       +'<button class="xj-music-btn xj-music-play" type="button" data-action="play" aria-label="播放或暂停">'+ICONS.play+'</button>'
@@ -60,11 +95,34 @@
     requestAnimationFrame(updateMarquee);
     document.getElementById('xj-music-index').textContent=String(index+1).padStart(2,'0')+' / '+String(TRACKS.length).padStart(2,'0');
     root.querySelectorAll('[data-action="play"]').forEach(b=>{b.innerHTML=playing?ICONS.pause:ICONS.play;b.setAttribute('aria-label',playing?'暂停':'播放');});
+    if(listDirty){renderList();listDirty=false;}
     root.querySelectorAll('.xj-music-track').forEach(b=>{const on=Number(b.dataset.track)===index;b.classList.toggle('on',on);b.setAttribute('aria-current',on?'true':'false');});
     const rb=root.querySelector('[data-action="repeat"]');rb.classList.toggle('on',repeat==='one');rb.innerHTML=repeat==='one'?ICONS.one:ICONS.repeat;rb.title=repeat==='one'?'单曲循环':'列表循环';
     const ex=root.querySelector('[data-action="toggle"]');ex.setAttribute('aria-expanded',open?'true':'false');ex.setAttribute('aria-label',open?'收起播放列表':'展开播放列表');
+    const cnt=document.getElementById('xj-music-count');
+    if(cnt)cnt.textContent=TRACKS.length+' 首';
     const err=document.getElementById('xj-music-error');err.hidden=!errorText;err.textContent=errorText;
-    updateTime();updateMediaSession();
+    updateTime();updateMediaSession();updateMusicIcon();
+  }
+
+  /* 播放列表：内置歌不可删；导入/本地可删（本地会连 Blob 一起删） */
+  function renderList(){
+    const box=document.getElementById('xj-music-list');if(!box)return;
+    if(!TRACKS.length){box.innerHTML='<div class="xj-music-empty">还没有歌。点上面的「本地音乐」或「导入歌单」。</div>';return;}
+    box.innerHTML=TRACKS.map((t,i)=>'<button class="xj-music-track'+(t.kind!=='builtin'?' xj-removable':'')+'" type="button" data-track="'+i+'">'
+      +'<span class="xj-music-track-n">'+String(i+1).padStart(2,'0')+'</span>'
+      +'<span class="xj-music-track-text"><b>'+esc(t.title)+'</b><span>'+esc(t.artist)+(t.kind==='local'?' · 本地':'')+'</span></span>'
+      +(t.kind!=='builtin'?'<i class="xj-music-track-del" data-del="'+i+'" aria-label="从列表移除">×</i>':'')
+      +'<i class="xj-music-track-dot"></i></button>').join('');
+  }
+
+  /* 桌面第 2 页的「音乐」图标跟着当前歌走：播放中显示歌名，暂停回到「音乐」 */
+  function updateMusicIcon(){
+    const el=document.getElementById('mu-app-label');
+    if(!el)return;
+    const t=TRACKS[index];
+    const playing=audio&&!audio.paused&&!audio.ended;
+    el.textContent=(playing&&t)?('♪ '+String(t.title).slice(0,5)):'音乐';
   }
   function updateMarquee(){
     const wrap=root&&root.querySelector('.xj-music-title'),span=wrap&&wrap.querySelector('span');
@@ -82,12 +140,18 @@
   function loadTrack(autoplay){
     if(!audio)return;
     const t=TRACKS[index];errorText='';
-    audio.src=t.url;audio.load();render();
+    const u=trackUrl(t);
+    if(!u){errorText='这首歌的文件找不到了，可能已被删除。';render();return;}
+    audio.src=u;audio.load();render();
     if(autoplay)play();
   }
   async function play(){
     if(!audio)return;
-    if(!audio.src)audio.src=TRACKS[index].url;
+    if(!audio.src){
+      const u=trackUrl(TRACKS[index]);
+      if(!u){errorText='这首歌的文件找不到了，可能已被删除。';render();return;}
+      audio.src=u;
+    }
     errorText='';
     try{await audio.play();}catch(e){
       errorText='歌曲暂时无法播放，请检查网络后重试。';render();
@@ -189,6 +253,112 @@
     if(typeof placePanel==='function')placePanel();
     render();
   };
+  /* ---------- 本地音乐（Blob 存 IndexedDB 的 music 表，v3.19.0 就有这张表） ---------- */
+  async function loadLocal(){
+    try{localTracks=(await dbGetAll('music'))||[];}catch(_){localTracks=[];}
+    localTracks.sort((a,b)=>(a.addedAt||0)-(b.addedAt||0));
+    rebuildTracks();listDirty=true;
+  }
+  function addLocalMusic(){
+    const input=document.createElement('input');
+    input.type='file';input.accept='audio/*';input.multiple=true;
+    input.onchange=async e=>{
+      const files=[...(e.target.files||[])].slice(0,20);
+      if(!files.length)return;
+      showToast('正在导入…');
+      let ok=0;
+      for(const f of files){
+        try{
+          await dbPut('music',{title:f.name.replace(/\.[^.]+$/,''),artist:'本地音乐',blob:f,addedAt:Date.now()});
+          ok++;
+        }catch(_){}
+      }
+      await loadLocal();render();
+      showToast(ok?('已导入 '+ok+' 首本地音乐'):'导入失败，可能是存储空间不足');
+    };
+    input.click();
+  }
+  async function removeTrack(i){
+    const t=TRACKS[i];if(!t||t.kind==='builtin')return;
+    if(t.kind==='local'){
+      try{await dbDelete('music',t.localId);}catch(_){}
+      await loadLocal();
+    }else{
+      /* 导入的按 url 去重删，避免索引错位后删错 */
+      imported=imported.filter(x=>x.url!==t.url);
+      saveImported();rebuildTracks();listDirty=true;
+    }
+    if(index>=TRACKS.length)index=0;
+    save();render();
+    showToast('已从列表移除');
+  }
+
+  /* ---------- 网易云歌单导入 ----------
+     走公共解析接口（Meting 系），失败就明确告诉用户，不假装成功。
+     只存歌名/歌手/播放地址，音频仍然在对方 CDN 上，不进本地、不进安装包。 */
+  function importNetease(){
+    /* 用应用内输入弹窗（安卓 WebView 没有 window.prompt） */
+    askText('导入歌单','' , '粘贴网易云歌单链接或歌单 ID', (raw)=>{ importNeteaseById(raw); });
+  }
+  async function importNeteaseById(raw){
+    const m=String(raw||'').match(/(\d{5,})/);
+    if(!m){showToast('没认出歌单 ID');return;}
+    const id=m[1];
+    showToast('正在读取歌单…');
+    const apis=[
+      'https://api.injahow.cn/meting/?type=playlist&id='+id,
+      'https://api.i-meto.com/meting/api?server=netease&type=playlist&id='+id
+    ];
+    let list=null;
+    for(const api of apis){
+      try{
+        const r=await fetch(api,{cache:'no-store'});
+        if(!r.ok)continue;
+        const j=await r.json();
+        if(Array.isArray(j)&&j.length){list=j;break;}
+      }catch(_){}
+    }
+    if(!list){
+      showToast('歌单接口暂时用不了，可以先用「本地音乐」导入');
+      return;
+    }
+    const seen=new Set(imported.map(t=>t.url));
+    let add=0;
+    for(const it of list){
+      const url=it.url||it.src||'';
+      const title=it.name||it.title||'';
+      if(!url||!title||seen.has(url))continue;
+      if(imported.length>=100)break;
+      imported.push({title,artist:String(it.artist||it.author||'网易云歌单'),url});
+      seen.add(url);add++;
+    }
+    saveImported();rebuildTracks();listDirty=true;
+    if(add){save();render();showToast('已导入 '+add+' 首');}
+    else showToast('这个歌单里没有可播放的曲目');
+  }
+
+  /* ---------- TA 偶尔会自己换个播放模式 ---------- */
+  let taMusicTimer=0;
+  function scheduleTaMusicTouch(){
+    clearTimeout(taMusicTimer);
+    taMusicTimer=setTimeout(()=>{
+      try{
+        const name=(typeof state!=='undefined'&&state&&state.other&&state.other.name)||'TA';
+        const on=typeof state!=='undefined'&&state&&state.musicOn;
+        if(on&&audio&&!audio.paused&&root&&!root.hidden){
+          const p=Number(state.prob&&state.prob.taMusicSwitchProb);
+          const prob=Number.isFinite(p)?p:8;
+          if(Math.random()*100<prob){
+            const toOne=repeat!=='one';
+            repeat=toOne?'one':'all';save();render();
+            showToast(name+(toOne?'把播放模式换成了单曲循环':'把播放模式换回了列表循环'));
+          }
+        }
+      }catch(_){}
+      scheduleTaMusicTouch();
+    },(3*60+Math.random()*2*60)*1000);
+  }
+
   function init(){
     phone=document.getElementById('phone');if(!phone||document.getElementById('xj-music'))return;
     root=document.createElement('section');root.id='xj-music';root.className='xj-music';root.setAttribute('aria-label','全局音乐播放器');root.innerHTML=template();
@@ -201,6 +371,10 @@
     audio.addEventListener('error',()=>{errorText='歌曲加载失败，请检查网络连接。';render();});
     audio.addEventListener('waiting',()=>root.classList.add('buffering'));audio.addEventListener('playing',()=>root.classList.remove('buffering'));
     root.addEventListener('click',e=>{
+      const del=e.target.closest('[data-del]');
+      if(del){e.preventDefault();e.stopPropagation();removeTrack(Number(del.dataset.del));return;}
+      const tool=e.target.closest('[data-tool]');
+      if(tool){const k=tool.dataset.tool;if(k==='local')addLocalMusic();else if(k==='net')importNetease();return;}
       const track=e.target.closest('[data-track]');if(track){select(Number(track.dataset.track),true);return;}
       const btn=e.target.closest('[data-action]');if(!btn)return;
       const a=btn.dataset.action;
@@ -214,6 +388,8 @@
     document.addEventListener('pointerdown',e=>{if(open&&root&&!root.contains(e.target))setOpen(false);});
     document.addEventListener('keydown',e=>{if(e.key==='Escape'&&open)setOpen(false);});
     bindDrag();restorePosition();render();syncVisibility();
+    loadLocal().then(()=>render());
+    scheduleTaMusicTouch();
     const mo=new MutationObserver(syncVisibility);mo.observe(phone,{subtree:true,attributes:true,attributeFilter:['class','id']});
     const ro=new ResizeObserver(()=>{restorePosition();placePanel();});ro.observe(phone);
     window.addEventListener('resize',()=>{clearTimeout(positionTimer);positionTimer=setTimeout(()=>{restorePosition();placePanel();},100);});

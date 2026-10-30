@@ -421,9 +421,21 @@ function dvSaveRecord(){
     action: dvReading.action,
     time: Date.now()
   };
-  dvRecordId = rec.id;
   const list = dvRecords();
-  list.unshift(rec);
+  /* 同一副牌「再提问 / 改问题」时原地更新这条，而不是再塞一条重复记录 */
+  const exist = dvRecordId ? list.find(r=>r.id === dvRecordId) : null;
+  if(exist){
+    exist.deck = rec.deck;
+    exist.question = rec.question;
+    exist.cards = rec.cards;
+    exist.headline = rec.headline;
+    exist.body = rec.body;
+    exist.action = rec.action;
+    exist.time = rec.time;
+  }else{
+    dvRecordId = rec.id;
+    list.unshift(rec);
+  }
   if(list.length > 60) list.length = 60;   /* 只留最近 60 条，避免本地存储膨胀 */
   saveKey('divinations');
   renderDvRecords();
@@ -508,22 +520,23 @@ function dvSendToChat(){
 /* 「再提问」：沿用同一副牌，换一个问题重新解读 */
 async function dvReask(){
   if(dvBusy || !dvDrawn.length) return;
-  const q = prompt('换个问题（牌不变，重新解读）：', dvQuestion || '');
-  if(q === null) return;
-  dvQuestion = q;
-  dvReading = dvComposeReading();
-  const qEl = document.getElementById('dv-q');
-  if(qEl) qEl.value = dvQuestion;
-  renderDvReading();
-  dvSaveRecord();
+  askText('换个问题', dvQuestion || '', '牌不变，重新解读', (q)=>{
+    dvQuestion = q;
+    dvReading = dvComposeReading();
+    const qEl = document.getElementById('dv-q');
+    if(qEl) qEl.value = dvQuestion;
+    renderDvReading();
+    dvSaveRecord();
+  });
 }
 
 /* 记录上的「再提问」：把那副牌载回牌桌，再问 */
 async function dvRecReask(id){
   const r = dvFindRec(id);
   if(!r) return;
-  const q = prompt('换个问题（沿用这次的牌）：', r.question || '');
-  if(q === null) return;
+  askText('换个问题', r.question || '', '沿用这次的牌', (q)=>{ dvRecReaskGo(r, q); });
+}
+async function dvRecReaskGo(r, q){
   dvMode = r.deck; dvCount = r.cards.length;
   dvDrawn = r.cards.map(c=>({name:c.name, top:'', big:'✦', rev:!!c.rev, meaning:c.meaning, tone:'m'}));
   dvQuestion = q;
@@ -541,8 +554,9 @@ async function dvRecReask(id){
 async function dvRecEdit(id){
   const r = dvFindRec(id);
   if(!r) return;
-  const q = prompt('修改这次的问题：', r.question || '');
-  if(q === null) return;
+  askText('修改这次的问题', r.question || '', '改完会重新解读', (q)=>{ dvRecEditGo(r, q); });
+}
+function dvRecEditGo(r, q){
   r.question = q;
   /* 用记录里的牌重算解读 */
   const saved = {mode:dvMode, q:dvQuestion, drawn:dvDrawn};

@@ -642,3 +642,14 @@ html[data-theme="amethyst"] .xj-music-btn{background:rgba(255,255,255,.38)}
 .xz-say-label{font-size:11px;color:var(--hint);letter-spacing:.1em}
 .xz-say-text{margin-top:6px;font-size:15px;color:var(--text);line-height:1.75;word-break:break-word}
 .xz-hint{margin-top:10px;font-size:11px;color:var(--hint);line-height:1.7}
+
+/* ===== 4.0：播放器音源（本地音乐 / 歌单导入） ===== */
+.xj-music-tools{display:flex;gap:6px;padding:2px 0 8px}
+.xj-music-tool{flex:1;border:1px solid var(--mx-pill-bd);background:transparent;color:var(--mx-sub);
+  border-radius:10px;padding:7px 0;font-size:11px;letter-spacing:.02em;cursor:pointer}
+.xj-music-tool:active{transform:scale(.98);background:var(--mx-chip)}
+.xj-music-track-del{width:18px;flex-shrink:0;text-align:center;font-style:normal;
+  font-size:14px;line-height:1;color:var(--mx-sub);opacity:.5;padding:2px 0}
+.xj-music-track-del:active{opacity:1;color:#c0392b}
+.xj-music-track.xj-removable .xj-music-track-dot{display:none}
+.xj-music-empty{padding:14px 4px;font-size:11px;color:var(--mx-sub);text-align:center;line-height:1.7}

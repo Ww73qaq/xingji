@@ -126,3 +126,40 @@ function closeImageViewer(){
   ivScale=1;ivX=0;ivY=0;ivDrag=null;
 }
 function viewImage(url){openImageViewer({src:url,closest:()=>null,parentElement:null},'',0);}
+
+/* =========================================================
+   4.0 · 通用文本输入弹窗
+   —— 安卓 WebView（APK）不实现 window.prompt，会直接返回 null，
+      所以凡是「要用户填一行字」的地方都走这里，不再用 prompt。
+   用法：askText('标题', 初始值, 占位提示, v=>{ ...确认后... })
+   取消则什么都不回调。
+   ========================================================= */
+let _askTextCb=null;
+function askText(title,initial,placeholder,cb){
+  _askTextCb=typeof cb==='function'?cb:null;
+  showModal(title,
+    `<input class="textarea-full" id="ask-text" maxlength="300" autocomplete="off"
+       style="min-height:0;padding:10px 12px" placeholder="${String(placeholder||'').replace(/"/g,'&quot;')}">`,
+    '<div class="modal-btn-row"><button class="modal-btn" onclick="askTextCancel()">取消</button><button class="modal-btn primary" onclick="askTextOk()">确定</button></div>');
+  setTimeout(()=>{
+    const i=document.getElementById('ask-text');
+    if(!i)return;
+    i.value=initial||'';
+    i.focus();
+    try{i.setSelectionRange(i.value.length,i.value.length);}catch(_){}
+  },130);
+}
+function askTextOk(){
+  const i=document.getElementById('ask-text');
+  const v=i?String(i.value||''):'';
+  const cb=_askTextCb;_askTextCb=null;
+  closeModal();
+  if(cb)try{cb(v);}catch(e){console.warn('[askText] callback failed',e);}
+}
+function askTextCancel(){
+  _askTextCb=null;
+  closeModal();
+}
+window.askText=askText;
+window.askTextOk=askTextOk;
+window.askTextCancel=askTextCancel;

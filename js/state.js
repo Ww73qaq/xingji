@@ -22,6 +22,8 @@ let state = {
     emojiReplyProb:15, pokeReplyProb:8, quoteReplyProb:20, giftReplyProb:5,
     // 4.0：TA 主动发表情包（图片）概率——与「微情绪」是两件事，表情包走你导入的图片库
     stickerReplyProb:10,
+    // 4.0：TA 偶尔自己换播放模式（列表循环 ↔ 单曲循环）的概率%
+    taMusicSwitchProb:8,
     // v3.6.4：颜文字字卡独立概率（命中后本轮基础回复直接抽「颜文字」分组字卡）
     emojiCardProb:20,
     // 回复行为（v3.24.0：已读不回 = 唯一不回复机制；禁言已删）
