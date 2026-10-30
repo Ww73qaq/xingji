@@ -10,12 +10,24 @@
    即：默认是字母序，「使用次数」这一维度优先于字母序。 */
 let cardGroupFilter='全部',selectedCardIds=new Set();
 const _cardCollator=(typeof Intl!=='undefined'&&Intl.Collator)?new Intl.Collator('zh-Hans-CN',{numeric:true,sensitivity:'base'}):null;
+/* 4.0：内置字卡导入后「全部」里有一万八千条，纯字母序会把颜文字（ASCII）全挤到最前面，
+   第一屏全是 :-D / :( 这种东西。改为先按分组排，组内再按字母。
+   自定义分组（不在下表的）排最前——用户自己写的永远是第一优先。 */
+const CARD_GROUP_ORDER=['默认','日常','日常关心','聊天杂谈','疑问互动','动作','情绪安抚','夸夸',
+  '承诺真心','表达爱意','甜言爱语','调情亲密','撒娇黏人','生气斗嘴','亲昵小动作','心情意象',
+  '时间数字','称呼','提醒','留白','拍一拍','颜文字'];
+function _cardGroupRank(g){
+  const i=CARD_GROUP_ORDER.indexOf((g||'默认'));
+  return i<0?-1:i;
+}
 function cardCompare(a,b){
   const ua=Number(a.useCount)||0,ub=Number(b.useCount)||0;
   const uaUsed=ua>0,ubUsed=ub>0;
   if(uaUsed!==ubUsed)return uaUsed?-1:1;      // 用过的整段排在前面
   if(uaUsed&&ub!==ua)return ub-ua;            // 段内按使用次数降序
-  const at=a.text||'',bt=b.text||'';          // 默认：字母序（中文按拼音）
+  const ra=_cardGroupRank(a.group),rb=_cardGroupRank(b.group);
+  if(ra!==rb)return ra-rb;                    // 再按分组
+  const at=a.text||'',bt=b.text||'';          // 组内按字母序（中文按拼音）
   return _cardCollator?_cardCollator.compare(at,bt):(at<bt?-1:at>bt?1:0);
 }
 async function ensureDefaultCardGroups(){
@@ -36,6 +48,63 @@ async function ensureDefaultCardGroups(){
     }
   }
 }
+/* =========================================================
+   4.0 · 内置字卡导入
+   —— 内置包 js/data/builtin-cards.js 体积约 600KB，**只在点这个按钮时才加载**，不进首屏。
+   —— 幂等：已存在的同句直接跳过，重复点不会产生重复卡。
+   —— 打 direction:'ta' 标记，供引擎与「我对他」方向库区分。
+   ========================================================= */
+const BUILTIN_CARDS_VER=1;
+function loadBuiltinCardsPack(){
+  return new Promise((resolve,reject)=>{
+    if(window.XJ_BUILTIN_CARDS)return resolve(window.XJ_BUILTIN_CARDS);
+    const sc=document.createElement('script');
+    sc.src='js/data/builtin-cards.js?v='+(typeof APP_VERSION!=='undefined'?APP_VERSION:'4');
+    sc.onload=()=>resolve(window.XJ_BUILTIN_CARDS||null);
+    sc.onerror=()=>reject(new Error('内置字卡包加载失败'));
+    document.head.appendChild(sc);
+  });
+}
+async function importBuiltinCards(){
+  let pack=null;
+  try{pack=await loadBuiltinCardsPack();}catch(e){}
+  if(!pack||!pack.groups){showToast('内置字卡包读取失败，请检查网络或稍后再试');return;}
+  const groupNames=Object.keys(pack.groups);
+  const total=groupNames.reduce((n,g)=>n+(pack.groups[g]||[]).length,0);
+  appConfirm('导入内置字卡',
+    `会加入 ${total} 条内置字卡，分 ${groupNames.length} 组。<br>已存在的同句会自动跳过，重复点不会加重复。`,
+    async ()=>{
+      const existing=new Set();
+      try{(await dbGetAll('cards')).forEach(c=>existing.add(String(c.text||'').trim()));}catch(e){}
+      const rows=[];
+      for(const g of groupNames){
+        for(const t of pack.groups[g]||[]){
+          const txt=String(t||'').trim();
+          if(!txt||existing.has(txt))continue;
+          existing.add(txt);
+          rows.push({text:txt,group:g,direction:'ta',builtin:1,enabled:1,time:Date.now()});
+        }
+      }
+      if(!rows.length){showToast('内置字卡已经全部在了，不用再导');return;}
+      showToast('正在导入，请不要退出…');
+      let ok=0;
+      try{
+        ok=await dbBulkPut('cards',rows,(d,n)=>{if(d%4000<n&&d%4000===0)showToast('正在导入 '+d+'/'+n);});
+      }catch(e){showToast('导入中断，已写入的部分会保留');}
+      /* 分组也要建出来，否则字卡页看不到这些分组 */
+      try{
+        const gs=await dbGetAll('cardGroups');
+        const have=new Set(gs.map(x=>x.name));
+        const add=groupNames.filter(g=>!have.has(g)).map(g=>({name:g,enabled:1}));
+        if(add.length)await dbBulkPut('cardGroups',add);
+      }catch(e){}
+      state.builtinCardsVer=BUILTIN_CARDS_VER;
+      try{saveKey('builtinCardsVer');}catch(e){}
+      renderCards();
+      showToast('已导入 '+ok+' 条内置字卡');
+    });
+}
+
 async function renderCards(){
   const body=document.getElementById('cards-body');
   await ensureDefaultCardGroups();
@@ -52,9 +121,10 @@ async function renderCards(){
     <div class="card-actions" style="display:flex;gap:8px;padding:2px 0 8px">
       <button class="btn-pill" style="flex:1" onclick="addCard()">＋ 字卡</button>
       <button class="btn-pill ghost" style="flex:1" onclick="manageCardGroups()">分组管理</button>
+      <button class="btn-pill ghost" style="flex:1" onclick="importBuiltinCards()">内置字卡</button>
     </div>
     <div class="tabs" style="overflow-x:auto;flex-wrap:nowrap">${names.map((n,i)=>{const cnt=n==='全部'?all.length:all.filter(c=>(c.group||'默认')===n).length;return `<button class="tab${cardGroupFilter===n?' active':''}" style="flex:0 0 auto;padding:6px 14px;min-width:60px" onclick="pickCardGroup(${i})"><span style="display:block;font-size:13px;line-height:1.35">${esc(n)}</span><span style="display:block;font-size:10px;opacity:.62;line-height:1.3">${cnt} 条</span></button>`;}).join('')}</div>
-    <div class="card-toolbar" style="color:var(--hint);font-size:11px">默认按字母排序 · 用过的字卡排在前面</div>
+    <div class="card-toolbar" style="color:var(--hint);font-size:11px">用过的排在前面 · 再按分组 · 组内按字母</div>
     <div class="search-bar"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg><input type="text" id="card-search" placeholder="搜索字卡" oninput="filterCards(this.value)"></div>
     <div id="card-list"></div>`;
   bindCardScroll();

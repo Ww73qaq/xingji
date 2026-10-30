@@ -80,12 +80,14 @@ let state = {
   // 4.0：「问 TA」选择器的选项组（可增删，默认是/否/再想一想）
   selectorOptions:['是','否','再想一想'],
   // 4.0：占卜记录（最多保留 60 条，见 divination.js dvSaveRecord）
-  divinations:[]
+  divinations:[],
+  // 4.0：内置字卡包版本（0 = 没导过）
+  builtinCardsVer:0
 };
 
 async function loadSettings(){
   // v3.7.2 性能：原 43 次 dbGet 串行事务 → 一次 dbGetAll 全表读（settings 按 key 索引）
-  const keys=['me','other','skin','pin','prob','meetTime','quote','splashText','stats','chat','muteEndTime','muteRequest','surveySettings','notify','notes','taMuteMeEndTime','taMuteReqCoolAt','diaryReqAt','taMuteLastEnd','taMuteReqAt','statusPool','moodPool','taStatusUntil','taStatusCoolAt','taMuteCycleSkip','taCallCycleSkip','taMuteReason','taStatusLockMin','calLastSnapDate','customGifts','taSenseCoolAt','myDiaryReqCoolAt','taDiaryDenied','noteAlarmDone','taSchedSettings','todoAlarmDone','todoDoneByDay','todoExclByDay','lastSenseDir','taTimeOffset','musicOn','selectorOptions','divinations'];
+  const keys=['me','other','skin','pin','prob','meetTime','quote','splashText','stats','chat','muteEndTime','muteRequest','surveySettings','notify','notes','taMuteMeEndTime','taMuteReqCoolAt','diaryReqAt','taMuteLastEnd','taMuteReqAt','statusPool','moodPool','taStatusUntil','taStatusCoolAt','taMuteCycleSkip','taCallCycleSkip','taMuteReason','taStatusLockMin','calLastSnapDate','customGifts','taSenseCoolAt','myDiaryReqCoolAt','taDiaryDenied','noteAlarmDone','taSchedSettings','todoAlarmDone','todoDoneByDay','todoExclByDay','lastSenseDir','taTimeOffset','musicOn','selectorOptions','divinations','builtinCardsVer'];
   const map={};
   try{
     const all=await dbGetAll('settings');

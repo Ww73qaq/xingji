@@ -134,3 +134,40 @@ function dbDelete(store,id){
   if(memo&&memo.v){const i=memo.v.findIndex(x=>String(x&&(x.id!==undefined?x.id:x.key))===String(id));if(i>=0)memo.v.splice(i,1);}
   return new Promise((res,rej)=>{const tx=DB.transaction(store,'readwrite');const req=tx.objectStore(store).delete(id);req.onsuccess=res;req.onerror=rej;});}
 function dbGetByKey(store,key){return dbGetAll(store).then(all=>all.find(x=>x.key===key)||null);}
+
+/* =========================================================
+   4.0 · 批量写入（导入内置字卡这类上千条的场景）
+   —— 每 400 条一个事务，避免单事务过大卡死；
+   —— 写完清掉该表的读缓存，避免 30s 内仍读到旧数据；
+   —— 返回实际写入条数。
+   ========================================================= */
+function dbBulkPut(store,items,onProgress){
+  return new Promise((resolve,reject)=>{
+    const list=Array.isArray(items)?items:[];
+    if(!list.length){resolve(0);return;}
+    let i=0,done=0;
+    const CHUNK=400;
+    const step=()=>{
+      if(i>=list.length){
+        try{if(_dbMemo[store])delete _dbMemo[store];}catch(_){}
+        resolve(done);
+        return;
+      }
+      const slice=list.slice(i,i+CHUNK);
+      i+=CHUNK;
+      let tx;
+      try{tx=DB.transaction(store,'readwrite');}catch(e){reject(e);return;}
+      const st=tx.objectStore(store);
+      slice.forEach(row=>{try{st.put(row);}catch(_){}});
+      tx.oncomplete=()=>{
+        done+=slice.length;
+        if(typeof onProgress==='function'){try{onProgress(done,list.length);}catch(_){}}
+        step();
+      };
+      tx.onerror=()=>reject(tx.error||new Error('bulk put failed'));
+      tx.onabort=()=>reject(tx.error||new Error('bulk put aborted'));
+    };
+    step();
+  });
+}
+window.dbBulkPut=dbBulkPut;

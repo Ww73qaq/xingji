@@ -15,6 +15,8 @@ async function _getCardPool(){
   const dis=new Set(groups.filter(g=>g.enabled===false).map(g=>g.name));
   const pool=cards
     .filter(c=>c.enabled!==false&&!dis.has(c.group||'默认'))
+    /* 4.0：字卡分两个方向库——direction:'me' 是「我对他说的话」，不能由 TA 说出来 */
+    .filter(c=>c.direction!=='me')
     .map(c=>({id:c.id,text:String(c.text||'').trim(),useCount:c.useCount||0,group:c.group||'默认'}))
     .filter(c=>c.text);
   return pool;
@@ -162,10 +164,15 @@ async function _buildBaseBubbleText(src,roundUsed,usage,bubbleUsed,markUsed,inte
   if(cards&&cards.length){
     const min=_clamp(_numCfg(p.minCardsPerBubble,1),1,6);
     const max=_clamp(_numCfg(p.maxCardsPerBubble,3),min,6);
-    const n=useConcat?_randomInt(min,max):1;
+    /* 4.0：内置字卡里有大量完整长句（"别人说过很多，我也知道那些道理…"）。
+       长句之间用「——」硬拼，读起来像三个人抢话，所以拼接只在**短句池**里做；
+       短句不够就退回单张——宁可一句长的，也不要三句凑的。 */
+    const shortCards=cards.filter(c=>String(c.text||'').length<=10);
+    const canConcat=useConcat&&shortCards.length>=30;
+    const n=canConcat?_randomInt(min,max):1;
     for(let i=0;i<n;i++){
       const exclude=new Set([...roundUsed,...bubbleUsed]);
-      let c=_pickBalanced(cards,exclude);
+      let c=_pickBalanced(canConcat?shortCards:cards,exclude);
       if(!c&&src.kind==='custom'){
         // 自定义池抽空 → 意图素材 → 系统池回退
         const intentPool=INTENT_POOLS[intent]||[];
