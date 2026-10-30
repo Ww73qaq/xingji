@@ -346,15 +346,15 @@ async function buildReply(context){
     }catch(e){}
   }
 
-  /* v3.7.0：医生提醒——深夜（小时≥23 或 <2）或本轮上下文偏累/长时间用眼时，
-     低内部概率（10~15%）把一句医生提醒作为领句 unshift 到最前；不做定时闹钟、不刷存在感。 */
+  /* 4.1：照顾提醒（原「医生提醒」）——深夜（小时≥23 或 <2）或本轮上下文偏累/长时间用眼时，
+     低内部概率把一句关心作为领句 unshift 到最前；不做定时闹钟、不刷存在感。 */
   if(!mustAnswer&&!taOutputBlocked()){
     const hr=new Date().getHours();
     const lateNight=(hr>=23||hr<2);
     const ctxTired=/累|困|眼|熬夜|加班|盯着|屏幕|头疼|疲惫|晕/.test(context.latestUserText||'');
     if((lateNight||ctxTired)&&_roll(12)){
-      const dr=pickDoctorReminder();
-      if(dr)bubbles.unshift({type:'text',content:dr,cardIds:[],intent:'doctor',proactive:context.source==='proactive'});
+      const dr=pickCareReminder();
+      if(dr)bubbles.unshift({type:'text',content:dr,cardIds:[],intent:'care',proactive:context.source==='proactive'});
     }
   }
 

@@ -81,6 +81,8 @@ function enterPage(id){
     mailbox:renderMailbox, diary:renderDiary, moments:renderMoments,
     probability:renderProbability,
     divination:(typeof renderDivination==='function'?renderDivination:null),
+    music:(typeof renderMusicPage==='function'?renderMusicPage:null),
+    whereabouts:(typeof renderWhereabouts==='function'?renderWhereabouts:null),
     cards:renderCards, emoji:renderEmojis, memory:renderMemory,
     sense:initRoom, books:renderBookshelf, calendar:renderCalendar,
     trace:renderTrace, profile:renderProfile, data:renderDataPage

@@ -3,7 +3,7 @@
    ========================================================= */
 
 /* 版本号 */
-const APP_VERSION='3.28.9';
+const APP_VERSION='4.1.0';
 
 /* ===== 线稿图标（tab bar，24x24 视图，stroke 用 currentColor 跟随选中态） ===== */
 const LINE_ICONS={
@@ -96,15 +96,15 @@ const GIFTS=[
   '&#127749;'   // 20 守候 🌅（日常温情）
 ];
 const GIFT_NAMES=['手写信','月光','清晨的雾','星尘','一缕香','暖语','一个拥抱','静默的陪伴','目光','心跳','愿力','梦','光','暖灯','守护','温柔','时间','热牛奶','晚安','暖茶','守候'];
-/* v3.6.8：TA 日历——医生排班模板（ensureTaSchedule 每天自动排未来 3 天，可手动增删） */
+/* 4.1：TA 日历模板——不再绑定任何职业，只写他一天里可能有的节奏
+   （ensureTaSchedule 每天自动排未来 3 天，可手动增删）。 */
 const TA_SCHEDULE_TEMPLATE=[
-  '上午 · 门诊','下午 · 门诊','全天 · 门诊',
-  '夜班 · 值班','白班 · 值班',
-  '上午 · 查房','下午 · 查房',
-  '上午 · 手术','下午 · 手术','全天 · 手术',
-  '上午 · 会诊','下午 · 会诊',
-  '上午 · 书写病历','下午 · 书写病历',
-  '休息日'
+  '上午 · 看书','下午 · 看书','晚上 · 看书',
+  '上午 · 出门走走','下午 · 出门走走',
+  '上午 · 写点东西','下午 · 写点东西',
+  '在家 · 收拾屋子','在家 · 煮点东西',
+  '上午 · 听歌','晚上 · 听歌',
+  '安静待着','休息日'
 ];
 const TA_SCHEDULE_COLOR='#f0a485';   // v3.7.0 TA 日程统一蜜桃橙（去浓重紫，与心跳轨迹配色一致；TA 心情=绿、待办=灰蓝、经期=红黄）
 
@@ -119,14 +119,14 @@ const SENSE_DIRS=[
   {dir:'附近',text:'TA 就在你附近，没有打扰，只是陪着'},
   {dir:'远处',text:'TA 还在远处，正慢慢向你靠近'}
 ];
-/* 方位 × 状态加权：冥想中/休息中 → 远处/上方（缓慢）；手术中/门诊中 → 附近/前方（安静守候）；在线 → 附近/前方 */
+/* 方位 × 状态加权：安静久坐 → 远处/上方；在走动 → 侧面/前方；在线 → 附近/前方 */
 const SENSE_DIR_WEIGHTS={
   '冥想中':['远处','上方','后方'],'休息中':['远处','上方'],'充电中':['远处'],
-  '手术中':['附近','前方'],'门诊中':['附近','前方'],'查房中':['附近'],'会诊中':['附近'],
-  '值班中':['前方','附近'],'书写病历中':['附近'],
+  '看书':['远处','前方'],'写点东西':['附近','远处'],'在窗边':['上方','远处'],
   '散步中':['左侧','右侧','前方'],'锻炼中':['前方','附近'],
-  '听歌中':['远处','上方'],'阅读中':['远处','前方'],'学习中':['前方'],
+  '听歌中':['远处','上方'],'学习中':['前方'],
   '用餐中':['附近'],'静默中':['远处'],'发呆中':['远处'],'思考中':['远处','上方'],
+  '夜里醒着':['远处','后方'],'走神中':['远处'],
   '在线':['附近','前方','左侧','右侧']
 };
 /* v3.6.8：TA 记得——引用句模板（{item} 替换为最近互动内容） */
@@ -144,21 +144,20 @@ const TA_QUOTE_TEMPLATES=[
 const TA_MUTE_MS=5*60000;               // TA 禁言我：5 分钟（v3.5.1 由 10 分钟缩短，体验更轻）
 const TA_MUTE_COOLDOWN_MS=30*60000;      // 两次 TA 禁言的最小冷却（30 分钟）
 
-/* ===== 状态池（v3.6.0）：TA/我的状态可选池，带颜色小点；可新增/删除（字卡式管理） =====
-   设定：TA 是医生、情绪稳定、有自己的生活 → 状态 = 职业（门诊/查房/手术/值班/会诊/书写病历）
-   + 生活（散步/阅读/听歌/冥想/锻炼/用餐/学习/休息/充电/思考/静默/发呆） */
+/* ===== 状态池（4.1）：TA/我的状态可选池，带颜色小点；可新增/删除（字卡式管理） =====
+   不再绑定任何职业：只留「他在做什么 / 他此刻的气息」这类中性的状态。 */
 const STATUS_POOL_DEFAULT=[
   {s:'在线',c:'#4cd964'},
-  {s:'门诊中',c:'#3498db'},{s:'查房中',c:'#1abc9c'},{s:'手术中',c:'#e74c3c'},
-  {s:'值班中',c:'#3498db'},{s:'会诊中',c:'#9b59b6'},{s:'书写病历中',c:'#95a5a6'},
-  {s:'散步中',c:'#1abc9c'},{s:'阅读中',c:'#3498db'},{s:'听歌中',c:'#9b59b6'},
-  {s:'冥想中',c:'#9b59b6'},{s:'锻炼中',c:'#1abc9c'},{s:'用餐中',c:'#f39c12'},
-  {s:'学习中',c:'#3498db'},{s:'休息中',c:'#f39c12'},{s:'充电中',c:'#1abc9c'},
-  {s:'思考中',c:'#3498db'},{s:'静默中',c:'#95a5a6'},{s:'发呆中',c:'#95a5a6'}
+  {s:'发呆中',c:'#95a5a6'},{s:'看书',c:'#9b8266'},{s:'写点东西',c:'#b08968'},
+  {s:'听歌中',c:'#9b59b6'},{s:'散步中',c:'#1abc9c'},{s:'在窗边',c:'#7f9fb5'},
+  {s:'静默中',c:'#95a5a6'},{s:'思考中',c:'#3498db'},{s:'休息中',c:'#f39c12'},
+  {s:'充电中',c:'#1abc9c'},{s:'用餐中',c:'#f39c12'},{s:'学习中',c:'#3498db'},
+  {s:'锻炼中',c:'#1abc9c'},{s:'冥想中',c:'#9b59b6'},{s:'夜里醒着',c:'#6b7a8f'},
+  {s:'走神中',c:'#a89f95'}
 ];
 /* TA 状态自动切换（仿禁言概率）：每 5 秒 3% 概率从非在线状态中随机切一个，保持 30s~10min 后回在线 */
 
-/* ===== 禁言文案池（v3.6.0）：TA 禁言我时的原因文案（医生设定、情绪稳定语气，不点名具体状态——
+/* ===== 禁言文案池：TA 禁言我时的原因文案（语气克制、不点名具体状态——
    具体状态由状态栏同步显示，文案负责语气） ===== */
 const MUTE_REASONS=[
   'TA 想安静待一会儿，这不是你的问题',
@@ -169,10 +168,10 @@ const MUTE_REASONS=[
   'TA 在把节奏放慢，你也可以顺便歇一歇'
 ];
 
-/* ===== 医生提醒（v3.7.0）：辞明作为主治医生的低频温柔提醒，重点「用眼 / 久坐 / 休息」 =====
-   不唠叨、不刷存在感：由回复引擎在「夜间 / 长时间用眼」语境轻概率挑一条（pickDoctorReminder），
-   不做定时闹钟；措辞是医生的克制与温度，不是指责，也不制造焦虑。 */
-const DOCTOR_REMINDERS=[
+/* ===== 照顾提醒（4.1 由「医生提醒」改名）：低频、只说一句，重点「用眼 / 久坐 / 休息」 =====
+   不唠叨、不刷存在感：由回复引擎在「夜间 / 长时间用眼」语境轻概率挑一条（pickCareReminder），
+   不做定时闹钟；语气是克制的关心，不是职业身份，也不是指责。 */
+const CARE_REMINDERS=[
   '盯屏幕有一会儿了，抬头看窗外二十秒，我等你。',
   '离屏幕再远一点，你的眼睛不是用来熬的。',
   '现在闭眼数二十下，慢慢睁开，不着急。',
@@ -220,6 +219,11 @@ ICO.poke='<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="cu
 ICO.book='<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20V3H6.5A2.5 2.5 0 0 0 4 5.5v14Z"/><path d="M4 19.5A2.5 2.5 0 0 0 6.5 22H20v-5"/></svg>';
 ICO.lock='<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="10" width="16" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>';
 ICO.heart='<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20s-7-4.5-9.5-9A5.2 5.2 0 0 1 12 6.4 5.2 5.2 0 0 1 21.5 11c-2.5 4.5-9.5 9-9.5 9Z"/></svg>';
+/* 4.1：全站统一用的线性小图标（替代 ✕ ✎ ★ ✓ 这类字符图标） */
+const ICO_X='<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>';
+const ICO_CHECK='<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m4 12.5 5 5L20 6.5"/></svg>';
+const ICO_STAR_SM='<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l2.7 5.8 6.3.7-4.7 4.2 1.3 6.3L12 17.2 6.4 20l1.3-6.3L3 9.5l6.3-.7L12 3Z"/></svg>';
+const ICO_SPARK='<svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 4v16M4 12h16M6.5 6.5l11 11M17.5 6.5l-11 11"/></svg>';
 ICO.star='<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l2.7 5.8 6.3.7-4.7 4.2 1.3 6.3L12 17.2 6.4 20l1.3-6.3L3 9.5l6.3-.7L12 3Z"/></svg>';
 ICO.bell='<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg>';
 ICO.bulb='<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6M10 22h4"/><path d="M12 2a7 7 0 0 0-4 12.7c.6.5 1 1.4 1 2.3h6c0-.9.4-1.8 1-2.3A7 7 0 0 0 12 2Z"/></svg>';

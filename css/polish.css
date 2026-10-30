@@ -134,7 +134,7 @@ button:disabled,input:disabled,textarea:disabled{cursor:not-allowed;opacity:.48}
 .tab-item.on{color:var(--primary);background:var(--accent-softer)}
 .tab-item.on .tab-name{color:var(--primary)}
 .tab-item .badge{top:7px;box-shadow:0 0 0 2px var(--card)}
-.app-grid{padding:12px calc(var(--sal) + 16px) calc(var(--tabbar-h) + var(--sab) + 48px) calc(var(--sal) + 16px);align-content:start;gap:18px 8px}
+.app-grid{padding:12px calc(var(--sal) + 16px) calc(var(--tabbar-h) + var(--sab) + 46px) calc(var(--sal) + 16px);align-content:end;gap:18px 8px}
 
 /* 桌面：先建立完整构图，再安排组件 */
 .widget-area{
@@ -620,7 +620,7 @@ html[data-theme="amethyst"] .xj-music-btn{background:rgba(255,255,255,.38)}
 
 /* ===== 4.0：桌面分页 =====
    .widget-area 固定不动，.desk-pages 横向 scroll-snap 分页，圆点跟随。 */
-.desk-dots{position:absolute;left:0;right:0;bottom:calc(var(--tabbar-h) + var(--sab) + 24px);
+.desk-dots{position:absolute;left:0;right:0;bottom:calc(var(--tabbar-h) + var(--sab) + 28px);
   display:flex;justify-content:center;align-items:center;gap:7px;z-index:21;pointer-events:none}
 .desk-dots i{display:block;width:6px;height:6px;border-radius:50%;
   background:rgba(38,32,28,.22);opacity:1;transition:width .22s var(--ease),background .22s var(--ease)}
@@ -628,7 +628,9 @@ html[data-theme="amethyst"] .xj-music-btn{background:rgba(255,255,255,.38)}
 .desk-dots i.on{width:16px;border-radius:3px;background:var(--signal-on);opacity:1}
 
 /* 第 2 页应用网格：从第一排第一格开始排，整体靠上，不要被拉到底部 */
-#app-grid2{align-content:start;flex:0 0 auto;padding-top:24px}
+/* 4.1：第 2 页与第 1 页同高同底——占位格撑出第二排，
+   于是「音乐」正好落在第 1 页「信箱」那一格的位置，两页图标不会被拉高或错位。 */
+#app-grid2{align-content:end;flex:1;padding-top:0}
 #app-grid2 .app-label{min-height:14px}
 
 /* ===== 4.0：寻踪（TA 此刻的动静，只读展示） ===== */
@@ -676,3 +678,149 @@ html[data-theme="amethyst"] .xj-music-btn{background:rgba(255,255,255,.38)}
   font-size:11px;line-height:1.85;color:var(--hint)}
 .card-import-hint b{color:var(--sub);font-weight:600}
 .card-import-last{margin-top:6px;padding-top:6px;border-top:1px dashed var(--line-strong);color:var(--sub)}
+
+/* ===== 4.1：音乐独立页面 ===== */
+.mu-hero{border:1px solid var(--line);border-radius:18px;background:var(--glass-strong);
+  padding:16px 16px 14px;display:flex;flex-direction:column;gap:12px}
+.mu-disc{width:52px;height:52px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+  color:#fff;background:linear-gradient(135deg,#6f665c,#2a2724);flex-shrink:0;
+  box-shadow:inset 0 0 0 6px rgba(255,255,255,.08)}
+.mu-disc svg{width:22px;height:22px}
+.mu-disc.spin{animation:muSpin 9s linear infinite}
+@keyframes muSpin{to{transform:rotate(360deg)}}
+.mu-hero-meta{min-width:0}
+.mu-hero-title{font-size:17px;font-weight:600;color:var(--text);line-height:1.4;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mu-hero-artist{font-size:12px;color:var(--hint);margin-top:3px;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mu-controls{display:flex;align-items:center;justify-content:center;gap:16px}
+.mu-btn{width:38px;height:38px;border:0;background:transparent;color:var(--sub);
+  display:flex;align-items:center;justify-content:center;cursor:pointer;border-radius:50%}
+.mu-btn svg{width:19px;height:19px}
+.mu-btn.main{width:50px;height:50px;background:var(--text);color:var(--bg);border-radius:50%}
+.mu-btn.main svg{width:22px;height:22px}
+.mu-btn.on{color:var(--text)}
+.mu-btn:active{transform:scale(.94)}
+.mu-progress{display:flex;align-items:center;gap:9px;font-size:11px;color:var(--hint)}
+.mu-progress input[type=range]{flex:1;height:2px;-webkit-appearance:none;appearance:none;
+  background:var(--line-strong);border-radius:2px;outline:none}
+.mu-progress input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:11px;height:11px;
+  border-radius:50%;background:var(--text);border:0}
+.mu-toolbar{display:flex;gap:8px;margin-top:12px}
+.mu-tool{flex:1;display:flex;align-items:center;justify-content:center;gap:6px;
+  border:1px solid var(--line);background:var(--glass-strong);color:var(--text);
+  border-radius:12px;padding:10px 0;font-size:13px;cursor:pointer}
+.mu-tool svg{width:16px;height:16px;color:var(--sub)}
+.mu-tool:active{transform:scale(.98)}
+.mu-tabs{display:flex;gap:6px;margin:16px 0 8px}
+.mu-tab{border:1px solid var(--line);background:transparent;color:var(--hint);
+  border-radius:20px;padding:6px 13px;font-size:12px;cursor:pointer;display:flex;align-items:center;gap:5px}
+.mu-tab b{font-weight:500;opacity:.7;font-size:11px}
+.mu-tab.on{background:var(--text);color:var(--bg);border-color:var(--text)}
+.mu-tab.on b{opacity:.8}
+.mu-list{display:flex;flex-direction:column}
+.mu-row{display:flex;align-items:center;gap:10px;padding:11px 4px;border-top:1px solid var(--line);cursor:pointer}
+.mu-row:first-child{border-top:0}
+.mu-row.on .mu-text b{color:var(--text);font-weight:600}
+.mu-n{width:22px;flex-shrink:0;font-size:11px;color:var(--hint);text-align:center;letter-spacing:.04em}
+.mu-row.on .mu-n{color:var(--text)}
+.mu-text{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.mu-text b{font-size:14px;font-weight:400;color:var(--sub);
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mu-text span{font-size:11px;color:var(--hint);
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mu-del{width:26px;height:26px;flex-shrink:0;display:flex;align-items:center;justify-content:center;
+  color:var(--hint);font-size:16px;line-height:1;border-radius:50%}
+.mu-del:active{background:var(--accent-softer);color:var(--danger)}
+.mu-hint{margin-top:16px;font-size:11px;color:var(--hint);line-height:1.8}
+
+/* ===== 4.1：寻踪独立页面 ===== */
+.xz-hero{border:1px solid var(--line);border-radius:18px;background:var(--glass-strong);padding:15px 16px;margin-bottom:12px}
+.xz-hero-top{display:flex;align-items:center;justify-content:space-between;font-size:11px;color:var(--hint);letter-spacing:.1em}
+.xz-hero-main{display:flex;align-items:center;gap:12px;margin-top:12px}
+.xz-hero-ava{width:44px;height:44px;border-radius:50%;flex-shrink:0;overflow:hidden;
+  background:var(--accent-soft);color:var(--text);display:flex;align-items:center;justify-content:center;font-size:16px}
+.xz-hero-ava img{width:100%;height:100%;object-fit:cover}
+.xz-hero-name{font-size:15px;font-weight:600;color:var(--text)}
+.xz-hero-state{font-size:12px;color:var(--hint);margin-top:3px}
+.xz-card{border:1px solid var(--line);border-radius:16px;background:var(--glass-strong);padding:2px 14px}
+.xz-row{display:flex;gap:12px;align-items:baseline;padding:12px 0;border-top:1px solid var(--line)}
+.xz-row:first-child{border-top:0}
+.xz-k{font-size:11px;color:var(--hint);letter-spacing:.14em;flex-shrink:0;width:34px}
+.xz-v{font-size:14px;color:var(--text);line-height:1.65;word-break:break-word}
+.xz-say{margin-top:12px;padding:13px 14px;border-radius:16px;border:1px solid var(--line);background:var(--accent-softer)}
+.xz-say-label{font-size:11px;color:var(--hint);letter-spacing:.1em}
+.xz-say-text{margin-top:6px;font-size:15px;color:var(--text);line-height:1.8;word-break:break-word}
+.xz-again{width:100%;margin-top:12px;padding:11px 0;letter-spacing:0}
+.xz-hint{margin-top:10px;font-size:11px;color:var(--hint);line-height:1.7;text-align:center}
+
+/* 桌面第 2 页占位格：只占高度，不显示 */
+.app-item.app-ghost{visibility:hidden;pointer-events:none}
+
+/* ===== 4.1：收藏消息列表（长文本自动换行，不再横向溢出） ===== */
+.fav-list{display:flex;flex-direction:column;gap:9px}
+.fav-item{border:1px solid var(--line);border-radius:14px;background:var(--glass-strong);
+  padding:11px 13px;cursor:pointer;transition:border-color .16s var(--ease)}
+.fav-item:active{background:var(--accent-softer)}
+.fav-head{display:flex;align-items:baseline;gap:7px;min-width:0}
+.fav-who{font-size:12px;color:var(--text);font-weight:500;flex-shrink:0}
+.fav-type{font-size:10px;color:var(--hint);flex-shrink:0;
+  border:1px solid var(--line);border-radius:20px;padding:1px 6px}
+.fav-time{font-size:10px;color:var(--hint);margin-left:auto;flex-shrink:0;letter-spacing:.02em}
+.fav-text{margin-top:6px;font-size:13px;color:var(--sub);line-height:1.75;
+  white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word}
+
+/* ===== 4.1：表情包（1:1 显示 + 分组） ===== */
+.stk-gbar{display:flex;gap:6px;overflow-x:auto;padding:2px 0 10px;scrollbar-width:none}
+.stk-gbar::-webkit-scrollbar{display:none}
+.stk-g{flex-shrink:0;display:inline-flex;align-items:center;gap:4px;
+  border:1px solid var(--line);border-radius:20px;padding:5px 12px;
+  font-size:12px;color:var(--hint);cursor:pointer;background:transparent;white-space:nowrap}
+.stk-g b{font-weight:500;font-size:10px;opacity:.65}
+.stk-g.on{background:var(--text);color:var(--bg);border-color:var(--text)}
+.stk-g.on b{opacity:.8}
+.stk-g-new{border-style:dashed;color:var(--sub)}
+
+.stk-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:9px}
+.stk-cell{position:relative;aspect-ratio:1 / 1;border-radius:12px;overflow:hidden;
+  background:var(--accent-softer);border:1px solid var(--line);
+  display:flex;align-items:center;justify-content:center}
+.stk-cell img{width:100%;height:100%;object-fit:contain;display:block}
+.stk-cell .stk-fallback{font-size:24px;color:var(--sub)}
+.stk-del{position:absolute;top:3px;right:3px;width:20px;height:20px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;cursor:pointer;
+  background:var(--bg);color:var(--danger);border:1px solid var(--line)}
+.stk-hint{margin-top:14px;font-size:11px;color:var(--hint);line-height:1.8}
+
+/* 聊天输入栏的表情包面板：四列正方格，图按比例缩放，不再被拉成长条 */
+.sticker-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;width:100%;padding:2px 0}
+.emoji-body .sticker-grid .sticker-cell{aspect-ratio:1 / 1;padding:0;border-radius:10px;overflow:hidden;
+  background:var(--input);display:flex;align-items:center;justify-content:center;cursor:pointer}
+.emoji-body .sticker-grid .sticker-cell img{width:100%;height:100%;object-fit:contain}
+.emoji-body .sticker-grid .sticker-cell .stk-fallback{width:100%;height:100%;display:flex;align-items:center;
+  justify-content:center;font-size:18px;border-radius:0;background:transparent}
+
+/* ===== 4.1：选择器就地编辑 ===== */
+.sel-editing{padding:0 !important;border:1px solid var(--text) !important;background:var(--bg) !important}
+.sel-inline{border:0;background:transparent;color:var(--text);font-size:14px;
+  padding:10px 14px;width:118px;outline:none;font-family:inherit}
+.sel-x svg{display:block}
+
+/* ===== 4.1：明信片配色修复 =====
+   polish 的 `.msg-card{background:var(--glass-strong)!important}` 会盖掉明信片的莫兰迪底色，
+   而「我方气泡」默认白字 —— 两者叠加就是白底白字，礼物名看不见。
+   这里用更高特异度把底色与墨色一起夺回来。 */
+.msg-bubble.postcard,.msg-row.me .msg-bubble.postcard,.msg-row.other .msg-bubble.postcard{
+  background:linear-gradient(150deg,var(--pc-1,#F4EDE3) 0%,var(--pc-2,#E6D9C8) 100%)!important;
+  border-color:rgba(0,0,0,.06)!important;color:var(--pc-ink,#6b5b45)!important}
+.msg-bubble.postcard .pc-title{color:var(--pc-ink,#6b5b45)!important}
+.msg-bubble.postcard .pc-sub,
+.msg-bubble.postcard .pc-foot,
+.msg-bubble.postcard .pc-state{color:var(--pc-ink,#6b5b45)!important;opacity:.82}
+
+/* ===== 4.1：红包 / 转账 / 明信片 的收件状态 ===== */
+.rp-state{margin-top:7px;padding-top:7px;border-top:1px solid rgba(255,255,255,.16);
+  font-size:10px;color:rgba(255,255,255,.62);letter-spacing:.06em}
+.rp-state.done{color:rgba(255,255,255,.85)}
+.pc-state{margin-top:4px;font-size:10px;color:var(--hint);letter-spacing:.06em}
+.pc-state.done{color:var(--sub)}

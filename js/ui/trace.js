@@ -75,7 +75,7 @@ function calcTraceDist(){
   let d=0.35;
   const st=state.taStatus||state.other.status||'在线';
   if(['冥想中','静默中','发呆中','休息中','充电中'].includes(st))d=0.72;
-  else if(['手术中','门诊中','查房中','会诊中','值班中'].includes(st))d=0.55;
+  else if(['看书','写点东西','在窗边','走神中','夜里醒着'].includes(st))d=0.55;
   else if(['散步中','锻炼中'].includes(st))d=0.25;
   else d=0.3;
   // 最近感应：远方类 → 更远

@@ -1,21 +1,21 @@
 /* =========================================================
-   星迹 · 寻踪（4.0 新增）
-   —— 桌面第 2 页的第二个图标：看一眼 TA 此刻在哪、在做什么、什么心情、想对你说什么。
-   —— 「在哪 / 在做什么」按当前时段取场景句（深夜他应该在家，不会在门诊）；
-      「心情」走 MOOD_POOL；「想对你说」优先从你的字卡库抽一张，库里空才用兜底句。
+   星迹 · 寻踪（4.1：独立页面，不再是弹窗）
+   —— 看一眼 TA 此刻在哪、在做什么、什么心情、想对你说什么。
+   —— 「在哪 / 在做」按当前时段取场景句：深夜他应该在家，不会在上班。
+   —— 「心情」走 MOOD_POOL 并按时段过滤；「想对你说」优先从你的字卡库抽一张。
    —— 只读展示，不写任何数据，也不伪造聊天记录。
    ========================================================= */
 
 const XZ_PLACES = {
-  late:  ['书房','卧室','窗边','客厅的沙发上','厨房倒水','阳台上'],
-  early: ['门诊楼走廊','值班室','医院楼下的便利店','车里','洗手台前','更衣室'],
-  day:   ['办公室','窗边','走廊尽头','楼下的咖啡店','会议室门口','停车场'],
-  night: ['家里','书桌前','浴室门口','床边','阳台上吹风','厨房']
+  late:  ['书房','卧室','窗边','客厅的沙发上','厨房','阳台上'],
+  early: ['床上','窗边','厨房','浴室门口','阳台上','客厅'],
+  day:   ['窗边','书桌前','楼下的巷子口','常去的咖啡店','公园长椅上','回来的路上'],
+  night: ['家里','书桌前','厨房','床边','阳台上','客厅地板上']
 };
 const XZ_DOING = {
   late:  ['还没睡，翻着一本书','刚把水烧上','在黑暗里躺着看手机','洗完澡，头发还湿着','把明天的衣服挂好'],
-  early: ['刚交完班','在写病历','喝着今天第一杯水','把白大褂挂回门后','等电梯'],
-  day:   ['在翻一份很厚的病历','刚下手术，靠着墙站了一会儿','在回一条很长的消息','把窗户开了一条缝','在纸上写了几行字又划掉'],
+  early: ['刚醒，还没完全睁开眼','喝着今天第一杯水','在窗边站了一会儿','把窗帘拉开','又躺回去五分钟'],
+  day:   ['在翻一本书，很久没翻页','把窗户开了一条缝','在回一条很长的消息','在纸上写了几行字又划掉','刚出门，没什么目的'],
   night: ['在收拾厨房','躺着，什么都没做','把灯关了一半','在阳台吹风','刚洗完澡']
 };
 
@@ -53,6 +53,11 @@ function xzMoodPool(per){
   return (pool && pool.length) ? pool : noSleep.filter(Boolean);
 }
 
+/* 时段标签：让「此刻」这件事有实感，不是一堆随机的句子 */
+function xzPeriodLabel(per){
+  return per==='late' ? '深夜' : per==='early' ? '清早' : per==='night' ? '夜里' : '白天';
+}
+
 async function xzRefresh(){
   const box = document.getElementById('xz-body');
   if(!box) return;
@@ -63,24 +68,48 @@ async function xzRefresh(){
   const name = (state.other && state.other.name) || 'TA';
 
   box.innerHTML = `
-    <div class="xz-card">
+    <div class="xz-hero">
+      <div class="xz-hero-top"><span class="xz-hero-period">${xzPeriodLabel(per)}</span><span class="xz-hero-time">${fmtTime(Date.now())}</span></div>
+      <div class="xz-hero-main">
+        <div class="xz-hero-ava" id="xz-hero-ava"></div>
+        <div class="xz-hero-text">
+          <div class="xz-hero-name">${esc(name)}</div>
+          <div class="xz-hero-state">${esc(pick(moodPool))}</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="list-card">
       <div class="xz-row"><span class="xz-k">在哪</span><span class="xz-v">${esc(pick(XZ_PLACES[per]))}</span></div>
       <div class="xz-row"><span class="xz-k">在做</span><span class="xz-v">${esc(pick(XZ_DOING[per]))}</span></div>
       <div class="xz-row"><span class="xz-k">心情</span><span class="xz-v">${esc(pick(moodPool))}</span></div>
     </div>
+
     <div class="xz-say">
       <div class="xz-say-label">${esc(name)} 想对你说</div>
       <div class="xz-say-text">${esc(say)}</div>
     </div>
+
+    <button class="btn-pill ghost xz-again" onclick="xzRefresh()">换一换</button>
     <div class="xz-hint">这是此刻的一点动静，不会写进聊天记录。</div>`;
+
+  /* 头像同步（与桌面/聊天同一个 TA 头像） */
+  try{
+    const ava=document.getElementById('xz-hero-ava');
+    if(ava){
+      const src=(state.other&&state.other.avatar)||'';
+      ava.innerHTML=src?`<img src="${esc(src)}" alt="">`:'';
+      if(!src)ava.textContent=((state.other&&state.other.name)||'TA').slice(0,1);
+    }
+  }catch(e){}
 }
 
-function openXunzong(){
-  showModal('寻踪',
-    '<div id="xz-body"></div>',
-    '<div class="modal-btn-row"><button class="modal-btn" onclick="closeModal()">关闭</button><button class="modal-btn primary" onclick="xzRefresh()">换一换</button></div>');
-  xzRefresh();
-}
+/* 独立页面渲染入口（nav.js 注册 openApp('whereabouts') 时调用） */
+function renderWhereabouts(){ return xzRefresh(); }
+
+/* 兼容旧入口：桌面图标/旧调用点仍然叫 openXunzong，但改为进页面 */
+function openXunzong(){ openApp('whereabouts'); }
 
 window.openXunzong = openXunzong;
 window.xzRefresh = xzRefresh;
+window.renderWhereabouts = renderWhereabouts;

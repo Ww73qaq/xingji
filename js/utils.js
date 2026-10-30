@@ -57,16 +57,18 @@ function proactiveGapScale(){
     default:return 1;
   }
 }
-/* 医生提醒选句（v3.70）：两次提醒至少间隔、不唠叨；返回一句或 null。
+/* 照顾提醒选句（4.1 由 pickDoctorReminder 改名）：两次提醒至少间隔、不唠叨；返回一句或 null。
    由回复引擎在「夜间 / 长时间用眼」语境轻概率调用，不做定时闹钟、不刷存在感。 */
-let _doctorRemindLast=0;
-function pickDoctorReminder(force){
-  if(typeof DOCTOR_REMINDERS==='undefined'||!DOCTOR_REMINDERS.length)return null;
+let _careRemindLast=0;
+function pickCareReminder(force){
+  if(typeof CARE_REMINDERS==='undefined'||!CARE_REMINDERS.length)return null;
   const now=Date.now();
-  if(!force&&now-_doctorRemindLast<90*60000)return null;   // 至少间隔 90 分钟
-  _doctorRemindLast=now;
-  return DOCTOR_REMINDERS[Math.floor(Math.random()*DOCTOR_REMINDERS.length)];
+  if(!force&&now-_careRemindLast<90*60000)return null;   // 至少间隔 90 分钟
+  _careRemindLast=now;
+  return CARE_REMINDERS[Math.floor(Math.random()*CARE_REMINDERS.length)];
 }
+/* 兼容旧调用点：老名字仍可用，内部走新函数 */
+function pickDoctorReminder(force){return pickCareReminder(force);}
 
 
 function haptic(){try{navigator.vibrate&&navigator.vibrate(12);}catch(e){}}

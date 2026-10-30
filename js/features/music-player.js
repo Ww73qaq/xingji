@@ -103,7 +103,12 @@
     if(cnt)cnt.textContent=TRACKS.length+' 首';
     const err=document.getElementById('xj-music-error');err.hidden=!errorText;err.textContent=errorText;
     updateTime();updateMediaSession();updateMusicIcon();
+    notifyChange();
   }
+
+  /* 订阅：音乐页/桌面图标等外部 UI 在状态变化时重画 */
+  const _subs=[];
+  function notifyChange(){_subs.forEach(fn=>{try{fn();}catch(_){}});}
 
   /* 播放列表：内置歌不可删；导入/本地可删（本地会连 Blob 一起删） */
   function renderList(){
@@ -219,7 +224,8 @@
         if(cx<b.w*.28)tx=10;
         else if(cx>b.w*.72)tx=b.w-b.pw-10;
         else tx=(b.w-b.pw)/2;
-        setPosition(tx,TOP_OFFSET,true);
+        /* 4.1：纵向不再强制回到顶部——否则往下拖一下就被弹回去，看起来像「拖不动」 */
+        setPosition(tx,saved.y,true);
       }
       drag=null;setTimeout(()=>{dragMoved=false;},0);
     };
@@ -231,7 +237,10 @@
     const blocked=document.querySelector('#screen-lock.active,#screen-splash.active,.call-overlay.active,#img-viewer');
     /* 用户未开启播放器（state.musicOn 默认 false）时同样隐藏 */
     const disabled=(typeof state!=='undefined')&&state&&state.musicOn===false;
-    root.hidden=!!(blocked||disabled);
+    /* 4.1：在「音乐」独立页面里不再浮胶囊——那一页自己有完整的播放控件，
+       胶囊浮在上面只会挡住标题和分组标签。 */
+    const onMusicPage=(typeof state!=='undefined')&&state&&state.currentApp==='music';
+    root.hidden=!!(blocked||disabled||onMusicPage);
   }
   /* 供「我的 → 外观 → 显示音乐播放器」开关即时调用 */
   function setMusicPlayerVisible(visible){
@@ -239,6 +248,25 @@
     syncVisibility();
   }
   window.setMusicPlayerVisible=setMusicPlayerVisible;
+  /* ===== 4.1：给「音乐」独立页面用的接口 ===== */
+  window.XJMusic={
+    list:()=>TRACKS.map((t,i)=>({index:i,title:t.title,artist:t.artist,kind:t.kind})),
+    current:()=>index,
+    repeat:()=>repeat,
+    playing:()=>!!(audio&&!audio.paused&&!audio.ended),
+    select:(i)=>{select(i,true);},
+    toggle:()=>{if(!audio)return;if(audio.paused)play();else audio.pause();},
+    next:()=>select(index+1,true),
+    prev:()=>select(index-1,true),
+    toggleRepeat:()=>{repeat=repeat==='one'?'all':'one';save();render();return repeat;},
+    addLocal:()=>addLocalMusic(),
+    importNetease:()=>importNetease(),
+    remove:(i)=>removeTrack(i),
+    refresh:()=>loadLocal().then(()=>{render();notifyChange();}),
+    seekTo:(pct)=>{if(audio&&Number.isFinite(audio.duration)&&audio.duration>0){audio.currentTime=pct/100*audio.duration;updateTime();}},
+    time:()=>({cur:audio?audio.currentTime:0,dur:audio&&Number.isFinite(audio.duration)?audio.duration:0}),
+    onChange:(fn)=>{if(typeof fn==='function')_subs.push(fn);}
+  };
   /* 4.0：桌面第 2 页的「音乐」图标入口——
      播放器没开就先打开开关，再把播放列表面板展开（不是只显隐）。 */
   window.openMusicPanel=function(){

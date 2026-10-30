@@ -67,7 +67,13 @@ async function renderMemory(){
     </div>
     <div class="empty" style="font-size:12px;line-height:1.8;text-align:left">备份与迁移已移到「我的」页。</div>`;
 }
-function openFavMsg(id){saveScrollTop();navStack=['chat'];navRoot='chat';renderNav();enterPage('chat');setTimeout(()=>jumpToMsg(id),180);}   // v3.9.5：不再把 chatPageSize 顶成 99999——jumpToMsg 内部按需临时扩窗并恢复，否则一次跳转后全量渲染永久生效
+/* 4.1：收藏跳转复用「搜索聊天记录」的同一套逻辑（goSearchMsg）——
+   只有它会在跳转前把首屏标记复位并等 renderChat 完成再定位，
+   否则目标消息在窗口外时会定位失败（收藏页之前用的定时器写法就会偶发不跳）。 */
+function openFavMsg(id){
+  if(typeof goSearchMsg==='function'){goSearchMsg(id);return;}
+  saveScrollTop();navStack=['chat'];navRoot='chat';renderNav();enterPage('chat');setTimeout(()=>jumpToMsg(id),180);
+}
 
 /* ===== 清除全部星迹数据 ===== */
 async function clearAllXingjiData(){

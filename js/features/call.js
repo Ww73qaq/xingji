@@ -137,7 +137,7 @@ function maybeTaCall(){
   // v3.7.0：来电冷却乘主动频率缩放（rare 拉长 / frequent 缩短）
   const cd=TA_CALL_COOLDOWN_MS*(proactiveGapScale?proactiveGapScale():1);
   if(last&&Date.now()-last<cd)return;
-  if(state.taCallCycleSkip){                           // v3.6.0 跳过层：本周期 TA 不打 → 重新进冷却（TA 医生、不粘人，需要时才会来）
+  if(state.taCallCycleSkip){                           // v3.6.0 跳过层：本周期 TA 不打 → 重新进冷却（TA 不粘人，需要时才会来）
     state.taCallCycleSkip=false;
     state.stats.taCallLastAt=Date.now();saveKey('stats');
     return;

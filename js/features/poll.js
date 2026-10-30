@@ -50,7 +50,7 @@ function syncPollLimits(){
 function buildSurveyFormHtml(raw,deadline,earlyPct){
   return '<div style="font-size:12px;color:var(--sub);margin-bottom:8px">问卷 = 一个消息、多个题目、每题单选、一次性提交。支持直接粘贴 AI 生成的问卷。</div>'
     +'<button class="btn-pill ghost" style="padding:6px 12px;font-size:12px;margin-bottom:8px" onclick="toggleSurveyHint()">格式示例 ▾</button>'
-    +'<div id="survey-hint" style="display:none;background:var(--input);border-radius:12px;padding:10px 12px;font-size:12px;color:var(--hint);line-height:1.9;margin-bottom:10px">[题目] 周末想去哪里？<br>家里<br>公园<br>咖啡店<br>[题目] 想吃什么？<br>火锅<br>面<br>甜点</div>'
+    +'<div id="survey-hint" style="display:none;background:var(--input);border-radius:12px;padding:10px 12px;font-size:12px;color:var(--hint);line-height:1.9;margin-bottom:10px">【周末想去哪里？】<br>家里<br>公园<br>咖啡店<br><br>【想吃什么？】<br>火锅<br>面<br>甜点</div>'
     +'<textarea class="textarea-full" id="survey-raw" placeholder="在此粘贴或输入问卷内容…" style="min-height:150px;max-height:38vh">'+esc(raw)+'</textarea>'
     +'<div style="display:flex;gap:8px;align-items:center;margin-top:10px;font-size:12px;color:var(--sub);flex-wrap:wrap">'
       +'<span>作答期限</span><input class="app-input" id="survey-deadline" type="number" min="10" max="600" value="'+deadline+'" style="width:72px;text-align:center">'
@@ -92,7 +92,7 @@ async function editPollAndResend(m){
   editingFromId=m.id;
   if(m.type==='survey'||(m.survey&&m.survey.questions)){
     const p=m.survey||{};
-    const raw=p.rawText||(p.questions||[]).map(q=>'[题目] '+(q.q||'')+'\n'+(q.options||[]).join('\n')).join('\n\n');
+    const raw=p.rawText||(p.questions||[]).map(q=>'【'+(q.q||'')+'】\n'+(q.options||[]).join('\n')).join('\n\n');
     const deadline=Number(p.deadlineSec)||_surveyDefault('deadlineSec',60);
     const early=Number(p.earlySubmitProb);
     const earlyPct=Number.isFinite(early)?early:_surveyDefault('earlySubmitProb',30);
@@ -119,7 +119,14 @@ function parseSurveyText(){
   const lines=raw.split('\n').map(x=>x.trim()).filter(Boolean);
   const questions=[];let cur=null;
   for(const ln of lines){
-    // 兼容三种写法：[题目] 题干在同行 / [题目] 换行题干 / 题目：题干
+    /* 4.1：主格式改为「【题干】」——一行一个中括号题目，下面几行是选项。
+       同时保留 [题目] / 题目： 的旧写法，老内容粘进来仍然能解析。 */
+    const mz=ln.match(/^【\s*(.+?)\s*】\s*(.*)$/);
+    if(mz){
+      if(cur&&cur.q&&cur.options.length>=2)questions.push(cur);
+      cur={q:((mz[1]||'')+(mz[2]?' '+mz[2]:'')).trim(),options:[]};
+      continue;
+    }
     const mk=ln.match(/^(?:\[题目\]|\[题\]|题目[:：])\s*(.*)$/);
     if(mk){
       if(cur&&cur.q&&cur.options.length>=2)questions.push(cur);
@@ -133,8 +140,8 @@ function parseSurveyText(){
   surveyParsed={rawText:raw,questions};
   const pre=document.getElementById('survey-preview');
   if(!pre)return;
-  if(!questions.length){pre.innerHTML='<span style="color:#c0392b">未识别到有效题目。格式：每行 [题目] 开头，下一行起是选项（每题至少 2 个选项）。</span>';return;}
-  pre.innerHTML='已解析 <b>'+questions.length+'</b> 题：'+questions.map((q,i)=>'<div style="margin-top:4px">'+(i+1)+'. '+esc(q.q)+' <span style="color:var(--hint)">（'+q.options.length+' 选项）</span></div>').join('');
+  if(!questions.length){pre.innerHTML='<span style="color:#c0392b">未识别到有效题目。格式：用【题目】括起题干，下面几行写选项（每题至少 2 个选项）。</span>';return;}
+  pre.innerHTML='已解析 <b>'+questions.length+'</b> 题：'+questions.map((q,i)=>'<div style="margin-top:4px">'+esc('【'+q.q+'】')+' <span style="color:var(--hint)">（'+q.options.length+' 选项）</span></div>').join('');
 }
 let surveyParsed=null;
 /* 单选/多选：统一写入 messages → enqueueTaJob → 统一等待 → 必答 */

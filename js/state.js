@@ -204,3 +204,40 @@ let pinVal='', muteBannerInterval;
 function saveStats(){return saveKey('stats');}
 function saveProb(){return saveKey('prob');}
 function saveChat(){return saveKey('chat');}
+
+/* =========================================================
+   4.1：人设迁移——去掉旧的「医生」设定
+   —— 状态池里门诊/查房/手术/值班/会诊/书写病历 这些职业状态全部剔除，
+      当前状态如果停在其中之一，回到「在线」。
+   —— 日历里由旧模板自动生成的 ta_sched 排班（含门诊/手术等字样）一并删除，
+      之后按新的日常模板重新浮现。
+   —— 幂等：可重复调用，不会误删用户自己写的日程（只认 type==='ta_sched' 且命中旧词）。
+   ========================================================= */
+const PERSONA_V41_DROP_STATUS=['门诊中','查房中','手术中','值班中','会诊中','书写病历中','阅读中'];
+const PERSONA_V41_DROP_WORDS=['门诊','查房','手术','值班','会诊','书写病历'];
+async function migratePersonaV41(){
+  try{
+    let changed=false;
+    if(Array.isArray(state.statusPool)&&state.statusPool.length){
+      const kept=state.statusPool.filter(x=>x&&!PERSONA_V41_DROP_STATUS.includes(x.s));
+      if(kept.length!==state.statusPool.length){
+        state.statusPool=kept.length?kept:STATUS_POOL_DEFAULT.slice();
+        changed=true;
+      }
+    }
+    const badSt=v=>PERSONA_V41_DROP_STATUS.includes(v);
+    if(state.other&&badSt(state.other.status)){state.other.status='在线';changed=true;}
+    if(badSt(state.taStatus)){state.taStatus='在线';changed=true;}
+    if(changed)saveKey('statusPool');
+    if(state.other&&changed)saveKey('other');
+  }catch(e){}
+  /* 清旧的医生排班（异步，失败不影响启动） */
+  try{
+    if(typeof dbReady!=='undefined')await dbReady;
+    const rows=await dbGetAll('calendar');
+    const kill=rows.filter(x=>x&&x.type==='ta_sched'&&PERSONA_V41_DROP_WORDS.some(w=>String(x.text||'').includes(w)));
+    for(const it of kill){try{await dbDelete('calendar',dbPrimaryKey('calendar',it));}catch(e){}}
+    if(kill.length)try{dbMemoInvalidate('calendar');}catch(e){}
+  }catch(e){}
+}
+window.migratePersonaV41=migratePersonaV41;

@@ -278,10 +278,10 @@ function renderCalendarDay(body,items,pset,allItems){
     <div class="cal-ops">
       ${calScope!=='ta'?`<button class="cal-op-btn" onclick="calAddTodo('${calDaySel}')">＋ 待办</button>`:''}
       ${calScope!=='me'?`<button class="cal-op-btn" onclick="calAddTaSched('${calDaySel}')">＋ ${esc(state.other.name||'TA')}日程</button>`:''}
-      ${calScope!=='ta'?`<button class="cal-op-btn" onclick="calSetPeriod('${calDaySel}')">${pset?'✎ 经期设置':'＋ 经期设置'}</button>`:''}
+      ${calScope!=='ta'?`<button class="cal-op-btn" onclick="calSetPeriod('${calDaySel}')">${pset?ICO_EDIT+' 经期设置':'＋ 经期设置'}</button>`:''}
       ${calScope!=='ta'&&dayTag?`<span class="cal-op-tag" style="color:${plv?plv.c:CAL_OVU_C};border-color:${plv?plv.c:CAL_OVU_C}">${dayTag}</span>`:''}
     </div>
-    ${calScope!=='me'?`<div class="cal-section-title" style="color:${TA_SCHEDULE_COLOR}">${esc(state.other.name||'TA')}日程 <span style="color:var(--hint);font-size:11px;font-weight:400">（灵性医生的排班会自动浮现，也可以手动调整——兜底）</span></div>
+    ${calScope!=='me'?`<div class="cal-section-title" style="color:${TA_SCHEDULE_COLOR}">${esc(state.other.name||'TA')}日程 <span style="color:var(--hint);font-size:11px;font-weight:400">（他这几天的节奏会自动浮现，也可以手动调整）</span></div>
     <div class="cal-todolist">
       ${tasched.length?tasched.map(it=>`
         <div class="cal-todo-item" style="border-left:3px solid ${TA_SCHEDULE_COLOR}">
@@ -308,7 +308,7 @@ function renderCalendarDay(body,items,pset,allItems){
     <div class="cal-todolist">
       ${todos.length?todos.map(it=>`
         <div class="cal-todo-item${it.done?' done':''}">
-          <span class="cal-todo-check${it.done?' on':''}" onclick="calToggleTodo('${it.id}')">${it.done?'✓':''}</span>
+          <span class="cal-todo-check${it.done?' on':''}" onclick="calToggleTodo('${it.id}')">${it.done?ICO_CHECK:''}</span>
           <span class="cal-todo-text" onclick="calEditTodo('${it.id}')">${esc(it.text)}${(it.alarmFreq||(it.alarm&&it.alarm.freq))?` <i style="font-style:normal;font-size:10px;color:var(--hint)">${calTodoFreqTag(it.alarmFreq||it.alarm.freq)}</i>`:''}</span>
           <span class="cal-todo-del" onclick="calDelTodo('${it.id}')">&#10005;</span>
         </div>`).join('')
@@ -317,7 +317,7 @@ function renderCalendarDay(body,items,pset,allItems){
   `;
 }
 
-/* v3.6.8：TA 日历——医生排班模板自动排未来 3 天（每天 1~2 条，已有则跳过），心跳/渲染时调用 */
+/* TA 日历——按日常模板自动排未来 3 天（每天 1~2 条，已有则跳过），心跳/渲染时调用 */
 /* v3.7.0：排班偏好——删去概率/百分比滑杆，改为无机制的三档关系语义（他最近的状态） */
 function calTaSchedSettings(){
   const cur=(state.taSchedSettings||{}).rhythm||'normal';
@@ -582,7 +582,7 @@ function calAddTaSched(date){
   showModal('添加 TA 日程',
     `<div style="font-size:12px;color:var(--hint);margin-bottom:4px">为 ${esc(state.other.name||'TA')} 安排一条日程（点 ▼ 快速选模板，或直接输入）</div>
      <div style="display:flex;gap:6px;align-items:center">
-       <input class="textarea-full" id="ta-sched-input" style="min-height:0;padding:9px 10px;flex:1" placeholder="如：上午 · 门诊">
+       <input class="textarea-full" id="ta-sched-input" style="min-height:0;padding:9px 10px;flex:1" placeholder="如：上午 · 看书">
        <button class="modal-btn" style="flex-shrink:0;font-size:16px;line-height:1" onclick="taSchedToggle()">▼</button>
      </div>
      <div id="ta-sched-chips" style="display:none;margin-top:8px">

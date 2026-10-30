@@ -1388,7 +1388,7 @@ function bkToggleToc(show, tab) {
   } else {
     const bms = s.rec.bookmarks || [];
     list.innerHTML = bms.length
-      ? bms.map((b, i) => `<div class="bk-toc-it" onclick="bkBmGo(${i})"><span class="tx">${esc(b.sn || '')}</span><span class="meta">${Math.round(((b.pos || 0) / (s.totalChars || 1)) * 100)}%</span><span class="del" onclick="event.stopPropagation();bkBmDel(${i})">✕</span></div>`).join('')
+      ? bms.map((b, i) => `<div class="bk-toc-it" onclick="bkBmGo(${i})"><span class="tx">${esc(b.sn || '')}</span><span class="meta">${Math.round(((b.pos || 0) / (s.totalChars || 1)) * 100)}%</span><span class="del" onclick="event.stopPropagation();bkBmDel(${i})">${ICO_X}</span></div>`).join('')
       : `<div style="padding:24px 18px;color:var(--hint,#b8b8b8);font-size:12px;line-height:1.9;text-align:center">还没有书签<br>阅读菜单里点「加书签」标记当前位置</div>`;
   }
   toc.classList.add('bk-show');
@@ -1480,7 +1480,7 @@ function bkShowPanel() {
     `<div class="bk-sw ${set.bg === k ? 'bk-on' : ''}" style="background:${v[0]}" title="${k}" onclick="bkSetBg('${k}')"></div>`).join('');
   const isPage = set.mode === 'page';
   panel.innerHTML = `
-    <div class="bk-panel-h"><span class="t">阅读设置</span><span class="x" onclick="bkHidePanel()">✕</span></div>
+    <div class="bk-panel-h"><span class="t">阅读设置</span><span class="x" onclick="bkHidePanel()">${ICO_X}</span></div>
     <div class="bk-chips">
       <button class="bk-chip ${isPage ? 'bk-on' : ''}" onclick="bkSetMode('page')">翻页</button>
       <button class="bk-chip ${!isPage ? 'bk-on' : ''}" onclick="bkSetMode('scroll')">滚动</button>
@@ -2125,7 +2125,7 @@ function bkShowPdfPanel() {
   const swatches = Object.entries(bkBgList()).map(([k, v]) =>
     `<div class="bk-sw ${set.bg === k ? 'bk-on' : ''}" style="background:${v[0]}" title="${k}" onclick="bkPdfSetBg('${k}')"></div>`).join('');
   panel.innerHTML = `
-    <div class="bk-panel-h"><span class="t">阅读设置</span><span class="x" onclick="bkHidePanel()">✕</span></div>
+    <div class="bk-panel-h"><span class="t">阅读设置</span><span class="x" onclick="bkHidePanel()">${ICO_X}</span></div>
     <div class="bk-slider-row"><span class="lb">缩放</span>
       <button class="pm" onclick="bkPdfZoom(-0.1)">−</button>
       <input type="range" min="0.5" max="4" step="0.1" value="${set.scale || 1}" oninput="bkPdfScaleInput(this.value)">
@@ -2232,7 +2232,7 @@ function bkTogglePdfToc(show, tab) {
   } else {
     const bms = s.rec.bookmarks || [];
     list.innerHTML = bms.length
-      ? bms.map((b, i) => `<div class="bk-toc-it" onclick="bkBmGo(${i})"><span class="tx">${esc(b.sn || ('第 ' + b.pos + ' 页'))}</span><span class="del" onclick="event.stopPropagation();bkBmDel(${i})">✕</span></div>`).join('')
+      ? bms.map((b, i) => `<div class="bk-toc-it" onclick="bkBmGo(${i})"><span class="tx">${esc(b.sn || ('第 ' + b.pos + ' 页'))}</span><span class="del" onclick="event.stopPropagation();bkBmDel(${i})">${ICO_X}</span></div>`).join('')
       : `<div style="padding:24px 18px;color:var(--hint,#b8b8b8);font-size:12px;line-height:1.9;text-align:center">还没有书签<br>阅读菜单里点「加书签」收藏当前页</div>`;
   }
   toc.classList.add('bk-show');

@@ -147,6 +147,7 @@ openDB().then(async()=>{
     state.stats.companionStart=0;saveKey('stats');
   }
   /* v3.24.0：禁言/TA 安静横幅恢复逻辑已删（两套静音移除） */
+  if(typeof migratePersonaV41==='function')migratePersonaV41();   // 4.1：清掉旧的「医生」设定残留
   applySkinVars();                 // 主题变量（浮层/反色令牌）由 state.skin 驱动
   if(typeof setMusicPlayerVisible==='function')setMusicPlayerVisible(!!state.musicOn);   // 播放器开关（持久化值生效）
   applyChatBg();

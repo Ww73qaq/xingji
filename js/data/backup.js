@@ -239,10 +239,17 @@ async function renderDataPage(targetId='data-body'){
   const msgs=await dbGetAll('messages');
   const favs=msgs.filter(m=>m.fav).sort((a,b)=>b.time-a.time);
   body.innerHTML=`
-    <div class="cs-group-title">收藏消息</div>
-    <div class="list-card">
-      ${favs.length?favs.map(m=>`<div class="fav-item" onclick="openFavMsg(${m.id})"><span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc((m.content||'').slice(0,80))}</span><span style="font-size:11px;color:var(--hint);flex-shrink:0">${fmtFull(m.time)}</span></div>`).join(''):'<div class="empty" style="padding:24px 0">还没有收藏的消息<br>在聊天里长按消息可收藏</div>'}
-    </div>`;
+    <div class="cs-group-title">收藏消息 ${favs.length?`<span style="font-weight:400;color:var(--hint)">· ${favs.length} 条</span>`:''}</div>
+    ${favs.length?`<div class="fav-list">${favs.map(m=>{
+      /* 4.1：长文本不再单行截断（原来 white-space:nowrap 会横向溢出），
+         改成「头行：谁说的 + 类型 + 时间 / 正文：自动换行」的卡片式；
+         点击走搜索记录同一套跳转（goSearchMsg），能定位到聊天里的那条消息。 */
+      const txt=msgPreviewText(m)||'（这条没有文字内容）';
+      return `<div class="fav-item" onclick="openFavMsg(${m.id})">
+        <div class="fav-head"><span class="fav-who">${esc(who(m.sender))}${m.sender==='me'?'（我）':''}</span><span class="fav-type">${esc(chatTypeLabel(m.type))}</span><span class="fav-time">${fmtFull(m.time)}</span></div>
+        <div class="fav-text">${esc(txt)}</div>
+      </div>`;
+    }).join('')}</div>`:'<div class="list-card"><div class="empty" style="padding:24px 0">还没有收藏的消息<br>在聊天里长按消息可收藏</div></div>'}`;
 }
 function showExportSelect(){
   exportSel=new Set(STORES);

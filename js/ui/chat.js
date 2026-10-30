@@ -95,7 +95,8 @@ function bubbleInnerHtml(m){
     case 'card':
       return q+`<div class="msg-bubble msg-card" style="background:linear-gradient(135deg,#2b2b2b,#0f0f0f)!important"><div class="msg-card-top"><div class="msg-card-title" style="color:#fff">${esc(m.content||'')}</div><div class="msg-card-sub" style="color:rgba(255,255,255,.55)">${esc(m.sub||'字卡')}</div></div><div class="msg-card-foot" style="background:rgba(255,255,255,.08);color:rgba(255,255,255,.5)">${esc(m.fav?'':'')}星迹字卡</div></div>`;
     case 'redpacket':
-      return q+`<div class="msg-bubble msg-card rp-card" style="min-width:0"><div style="padding:12px 14px"><div class="rp-amt">&#129505; ${esc(m.content)} 元</div><div class="rp-msg">${esc(m.sub||'恭喜发财，大吉大利')}</div></div></div>`;
+      /* 4.1：「对方领取」状态——发出时是待领取，TA 领取后由 scheduleClaim 回填 */
+      return q+`<div class="msg-bubble msg-card rp-card" style="min-width:0"><div style="padding:12px 14px"><div class="rp-amt">&#129505; ${esc(m.content)} 元</div><div class="rp-msg">${esc(m.sub||'恭喜发财，大吉大利')}</div><div class="rp-state${m.claimed?' done':''}">${m.claimed?'已被领取':'待对方领取'}</div></div></div>`;
 case 'gift':{
       const hue=giftHue(m.content||'礼物');
       return q+`<div class="msg-bubble msg-card postcard pc-${hue}">
@@ -106,6 +107,7 @@ case 'gift':{
           <div class="pc-sub">星迹心意</div>
         </div>
         <div class="pc-foot"><span class="pc-dash"></span>星迹 · 寄自 ${esc(state.other.name)}</div>
+        <div class="pc-state${m.claimed?' done':''}">${m.claimed?'已被收下':(m.sender==='me'?'等待收件':'已寄出')}</div>
       </div>`;
     }
     case 'heart':{
@@ -118,10 +120,11 @@ case 'gift':{
           <div class="pc-sub">星迹心意</div>
         </div>
         <div class="pc-foot"><span class="pc-dash"></span>星迹 · 心意已送达</div>
+        <div class="pc-state${m.claimed?' done':''}">${m.claimed?'已被收下':(m.sender==='me'?'等待收件':'已寄出')}</div>
       </div>`;
     }
     case 'transfer':
-      return q+`<div class="msg-bubble msg-card" style="min-width:0;border:1px solid var(--input)"><div style="padding:12px 14px"><div style="font-size:11px;color:var(--hint)">${esc(state.other.name)} 收款</div><div class="rp-amt" style="font-size:22px">${esc(m.content)} 元</div><div class="rp-msg" style="color:var(--hint)">${esc(m.sub||'转账')}</div></div></div>`;
+      return q+`<div class="msg-bubble msg-card" style="min-width:0;border:1px solid var(--input)"><div style="padding:12px 14px"><div style="font-size:11px;color:var(--hint)">${esc(state.other.name)} 收款</div><div class="rp-amt" style="font-size:22px">${esc(m.content)} 元</div><div class="rp-msg" style="color:var(--hint)">${esc(m.sub||'转账')}</div><div class="rp-state${m.claimed?' done':''}" style="color:var(--hint)">${m.claimed?'已被领取':'待对方领取'}</div></div></div>`;
     case 'location':
       return q+`<div class="msg-bubble msg-card" style="min-width:0"><div class="msg-loc"><div class="msg-loc-img"></div><div style="padding:7px 10px 9px"><div class="msg-loc-name">${esc(m.name||'位置')}</div><div class="msg-loc-addr">${esc(m.addr||'')}</div></div></div></div>`;
     case 'file':
@@ -162,7 +165,8 @@ case 'gift':{
             const on=isSelQ2(i,oi),mine=isMySelQ(i,oi);
             return '<div class="poll-opt'+(on?' sel':'')+(mine?' my':'')+'">'+String.fromCharCode(65+oi)+'. '+esc(o)+(on?' <b>&#10003;</b>':'')+(mine?' <b class="myck">&#9829;</b>':'')+'</div>';
           }).join('');
-          return '<div class="poll-q" style="margin-top:'+(i?'7':'0')+'px">'+(i+1)+'. '+esc(q.q||'')+(q.multi?'<span style="font-size:11px;color:var(--hint)">（多选）</span>':'')+'</div>'+optsHtml;
+          /* 4.1：问卷题统一显示成【题干】，和填写时的格式一致 */
+          return '<div class="poll-q" style="margin-top:'+(i?'7':'0')+'px">'+esc('【'+(q.q||'')+'】')+(q.multi?'<span style="font-size:11px;color:var(--hint)">（多选）</span>':'')+'</div>'+optsHtml;
         }).join('');
         const dl=pp.deadlineSec?(' · '+pp.deadlineSec+' 秒内作答'):'';
         let foot2=foot;
@@ -188,7 +192,7 @@ case 'gift':{
       return q+'<div class="msg-bubble msg-card" style="min-width:0"><div style="padding:11px 13px 9px"><div class="poll-q">'+esc(pp.question||'题目')+' <span style="font-size:11px;color:var(--hint)">'+tag+'</span></div>'+opts+decideCard+'</div>'+foot+'</div>';
     }
     default:{
-      const mark=(m.proactive&&m.sender==='other')?'<span class="proactive-mark">✦ </span>':'';
+      const mark=(m.proactive&&m.sender==='other')?'<span class="proactive-mark">'+ICO_SPARK+' </span>':'';
       return q+`<div class="msg-bubble">${mark}${linkify(esc(m.content||''))}</div>`;
     }
   }
@@ -253,7 +257,7 @@ function buildMsgRow(m){
     st.textContent=m.read?'\u2714\u2714':'\u2714';
     meta.appendChild(st);
   }
-  if(m.fav){const f=document.createElement('span');f.textContent='★';f.style.color='#c0392b';meta.appendChild(f);}
+  if(m.fav){const f=document.createElement('span');f.innerHTML=ICO_STAR_SM;f.style.color='#c0392b';f.style.display='inline-flex';meta.appendChild(f);}
   body.appendChild(meta);
   row.appendChild(acol);row.appendChild(body);
   bindMsgGestures(row,m);
@@ -487,11 +491,37 @@ function jumpToMsg(id,ev){
 }
 /* ---- 发送 ---- */
 /* ---- 统一消息发送入口：文字/图片/语音/emoji/表情包/字卡/礼物/单选/多选/问卷 ---- */
+/* ===== 4.1：红包 / 转账 / 明信片礼物的「对方领取」 =====
+   之前只有发送、没有任何领取状态，所以看起来「发了但对方没领」。
+   这里统一：发出时 claimed:0（气泡显示「待对方领取」），
+   过 3~8 秒由 TA 领走/收下 → claimed:1 并原地刷新气泡 + 一句提示。
+   仅对「我发出去的」这几种消息生效，历史消息不受影响。 */
+const CLAIMABLE_TYPES={redpacket:1,transfer:1,gift:1,heart:1};
+function scheduleClaim(msg){
+  if(!msg||!CLAIMABLE_TYPES[msg.type]||msg.sender!=='me')return;
+  const delay=3000+Math.random()*5000;
+  const kind=msg.type==='gift'||msg.type==='heart'?'gift':'money';
+  setTimeout(async()=>{
+    try{
+      const rows=await dbGetAll('messages');
+      const m=rows.find(x=>x&&x.id===msg.id);
+      if(!m||m.claimed)return;
+      m.claimed=1;m.claimedAt=Date.now();
+      await dbPut('messages',m);
+      if(state.currentApp==='chat'&&typeof refreshMsgRow==='function')refreshMsgRow(m.id);
+      const nm=(state.other&&state.other.name)||'TA';
+      showToast(kind==='gift'?`${nm} 收下了你的心意`:`${nm} 领取了${msg.type==='transfer'?'转账':'红包'}`);
+    }catch(e){}
+  },delay);
+}
+
 async function sendMessageObject(message){
   message.sender='me';message.time=message.time||Date.now();message.read=false;message.state='sending';
+  if(CLAIMABLE_TYPES[message.type]&&message.claimed===undefined)message.claimed=0;
   if(typeof touchInteract==='function')touchInteract();   // v3.6.0：我方发消息 → 连接频率上升
   if(quoteTarget&&!message.quote){message.quote=quoteTarget;quoteTarget=null;document.getElementById('quote-input').classList.remove('show');}
   const rec=await dbPut('messages',message);
+  if(CLAIMABLE_TYPES[message.type])scheduleClaim({...message,id:rec});
   closeEmojiPanel();
   // 增量追加，不重建整个聊天（renderChat 只在进页面/翻历史/撤回删除收藏时调用）
   if(state.currentApp==='chat')appendMsgRow({...message,id:rec},true);
@@ -726,6 +756,7 @@ function appendEmojiPlus(body,fn){
 }
 /* 表情面板：表情 / 表情包 / 拍一拍（三 tab，网格布局） */
 let emojiOpen=false,emojiTab='emoji';
+let stickerChatTab='all';   /* 4.1：表情包面板当前分组（与「表情」页同名分组） */
 function toggleEmojiPanel(){
   const panel=document.getElementById('emoji-panel');
   if(!panel)return;
@@ -766,15 +797,34 @@ function renderEmojiPanel(){
     return;
   }
   if(emojiTab==='sticker'){
-    dbGetAll('emojis').then(list=>{
+    dbGetAll('emojis').then(raw=>{
       /* P1-14(v3.27.6)：异步回调必须校验当前 tab——快速切 tab/关面板后，
          表情包格子会串进表情网格 */
       if(!emojiOpen||emojiTab!=='sticker')return;
+      const list=raw||[];
+      if(typeof stickerCache!=='undefined')stickerCache=list;
       if(!list.length){body.innerHTML='<div class="emoji-empty">还没有表情包<br>去「表情」页面上传</div>';return;}
-      list.forEach(e=>{const d=document.createElement('div');d.className='sticker-cell';d.title=e.name||'';
-        if(e.src)d.innerHTML=`<img src="${esc(e.src)}" alt="">`;else d.innerHTML=`<span class="stk-fallback">${esc((e.name||'?').slice(0,1))}</span>`;
+      /* 4.1：与「表情」页同一套分组——顶部一排组标签，下面是该组的图（1:1 显示） */
+      const groups=(typeof stickerGroups==='function')?stickerGroups(list):[];
+      const cur=(typeof stickerChatTab!=='undefined'&&stickerChatTab&&groups.includes(stickerChatTab))?stickerChatTab:'all';
+      if(groups.length>1){
+        const gbar=document.createElement('div');
+        gbar.className='emoji-groupbar';
+        gbar.innerHTML=`<span class="egtab${cur==='all'?' on':''}" onclick="stickerChatTab='all';renderEmojiPanel()">全部</span>`
+          +groups.map(g=>`<span class="egtab${cur===g?' on':''}" onclick="stickerChatTab='${esc(g).replace(/'/g,'&#39;')}';renderEmojiPanel()">${esc(g)}</span>`).join('');
+        body.appendChild(gbar);
+      }
+      const grid=document.createElement('div');
+      grid.className='sticker-grid';
+      const shown=(typeof stickerFiltered==='function')?stickerFiltered(list,cur):list;
+      shown.forEach(e=>{
+        const d=document.createElement('div');d.className='sticker-cell';d.title=e.name||'';
+        if(e.src)d.innerHTML=`<img src="${esc(e.src)}" alt="">`;
+        else d.innerHTML=`<span class="stk-fallback">${esc((e.name||'?').slice(0,1))}</span>`;
         d.onclick=()=>sendMessageObject({type:'image',images:[e.src],content:e.src,sticker:1});
-        body.appendChild(d);});
+        grid.appendChild(d);
+      });
+      body.appendChild(grid);
     });
     return;
   }
@@ -978,7 +1028,7 @@ function managePokes(){
 function renderPokeManager(){
   ensurePokeGroups(); const groups=Object.keys(state.stats.pokeGroups); if(!groups.includes(pokeManageGroup))pokeManageGroup=groups[0]||'默认';
   const list=state.stats.pokeGroups[pokeManageGroup]||[];
-  showModal('拍一拍字卡',`<div style="display:flex;gap:6px;overflow-x:auto;padding-bottom:8px">${groups.map(g=>`<button class="tab${g===pokeManageGroup?' active':''}" style="white-space:nowrap" onclick="pokeManageGroup='${esc(g)}';state.stats.pokeGroup='${esc(g)}';saveKey('stats');renderPokeManager()">${esc(g)}</button>`).join('')}<button class="tab" onclick="closeModal();addPokeGroup()">＋ 分组</button></div><div style="display:flex;justify-content:space-between;align-items:center;margin:4px 0 8px"><span style="font-size:11px;color:var(--hint)">${list.length} 条 · 回复时随机触发</span><span style="font-size:12px;color:var(--sub);cursor:pointer" onclick="closeModal();renamePokeGroup()">重命名</span></div>${list.length?list.map((p,i)=>`<div style="display:flex;align-items:center;gap:8px;padding:10px 4px;border-bottom:1px solid var(--input)"><span style="flex:1;font-size:14px">${esc(p)}</span><span style="cursor:pointer;padding:4px" onclick="closeModal();editPoke(${i})">✎</span><span style="cursor:pointer;padding:4px;color:#c0392b" onclick="closeModal();delPoke(${i})">✕</span></div>`).join(''):'<div class="empty" style="padding:25px 0">当前分组还没有拍一拍字卡</div>'}<div style="font-size:11px;color:var(--hint);margin-top:8px">支持一行一条批量添加，自动查重。</div><button class="btn-pill ghost" style="width:100%;margin-top:12px" onclick="closeModal();addPoke()">＋ 新增拍一拍</button><button class="btn-pill ghost" style="width:100%;margin-top:8px" onclick="closeModal();bulkAddPokes()">批量添加</button>`);
+  showModal('拍一拍字卡',`<div style="display:flex;gap:6px;overflow-x:auto;padding-bottom:8px">${groups.map(g=>`<button class="tab${g===pokeManageGroup?' active':''}" style="white-space:nowrap" onclick="pokeManageGroup='${esc(g)}';state.stats.pokeGroup='${esc(g)}';saveKey('stats');renderPokeManager()">${esc(g)}</button>`).join('')}<button class="tab" onclick="closeModal();addPokeGroup()">＋ 分组</button></div><div style="display:flex;justify-content:space-between;align-items:center;margin:4px 0 8px"><span style="font-size:11px;color:var(--hint)">${list.length} 条 · 回复时随机触发</span><span style="font-size:12px;color:var(--sub);cursor:pointer" onclick="closeModal();renamePokeGroup()">重命名</span></div>${list.length?list.map((p,i)=>`<div style="display:flex;align-items:center;gap:8px;padding:10px 4px;border-bottom:1px solid var(--input)"><span style="flex:1;font-size:14px">${esc(p)}</span><span style="cursor:pointer;padding:4px;display:inline-flex" onclick="closeModal();editPoke(${i})">${ICO_EDIT}</span><span style="cursor:pointer;padding:4px;color:#c0392b;display:inline-flex" onclick="closeModal();delPoke(${i})">${ICO_X}</span></div>`).join(''):'<div class="empty" style="padding:25px 0">当前分组还没有拍一拍字卡</div>'}<div style="font-size:11px;color:var(--hint);margin-top:8px">支持一行一条批量添加，自动查重。</div><button class="btn-pill ghost" style="width:100%;margin-top:12px" onclick="closeModal();addPoke()">＋ 新增拍一拍</button><button class="btn-pill ghost" style="width:100%;margin-top:8px" onclick="closeModal();bulkAddPokes()">批量添加</button>`);
 }
 function addPokeGroup(){appPrompt('新建拍一拍分组','',v=>{const n=(v||'').trim();if(!n)return false;ensurePokeGroups();if(state.stats.pokeGroups[n]){showToast('分组已存在');return false;}state.stats.pokeGroups[n]=[];state.stats.pokeGroup=n;saveKey('stats');pokeManageGroup=n;managePokes();});}
 function renamePokeGroup(){ensurePokeGroups();const old=pokeManageGroup;appPrompt('重命名分组',old,v=>{const n=(v||'').trim();if(!n||n===old)return false;if(state.stats.pokeGroups[n]){showToast('分组已存在');return false;}state.stats.pokeGroups[n]=state.stats.pokeGroups[old]||[];delete state.stats.pokeGroups[old];state.stats.pokeGroup=n;saveKey('stats');pokeManageGroup=n;managePokes();});}

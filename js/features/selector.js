@@ -13,10 +13,16 @@ let selPicked = null;      // 本次抽中的选项
 let selCard = null;        // 本次抽中的字卡文本
 let selEditMode = false;   // 编辑模式：点胶囊即删除
 let selRolling = false;    // 抽选中（防连点）
+let selEditingIdx = -1;    // 4.1：正在就地修改的选项下标（-1 = 没在改）
 
 function selectorOptions(){
   if(!Array.isArray(state.selectorOptions) || !state.selectorOptions.length){
     state.selectorOptions = SELECTOR_DEFAULT.slice();
+  }
+  /* 4.1：至少两个选项——历史数据被删到只剩 1 个时自动补回默认 */
+  while(state.selectorOptions.length < 2){
+    const add = SELECTOR_DEFAULT.find(d=>!state.selectorOptions.includes(d)) || ('选项'+(state.selectorOptions.length+1));
+    state.selectorOptions.push(add);
   }
   return state.selectorOptions;
 }
@@ -37,7 +43,7 @@ function openSelector(){
        </div>
        <div class="sel-result" id="sel-result" style="display:none"></div>
        <div class="sel-actions">
-         <button type="button" class="btn-pill ghost" id="sel-edit-btn" onclick="selToggleEdit()">添加 / 删除</button>
+         <button type="button" class="btn-pill ghost" id="sel-edit-btn" onclick="selToggleEdit()">添加 / 修改</button>
          <button type="button" class="btn-pill primary" id="sel-ask-btn" onclick="selAsk()">问 TA</button>
        </div>
      </div>`,
@@ -49,10 +55,16 @@ function renderSelector(){
   const box = document.getElementById('sel-pills');
   if(!box) return;
   const opts = selectorOptions();
-  box.innerHTML = opts.map((o,i)=>
-    `<button type="button" class="btn-pill ${selPicked===o?'primary':'ghost'} sel-pill${selEditMode?' editing':''}"
-             data-si="${i}">${esc(o)}${selEditMode?'<span class="sel-x">×</span>':''}</button>`
-  ).join('') + (selEditMode ? `<button type="button" class="btn-pill ghost sel-pill sel-plus" data-plus="1">＋ 新选项</button>` : '');
+  box.innerHTML = opts.map((o,i)=>{
+    if(selEditingIdx === i){
+      return `<span class="sel-pill editing sel-editing">
+        <input class="sel-inline" id="sel-inline" maxlength="12" value="${esc(o)}"
+               onkeydown="if(event.key==='Enter'){event.preventDefault();selInlineOk(${i});}else if(event.key==='Escape'){selInlineCancel();}">
+      </span>`;
+    }
+    return `<button type="button" class="btn-pill ${selPicked===o?'primary':'ghost'} sel-pill${selEditMode?' editing':''}"
+             data-si="${i}">${esc(o)}${selEditMode?'<span class="sel-x" data-del="1"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></span>':''}</button>`;
+  }).join('') + (selEditMode ? `<button type="button" class="btn-pill ghost sel-pill sel-plus" data-plus="1">＋ 新选项</button>` : '');
   /* 选项文本可能含引号，不能拼进 inline onclick；统一用 index 绑定 */
   box.querySelectorAll('.sel-pill').forEach(el=>{
     if(el.dataset.plus){
@@ -60,13 +72,19 @@ function renderSelector(){
       return;
     }
     const i = Number(el.dataset.si);
-    el.onclick = ()=>{
-      if(selEditMode){ selDelete(i); return; }
+    el.onclick = (e)=>{
+      /* × 才是删除；点胶囊本身是改文字（4.1：不用再「先删再建」） */
+      if(selEditMode){
+        if(e.target && e.target.dataset && e.target.dataset.del){ selDelete(i); return; }
+        selEditOption(i); return;
+      }
       /* 非编辑态点击：只切换高亮，不自动作答（作答是「问 TA」的事） */
       selPicked = selPicked === selectorOptions()[i] ? null : selectorOptions()[i];
       selCard = null; selRolling = false;
       renderSelector(); renderSelResult();
     };
+    /* 双击也能直接改（不用先进编辑模式） */
+    el.ondblclick = (e)=>{ e.preventDefault(); e.stopPropagation(); selEditOption(i); };
   });
 }
 
@@ -153,9 +171,42 @@ function selToggleEdit(){
     const askBtn = document.getElementById('sel-ask-btn');
     if(askBtn){ askBtn.disabled = false; askBtn.textContent = '问 TA'; }
   }
+  if(selEditingIdx >= 0) selEditingIdx = -1;
   const btn = document.getElementById('sel-edit-btn');
-  if(btn) btn.textContent = selEditMode ? '完成' : '添加 / 删除';
+  if(btn) btn.textContent = selEditMode ? '完成' : '添加 / 修改';
+  if(!selEditMode) selEditingIdx = -1;
   if(!selEditMode){ const add=document.getElementById('sel-add'); if(add) add.style.display='none'; }
+  renderSelector();
+}
+
+/* 4.1：就地改选项文字——单击/双击胶囊即可，改完回车或点别处生效 */
+function selEditOption(i){
+  const opts = selectorOptions();
+  if(opts[i] === undefined) return;
+  selEditingIdx = i;
+  renderSelector();
+  setTimeout(()=>{
+    const inp = document.getElementById('sel-inline');
+    if(!inp) return;
+    inp.focus();
+    try{ inp.setSelectionRange(inp.value.length, inp.value.length); }catch(_){}
+    inp.onblur = ()=>{ setTimeout(()=>{ if(selEditingIdx===i) selInlineOk(i); }, 120); };
+  }, 60);
+}
+function selInlineOk(i){
+  const inp = document.getElementById('sel-inline');
+  const v = inp ? String(inp.value || '').trim() : '';
+  const opts = selectorOptions();
+  if(!v){ showToast('选项不能为空'); selEditingIdx = -1; renderSelector(); return; }
+  if(opts.some((o, idx) => idx !== i && o === v)){ showToast('这个选项已经有了'); selEditingIdx = -1; renderSelector(); return; }
+  if(selPicked === opts[i]) selPicked = v;
+  opts[i] = v;
+  selEditingIdx = -1;
+  saveKey('selectorOptions');
+  renderSelector(); renderSelResult();
+}
+function selInlineCancel(){
+  selEditingIdx = -1;
   renderSelector();
 }
 
@@ -204,3 +255,6 @@ window.selSendToChat = selSendToChat;
 window.selToggleEdit = selToggleEdit;
 window.selAddConfirm = selAddConfirm;
 window.selAddCancel = selAddCancel;
+window.selEditOption = selEditOption;
+window.selInlineOk = selInlineOk;
+window.selInlineCancel = selInlineCancel;
