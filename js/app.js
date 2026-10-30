@@ -148,6 +148,7 @@ openDB().then(async()=>{
   }
   /* v3.24.0：禁言/TA 安静横幅恢复逻辑已删（两套静音移除） */
   applySkinVars();                 // 主题变量（浮层/反色令牌）由 state.skin 驱动
+  if(typeof setMusicPlayerVisible==='function')setMusicPlayerVisible(!!state.musicOn);   // 播放器开关（持久化值生效）
   applyChatBg();
   history.replaceState({d:1},'');
   updateHome();

@@ -21,6 +21,7 @@ function renderProfile(){
     <div class="cs-group-title">外观</div>
     <div class="cs-group">
       <div class="cs-item" onclick="openThemeSettings()"><span class="cs-ico">${ICO.star}</span><span class="cs-label">全局主题</span><span class="cs-val">${(typeof SKIN_META!=='undefined'&&SKIN_META[state.skin.themeId])?SKIN_META[state.skin.themeId].name:'墨白'}</span><span class="cs-arrow">&#8250;</span></div>
+      <div class="cs-item" onclick="toggleMusicPlayer()"><span class="cs-ico">${ICO.note||ICO.star}</span><span class="cs-label">显示音乐播放器</span><span class="cs-val">${state.musicOn?'已开启':'未开启'}</span><span class="cs-switch${state.musicOn?' on':''}" onclick="event.stopPropagation();toggleMusicPlayer()"></span></div>
     </div>
     <div class="cs-group">
       <div class="cs-item" onclick="editName('me')"><span class="cs-ico">${ICO.user}</span><span class="cs-label">我的昵称</span><span class="cs-val">${esc(state.me.name)}</span><span class="cs-arrow">&#8250;</span></div>
@@ -70,6 +71,14 @@ function openTaNoteSettings(){
     +'· '+esc(state.other.name)+'正在整理意识（禁言）时不写。<br>'
     +'· 便签会留一条系统消息与手机通知，方便你回到桌面看见。</div>';
   showModal('TA 写便签',tip+rows,'<div class="modal-btn-row single"><button class="modal-btn" onclick="closeModal()">知道了</button></div>');
+}
+/* 全局音乐播放器开关（默认关）；切换后即时显示/隐藏顶部胶囊播放器 */
+function toggleMusicPlayer(){
+  const next=!state.musicOn;
+  state.musicOn=next;saveKey('musicOn');
+  if(typeof setMusicPlayerVisible==='function')setMusicPlayerVisible(next);
+  showToast(next?'音乐播放器已显示':'音乐播放器已隐藏');
+  renderProfile();
 }
 function toggleTaNote(){
   const next=taNoteEnabled()?0:1;

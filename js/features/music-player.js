@@ -12,7 +12,8 @@
     {title:'X',artist:'刘柏辛 Lexie',file:'刘柏辛Lexie - X.mp3'},
     {title:'沉浸式想念',artist:'赵希予（戏庭画）/ 肖倾月',file:'赵希予（戏庭画） 肖倾月 - 沉浸式想念.mp3'}
   ].map((t,i)=>({...t,id:i,url:MUSIC_BASE+encodeURIComponent(t.file)}));
-  const STORE_KEY='xingji.music.ui.v2'; /* v3.28.1：换键——新默认「底部居中」对老用户也生效一次，之后仍记忆拖动位置 */
+  const STORE_KEY='xingji.music.ui.v3'; /* v3.28.2：换键——新默认「顶部居中」对老用户也生效一次，之后仍记忆拖动位置 */
+  const TOP_OFFSET=56; /* 播放器默认停靠：状态栏下方一点，顶部居中 */
   const ICONS={
     play:'<svg viewBox="0 0 24 24" aria-hidden="true"><path class="xj-fill" d="M8 5.5v13l10-6.5z"/></svg>',
     pause:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5v14M15 5v14"/></svg>',
@@ -117,17 +118,17 @@
   }
   function restorePosition(){
     const b=bounds();
-    /* v3.28.1：默认停靠底部水平居中（不再默认靠右遮挡内容），仍可拖动并记忆 */
+    /* v3.28.2：默认停靠顶部居中（状态栏下方一点，以聊天页个性签名为准），仍可拖动并记忆 */
     let x=Number.isFinite(saved.x)?saved.x:(b.w-b.pw)/2;
-    let y=Number.isFinite(saved.y)?saved.y:b.h-b.ph-88;
+    let y=Number.isFinite(saved.y)?saved.y:TOP_OFFSET;
     setPosition(x,y,false);
   }
   function placePanel(){
     if(!root||!panel)return;
-    const b=bounds(),x=saved.x||0,y=saved.y||0;
-    const panelW=Math.min(310,b.w-28),panelH=Math.min(panel.scrollHeight||420,b.h*.7);
+    const b=bounds(),x=saved.x||0;
+    const panelW=Math.min(310,b.w-28);
+    /* 胶囊固定顶部、面板始终向下展开；靠近右缘则向右对齐，避免超出屏幕 */
     root.classList.toggle('panel-above-right',x+panelW>b.w-10);
-    root.classList.toggle('panel-below',y<panelH+72&&b.h-y>panelH+72);
   }
   function bindDrag(){
     const pill=document.getElementById('xj-music-pill');
@@ -154,7 +155,7 @@
         if(cx<b.w*.28)tx=10;
         else if(cx>b.w*.72)tx=b.w-b.pw-10;
         else tx=(b.w-b.pw)/2;
-        setPosition(tx,saved.y,true);
+        setPosition(tx,TOP_OFFSET,true);
       }
       drag=null;setTimeout(()=>{dragMoved=false;},0);
     };
@@ -164,8 +165,16 @@
   function syncVisibility(){
     if(!root)return;
     const blocked=document.querySelector('#screen-lock.active,#screen-splash.active,.call-overlay.active,#img-viewer');
-    root.hidden=!!blocked;
+    /* 用户未开启播放器（state.musicOn 默认 false）时同样隐藏 */
+    const disabled=(typeof state!=='undefined')&&state&&state.musicOn===false;
+    root.hidden=!!(blocked||disabled);
   }
+  /* 供「我的 → 外观 → 显示音乐播放器」开关即时调用 */
+  function setMusicPlayerVisible(visible){
+    if(typeof state!=='undefined'&&state)state.musicOn=!!visible;
+    syncVisibility();
+  }
+  window.setMusicPlayerVisible=setMusicPlayerVisible;
   function init(){
     phone=document.getElementById('phone');if(!phone||document.getElementById('xj-music'))return;
     root=document.createElement('section');root.id='xj-music';root.className='xj-music';root.setAttribute('aria-label','全局音乐播放器');root.innerHTML=template();

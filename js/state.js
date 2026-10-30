@@ -66,12 +66,14 @@ let state = {
   // 所以刷新后恒为 undefined，勾选跨天状态直接丢失（并连带让当天的提醒抑制失效）。
   todoDoneByDay:{},
   // v3.6.13：TA 世界时间时差偏移（持久化——断开连接也不重置，两个世界时间连续）
-  taTimeOffset:0
+  taTimeOffset:0,
+  // 全局音乐播放器开关（默认关）；开时顶部悬浮胶囊播放器才显示
+  musicOn:false
 };
 
 async function loadSettings(){
   // v3.7.2 性能：原 43 次 dbGet 串行事务 → 一次 dbGetAll 全表读（settings 按 key 索引）
-  const keys=['me','other','skin','pin','prob','meetTime','quote','splashText','stats','chat','muteEndTime','muteRequest','surveySettings','notify','notes','taMuteMeEndTime','taMuteReqCoolAt','diaryReqAt','taMuteLastEnd','taMuteReqAt','statusPool','moodPool','taStatusUntil','taStatusCoolAt','taMuteCycleSkip','taCallCycleSkip','taMuteReason','taStatusLockMin','calLastSnapDate','customGifts','taSenseCoolAt','myDiaryReqCoolAt','taDiaryDenied','noteAlarmDone','taSchedSettings','todoAlarmDone','todoDoneByDay','todoExclByDay','lastSenseDir','taTimeOffset'];
+  const keys=['me','other','skin','pin','prob','meetTime','quote','splashText','stats','chat','muteEndTime','muteRequest','surveySettings','notify','notes','taMuteMeEndTime','taMuteReqCoolAt','diaryReqAt','taMuteLastEnd','taMuteReqAt','statusPool','moodPool','taStatusUntil','taStatusCoolAt','taMuteCycleSkip','taCallCycleSkip','taMuteReason','taStatusLockMin','calLastSnapDate','customGifts','taSenseCoolAt','myDiaryReqCoolAt','taDiaryDenied','noteAlarmDone','taSchedSettings','todoAlarmDone','todoDoneByDay','todoExclByDay','lastSenseDir','taTimeOffset','musicOn'];
   const map={};
   try{
     const all=await dbGetAll('settings');
