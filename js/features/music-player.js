@@ -33,7 +33,10 @@
     close:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m7 7 10 10M17 7 7 17"/></svg>',
     repeat:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M17 2l3 3-3 3M3 11V8a3 3 0 0 1 3-3h14M7 22l-3-3 3-3M21 13v3a3 3 0 0 1-3 3H4"/></svg>',
     one:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M17 2l3 3-3 3M3 11V8a3 3 0 0 1 3-3h14M7 22l-3-3 3-3M21 13v3a3 3 0 0 1-3 3H4M11 10h1v5M10 15h3"/></svg>',
-    note:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 18V5l11-2v13M9 9l11-2"/><circle cx="6" cy="18" r="3"/><circle cx="17" cy="16" r="3"/></svg>'
+    note:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 18V5l11-2v13M9 9l11-2"/><circle cx="6" cy="18" r="3"/><circle cx="17" cy="16" r="3"/></svg>',
+    more:'<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="6" cy="12" r="1.4" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1.4" fill="currentColor" stroke="none"/><circle cx="18" cy="12" r="1.4" fill="currentColor" stroke="none"/></svg>',
+    heart:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20s-7-4.4-7-9a4 4 0 0 1 7-2.6A4 4 0 0 1 19 11c0 4.6-7 9-7 9Z"/></svg>',
+    heartOn:'<svg viewBox="0 0 24 24" aria-hidden="true"><path class="xj-fill" d="M12 20s-7-4.4-7-9a4 4 0 0 1 7-2.6A4 4 0 0 1 19 11c0 4.6-7 9-7 9Z"/></svg>'
   };
   let saved={};
   try{saved=JSON.parse(localStorage.getItem(STORE_KEY)||'{}')||{};}catch(_){saved={};}
@@ -46,8 +49,9 @@
     const list=BUILTIN.slice();
     imported.forEach((t,i)=>list.push({id:'net-'+i,kind:'net',title:t.title||'未命名',artist:t.artist||'网易云歌单',url:t.url}));
     localTracks.forEach((t,i)=>list.push({id:'loc-'+t.id,kind:'local',localId:t.id,title:t.title||'本地音乐',artist:t.artist||'本地文件'}));
-    TRACKS=list;
-    if(!TRACKS.length)return;
+    /* 4.2：「从当前列表移除」只是把这些歌藏起来，文件还在 */
+    TRACKS=list.filter(t=>!isHiddenTrack(t));
+    if(!TRACKS.length){index=0;return;}
     if(!Number.isInteger(index)||index<0||index>=TRACKS.length)index=0;
   }
   /* 本地文件每次播放现开一个 objectURL，切歌时释放上一条，避免内存泄漏 */
@@ -71,17 +75,18 @@
   const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const fmt=s=>Number.isFinite(s)&&s>=0?Math.floor(s/60)+':'+String(Math.floor(s%60)).padStart(2,'0'):'0:00';
   function template(){
+    /* 4.2：面板按「播放列表 + 上一首/播放/下一首 + 循环」的头部组织（对标参考图），
+       去掉原来的大唱片块，面板头部就是唯一的控制区；胶囊改成两行文字（曲名 / 刹那·序号）。 */
     return '<div class="xj-music-panel" id="xj-music-panel" aria-label="播放列表">'
-      +'<div class="xj-music-head"><b>此刻的声音</b><span id="xj-music-count"></span><button class="xj-music-btn xj-music-close" type="button" data-action="close" aria-label="收起播放列表">'+ICONS.close+'</button></div>'
-      +'<div class="xj-music-now"><div class="xj-music-disc">'+ICONS.note+'</div><div class="xj-music-now-text"><b id="xj-music-now-title"></b><span id="xj-music-now-artist"></span></div><div class="xj-music-wave" aria-hidden="true"><i></i><i></i><i></i></div></div>'
+      +'<div class="xj-music-head"><b>播放列表</b><span id="xj-music-count"></span><button class="xj-music-btn xj-music-close" type="button" data-action="close" aria-label="收起播放列表">'+ICONS.close+'</button></div>'
       +'<div class="xj-music-controls"><button class="xj-music-btn" type="button" data-action="prev" aria-label="上一首">'+ICONS.prev+'</button><button class="xj-music-btn xj-music-play" type="button" data-action="play" aria-label="播放或暂停">'+ICONS.play+'</button><button class="xj-music-btn" type="button" data-action="next" aria-label="下一首">'+ICONS.next+'</button><button class="xj-music-btn xj-music-repeat" type="button" data-action="repeat" aria-label="切换循环模式">'+ICONS.repeat+'</button></div>'
       +'<div class="xj-music-progress"><span id="xj-music-current">0:00</span><input id="xj-music-seek" type="range" min="0" max="1000" value="0" aria-label="播放进度"><span id="xj-music-duration">0:00</span></div>'
-      +'<div class="xj-music-tools"><button class="xj-music-tool" type="button" data-tool="local">本地音乐</button><button class="xj-music-tool" type="button" data-tool="net">导入歌单</button></div>'
       +'<div class="xj-music-list" id="xj-music-list"></div>'
+      +'<div class="xj-music-tools"><button class="xj-music-tool" type="button" data-tool="local">本地音乐</button><button class="xj-music-tool" type="button" data-tool="net">导入歌单</button></div>'
       +'<div class="xj-music-error" id="xj-music-error" hidden></div></div>'
       +'<div class="xj-music-pill" id="xj-music-pill" aria-label="可拖动的音乐播放器">'
       +'<button class="xj-music-btn xj-music-play" type="button" data-action="play" aria-label="播放或暂停">'+ICONS.play+'</button>'
-      +'<div class="xj-music-title"><span id="xj-music-pill-title"></span></div><span class="xj-music-index" id="xj-music-index"></span>'
+      +'<div class="xj-music-title"><b id="xj-music-pill-title"></b><span id="xj-music-pill-sub"></span></div>'
       +'<button class="xj-music-btn xj-music-expand" type="button" data-action="toggle" aria-label="展开播放列表" aria-expanded="false">'+ICONS.down+'</button></div>'
       +'<audio id="xj-music-audio" preload="metadata" playsinline></audio>';
   }
@@ -89,11 +94,9 @@
     if(!root)return;
     const t=TRACKS[index],playing=audio&&!audio.paused&&!audio.ended;
     root.classList.toggle('open',open);root.classList.toggle('playing',!!playing);
-    document.getElementById('xj-music-now-title').textContent=t.title;
-    document.getElementById('xj-music-now-artist').textContent=t.artist;
-    document.getElementById('xj-music-pill-title').textContent=t.artist+' - '+t.title;
+    document.getElementById('xj-music-pill-title').textContent=t.title;
+    document.getElementById('xj-music-pill-sub').textContent=whichLabel(index)+' · '+String(index+1).padStart(2,'0')+'/'+String(TRACKS.length).padStart(2,'0');
     requestAnimationFrame(updateMarquee);
-    document.getElementById('xj-music-index').textContent=String(index+1).padStart(2,'0')+' / '+String(TRACKS.length).padStart(2,'0');
     root.querySelectorAll('[data-action="play"]').forEach(b=>{b.innerHTML=playing?ICONS.pause:ICONS.play;b.setAttribute('aria-label',playing?'暂停':'播放');});
     if(listDirty){renderList();listDirty=false;}
     root.querySelectorAll('.xj-music-track').forEach(b=>{const on=Number(b.dataset.track)===index;b.classList.toggle('on',on);b.setAttribute('aria-current',on?'true':'false');});
@@ -110,15 +113,19 @@
   const _subs=[];
   function notifyChange(){_subs.forEach(fn=>{try{fn();}catch(_){}});}
 
-  /* 播放列表：内置歌不可删；导入/本地可删（本地会连 Blob 一起删） */
+  /* 播放列表：每行 = 序号 + 歌名/歌手 + 红心 + 更多（加入歌单 / 收藏 / 从列表移除） */
   function renderList(){
     const box=document.getElementById('xj-music-list');if(!box)return;
-    if(!TRACKS.length){box.innerHTML='<div class="xj-music-empty">还没有歌。点上面的「本地音乐」或「导入歌单」。</div>';return;}
-    box.innerHTML=TRACKS.map((t,i)=>'<button class="xj-music-track'+(t.kind!=='builtin'?' xj-removable':'')+'" type="button" data-track="'+i+'">'
-      +'<span class="xj-music-track-n">'+String(i+1).padStart(2,'0')+'</span>'
-      +'<span class="xj-music-track-text"><b>'+esc(t.title)+'</b><span>'+esc(t.artist)+(t.kind==='local'?' · 本地':'')+'</span></span>'
-      +(t.kind!=='builtin'?'<i class="xj-music-track-del" data-del="'+i+'" aria-label="从列表移除">×</i>':'')
-      +'<i class="xj-music-track-dot"></i></button>').join('');
+    if(!TRACKS.length){box.innerHTML='<div class="xj-music-empty">还没有歌。点下面的「本地音乐」或「导入歌单」。</div>';return;}
+    box.innerHTML=TRACKS.map((t,i)=>{
+      const love=isFav(i);
+      return '<div class="xj-music-track'+(i===index?' on':'')+'" role="button" tabindex="0" data-track="'+i+'">'
+        +'<span class="xj-music-track-n">'+String(i+1).padStart(2,'0')+'</span>'
+        +'<span class="xj-music-track-text"><b>'+esc(t.title)+'</b><span>'+esc(t.artist)+(t.kind==='local'?' · 本地':t.kind==='net'?' · 歌单':'')+'</span></span>'
+        +'<button class="xj-music-rowbtn'+(love?' on':'')+'" type="button" data-fav="'+i+'" aria-label="'+(love?'取消收藏':'收藏')+'">'+(love?ICONS.heartOn:ICONS.heart)+'</button>'
+        +'<button class="xj-music-rowbtn" type="button" data-more="'+i+'" aria-label="更多操作">'+ICONS.more+'</button>'
+        +'</div>';
+    }).join('');
   }
 
   /* 桌面第 2 页的「音乐」图标跟着当前歌走：播放中显示歌名，暂停回到「音乐」 */
@@ -194,10 +201,10 @@
   }
   function placePanel(){
     if(!root||!panel)return;
-    const b=bounds(),x=saved.x||0;
-    const panelW=Math.min(310,b.w-28);
-    /* 胶囊固定顶部、面板始终向下展开；靠近右缘则向右对齐，避免超出屏幕 */
-    root.classList.toggle('panel-above-right',x+panelW>b.w-10);
+    const b=bounds(),y=saved.y||0;
+    /* 4.2：面板与胶囊同宽、左缘对齐；下方放不下时改为向上展开（panel-up） */
+    const panelH=Math.min(panel.scrollHeight||360,b.h*.62);
+    root.classList.toggle('panel-up', (y+54+panelH) > (b.h-10) && y>panelH);
   }
   function bindDrag(){
     const pill=document.getElementById('xj-music-pill');
@@ -262,6 +269,28 @@
     addLocal:()=>addLocalMusic(),
     importNetease:()=>importNetease(),
     remove:(i)=>removeTrack(i),
+    /* 4.2：歌单 / 收藏 / 从列表移除 */
+    keyOf:(i)=>{const t=TRACKS[i];return t?trackKey(t):'';},
+    isFav:(i)=>isFav(i),
+    toggleFav:(i)=>{const on=toggleFav(i);showToast(on?'已收藏':'已取消收藏');return on;},
+    favs:()=>favs.map(f=>({key:f.key,title:f.title,artist:f.artist,kind:f.kind,url:f.url,localId:f.localId})),
+    playlists:()=>playlists.map(p=>({name:p.name,count:p.songs.length})),
+    playlistSongs:(n)=>playlistSongs(n),
+    newPlaylist:(n)=>{const pl=newPlaylist(n);showToast(pl?'已新建《'+pl.name+'》':'歌单名不能为空');return pl;},
+    removePlaylist:(n)=>{removePlaylist(n);showToast('已删除歌单');},
+    addToPlaylist:(i,n)=>confirmAdd(i,n),
+    pickPlaylist:(i)=>pickPlaylist(i),
+    confirmAdd:(i,n)=>confirmAdd(i,n),
+    createAndAdd:(i)=>createAndAdd(i),
+    menu:(i)=>trackMenu(i),
+    idxByKey:(k)=>idxByKey(k),
+    favByKey:(k)=>{const i=idxByKey(k);if(i<0)return false;const on=toggleFav(i);showToast(on?'已收藏':'已取消收藏');return on;},
+    menuByKey:(k)=>{const i=idxByKey(k);if(i>=0)trackMenu(i);},
+    pickPlaylistByKey:(k)=>{const i=idxByKey(k);if(i>=0)pickPlaylist(i);},
+    removeByKey:(k)=>{const i=idxByKey(k);if(i>=0){removeFromList(i);showToast('已从当前列表移除（文件还在）');}},
+    playKey:(k)=>{playKey(k);},
+    removeFromList:(i)=>{removeFromList(i);showToast('已从当前列表移除（文件还在）');},
+    deleteLocal:(i)=>deleteLocalTrack(i),
     refresh:()=>loadLocal().then(()=>{render();notifyChange();}),
     seekTo:(pct)=>{if(audio&&Number.isFinite(audio.duration)&&audio.duration>0){audio.currentTime=pct/100*audio.duration;updateTime();}},
     time:()=>({cur:audio?audio.currentTime:0,dur:audio&&Number.isFinite(audio.duration)?audio.duration:0}),
@@ -281,6 +310,154 @@
     if(typeof placePanel==='function')placePanel();
     render();
   };
+  /* =========================================================
+     4.2 · 歌单 / 收藏 / 从列表移除
+     —— 全部存 localStorage（“便利贴”）：只记曲名/歌手/地址，几十 KB。
+     —— 本地音频文件仍然在 IndexedDB 的 music 表（“储物间”），删歌单不会动文件。
+     ========================================================= */
+  const PL_KEY='xingji.music.playlists.v1';
+  const FAV_KEY='xingji.music.favs.v1';
+  const HID_KEY='xingji.music.hidden.v1';
+  function loadJSON(k,def){try{const v=JSON.parse(localStorage.getItem(k));return v==null?def:v;}catch(_){return def;}}
+  function saveJSON(k,v){try{localStorage.setItem(k,JSON.stringify(v));}catch(_){}}
+  let playlists=loadJSON(PL_KEY,[]);
+  if(!Array.isArray(playlists))playlists=[];
+  playlists=playlists.filter(p=>p&&p.name).map(p=>({name:String(p.name),songs:Array.isArray(p.songs)?p.songs:[]}));
+  let favs=loadJSON(FAV_KEY,[]);
+  if(!Array.isArray(favs))favs=[];
+  let hidden=loadJSON(HID_KEY,{urls:[],localIds:[]});
+  if(!hidden||typeof hidden!=='object')hidden={urls:[],localIds:[]};
+  if(!Array.isArray(hidden.urls))hidden.urls=[];
+  if(!Array.isArray(hidden.localIds))hidden.localIds=[];
+
+  function trackKey(t){return !t?'':(t.kind==='local'?('loc:'+t.localId):('url:'+t.url));}
+  function metaOf(t){return t?{key:trackKey(t),title:t.title,artist:t.artist,kind:t.kind,url:t.url,localId:t.localId}:null;}
+  function isHiddenTrack(t){
+    const k=trackKey(t);
+    return hidden.urls.indexOf(k)>=0||hidden.localIds.indexOf(k)>=0;
+  }
+  function isFav(i){const t=TRACKS[i];return !!t&&favs.some(f=>f&&f.key===trackKey(t));}
+  function whichLabel(){return '此刻';}
+
+  function toggleFav(i){
+    const t=TRACKS[i];if(!t)return false;
+    const k=trackKey(t);
+    const at=favs.findIndex(f=>f&&f.key===k);
+    if(at>=0)favs.splice(at,1);
+    else favs.unshift(Object.assign(metaOf(t),{at:Date.now()}));
+    saveJSON(FAV_KEY,favs);
+    render();notifyChange();
+    return at<0;
+  }
+  /* 从「当前列表」移除：只写 hidden，**不删本地文件**（文件仍在 music 表里，可以再导入回来） */
+  function removeFromList(i){
+    const t=TRACKS[i];if(!t)return;
+    const k=trackKey(t);
+    /* 只写对应那一栏：本地曲进 localIds，在线/歌单曲进 urls */
+    if(t.kind==='local'){ if(hidden.localIds.indexOf(k)<0)hidden.localIds.push(k); }
+    else { if(hidden.urls.indexOf(k)<0)hidden.urls.push(k); }
+    saveJSON(HID_KEY,hidden);
+    rebuildTracks();
+    if(index>=TRACKS.length)index=Math.max(0,TRACKS.length-1);
+    listDirty=true;save();render();notifyChange();
+  }
+  /* 真删本地文件（单独入口，二次确认在页面里做） */
+  async function deleteLocalTrack(i){
+    const t=TRACKS[i];if(!t||t.kind!=='local')return;
+    try{await dbDelete('music',t.localId);}catch(_){}
+    await loadLocal();
+    if(index>=TRACKS.length)index=Math.max(0,TRACKS.length-1);
+    listDirty=true;save();render();notifyChange();
+  }
+  function newPlaylist(name){
+    const n=String(name||'').trim();
+    if(!n)return null;
+    if(playlists.some(p=>p.name===n))return playlists.find(p=>p.name===n);
+    const pl={name:n,songs:[]};
+    playlists.push(pl);saveJSON(PL_KEY,playlists);notifyChange();
+    return pl;
+  }
+  function removePlaylist(name){
+    playlists=playlists.filter(p=>p.name!==name);
+    saveJSON(PL_KEY,playlists);notifyChange();
+  }
+  function addToPlaylist(i,name){
+    const t=TRACKS[i];if(!t)return false;
+    const pl=newPlaylist(name);if(!pl)return false;
+    const k=trackKey(t);
+    if(pl.songs.some(x=>x&&x.key===k))return false;
+    pl.songs.push(metaOf(t));
+    saveJSON(PL_KEY,playlists);notifyChange();
+    return true;
+  }
+  function playlistSongs(name){
+    const pl=playlists.find(p=>p.name===name);
+    return pl?pl.songs.slice():[];
+  }
+  /* 从歌单/收藏里点播：先把这首从 hidden 里放出来，再定位播放 */
+  function playKey(key){
+    if(!key)return;
+    hidden.urls=hidden.urls.filter(x=>x!==key);
+    hidden.localIds=hidden.localIds.filter(x=>x!==key);
+    saveJSON(HID_KEY,hidden);
+    rebuildTracks();listDirty=true;
+    const idx=TRACKS.findIndex(t=>trackKey(t)===key);
+    if(idx>=0)select(idx,true);else render();
+    notifyChange();
+  }
+  function idxByKey(k){
+    if(!k)return -1;
+    let i=TRACKS.findIndex(t=>trackKey(t)===k);
+    if(i>=0)return i;
+    hidden.urls=hidden.urls.filter(x=>x!==k);
+    hidden.localIds=hidden.localIds.filter(x=>x!==k);
+    saveJSON(HID_KEY,hidden);
+    rebuildTracks();listDirty=true;
+    return TRACKS.findIndex(t=>trackKey(t)===k);
+  }
+  /* 行内「更多」：加入歌单 / 收藏 / 从当前列表移除 */
+  function trackMenu(i){
+    const t=TRACKS[i];if(!t)return;
+    const love=isFav(i);
+    setOpen(false);
+    showModal('这首歌',
+      '<div class="xj-sheet">'
+      +'<div class="xj-sheet-song"><b>'+esc(t.title)+'</b><span>'+esc(t.artist)+'</span></div>'
+      +'<div class="xj-sheet-item" onclick="closeModal();XJMusic.pickPlaylist('+i+')"><span>加入歌单</span></div>'
+      +'<div class="xj-sheet-item" onclick="closeModal();XJMusic.toggleFav('+i+');"><span>'+(love?'取消收藏':'收藏这首歌')+'</span></div>'
+      +'<div class="xj-sheet-item danger" onclick="closeModal();XJMusic.removeFromList('+i+');"><span>从当前列表移除</span></div>'
+      +'</div>',
+      '<div class="modal-btn-row single"><button class="modal-btn" onclick="closeModal()">取消</button></div>');
+  }
+  /* 选择歌单：已有歌单 + 新建 */
+  function pickPlaylist(i){
+    const t=TRACKS[i];if(!t)return;
+    const rows=playlists.length
+      ? playlists.map(p=>'<div class="xj-sheet-item" onclick="XJMusic.confirmAdd('+i+',\''+esc(p.name).replace(/'/g,"\\'")+'\')"><span>'+esc(p.name)+'</span><i>'+p.songs.length+' 首</i></div>').join('')
+      : '<div class="xj-sheet-empty">还没有歌单</div>';
+    showModal('加入歌单',
+      '<div class="xj-sheet">'+rows
+      +'<div class="xj-sheet-item accent" onclick="XJMusic.createAndAdd('+i+')"><span>＋ 新建歌单</span></div></div>',
+      '<div class="modal-btn-row single"><button class="modal-btn" onclick="closeModal()">取消</button></div>');
+  }
+  function confirmAdd(i,name){
+    const ok=addToPlaylist(i,name);
+    closeModal();
+    showToast(ok?('已加入《'+name+'》'):('《'+name+'》里已经有这首了'));
+    notifyChange();
+  }
+  function createAndAdd(i){
+    closeModal();
+    if(typeof askText!=='function')return;
+    askText('新建歌单','','给歌单起个名字',(name)=>{
+      const n=String(name||'').trim();
+      if(!n)return;
+      const ok=addToPlaylist(i,n);
+      showToast(ok?('已加入《'+n+'》'):('《'+n+'》里已经有这首了'));
+      notifyChange();
+    });
+  }
+
   /* ---------- 本地音乐（Blob 存 IndexedDB 的 music 表，v3.19.0 就有这张表） ---------- */
   async function loadLocal(){
     try{localTracks=(await dbGetAll('music'))||[];}catch(_){localTracks=[];}
@@ -306,19 +483,19 @@
     };
     input.click();
   }
+  /* 旧入口（行内 × 已不再渲染）：保留兼容，行为＝真删本地 / 移除导入元数据 */
   async function removeTrack(i){
     const t=TRACKS[i];if(!t||t.kind==='builtin')return;
     if(t.kind==='local'){
       try{await dbDelete('music',t.localId);}catch(_){}
       await loadLocal();
     }else{
-      /* 导入的按 url 去重删，避免索引错位后删错 */
       imported=imported.filter(x=>x.url!==t.url);
       saveImported();rebuildTracks();listDirty=true;
     }
     if(index>=TRACKS.length)index=0;
-    save();render();
-    showToast('已从列表移除');
+    save();render();notifyChange();
+    showToast('已移除');
   }
 
   /* ---------- 网易云歌单导入 ----------
@@ -399,6 +576,10 @@
     audio.addEventListener('error',()=>{errorText='歌曲加载失败，请检查网络连接。';render();});
     audio.addEventListener('waiting',()=>root.classList.add('buffering'));audio.addEventListener('playing',()=>root.classList.remove('buffering'));
     root.addEventListener('click',e=>{
+      const fav=e.target.closest('[data-fav]');
+      if(fav){e.preventDefault();e.stopPropagation();const on=toggleFav(Number(fav.dataset.fav));showToast(on?'已收藏':'已取消收藏');return;}
+      const more=e.target.closest('[data-more]');
+      if(more){e.preventDefault();e.stopPropagation();trackMenu(Number(more.dataset.more));return;}
       const del=e.target.closest('[data-del]');
       if(del){e.preventDefault();e.stopPropagation();removeTrack(Number(del.dataset.del));return;}
       const tool=e.target.closest('[data-tool]');

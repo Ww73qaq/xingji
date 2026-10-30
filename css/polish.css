@@ -409,7 +409,7 @@ input[type=checkbox],input[type=radio]{accent-color:var(--primary)}
 /* 全局音乐播放器（v3.28.1：墨白/紫晶双主题配色，胶囊 238px）
    墨白 = 默认（纸墨）；html[data-theme="amethyst"] 时切换为紫晶色板。 */
 .xj-music{
-  --music-w:238px;
+  --music-w:212px;
   --mx-fg:#2f2b27; --mx-sub:#8f8a82; --mx-ico:#57534d;
   --mx-play-bg:rgba(26,26,26,.08); --mx-play-ring:rgba(26,26,26,.05);
   --mx-disc:linear-gradient(135deg,#5a554d,#211f1c);
@@ -417,6 +417,7 @@ input[type=checkbox],input[type=radio]{accent-color:var(--primary)}
   --mx-pill:linear-gradient(135deg,rgba(255,255,255,.94),rgba(243,241,235,.9));
   --mx-pill-bd:rgba(26,26,26,.08);
   --mx-panel:linear-gradient(150deg,rgba(255,255,255,.97),rgba(247,246,243,.95));
+  --mx-panel-a:#ffffff; --mx-panel-b:#f7f6f3;
   --mx-glow:rgba(0,0,0,.12);
   position:absolute;z-index:210;width:var(--music-w);left:0;top:0;
   color:var(--mx-fg);font-family:inherit;user-select:none;-webkit-user-select:none;
@@ -430,12 +431,13 @@ html[data-theme="amethyst"] .xj-music{
   --mx-pill:linear-gradient(135deg,rgba(255,255,255,.92),rgba(239,226,250,.82));
   --mx-pill-bd:rgba(255,255,255,.9);
   --mx-panel:linear-gradient(150deg,rgba(255,255,255,.95),rgba(240,228,250,.91));
+  --mx-panel-a:#fffdff; --mx-panel-b:#f6f0fc;
   --mx-glow:rgba(89,58,125,.16)
 }
 .xj-music[hidden]{display:none!important}.xj-music.dragging{filter:drop-shadow(0 18px 30px var(--mx-glow))}
 .xj-music-pill{
-  position:relative;height:54px;display:flex;align-items:center;gap:8px;padding:6px 8px;
-  border:1px solid var(--mx-pill-bd);border-radius:22px;
+  position:relative;height:46px;display:flex;align-items:center;gap:7px;padding:4px 6px;
+  border:1px solid var(--mx-pill-bd);border-radius:23px;
   background:var(--mx-pill);
   box-shadow:inset 0 1px 0 rgba(255,255,255,.6),0 7px 22px var(--mx-glow);
   backdrop-filter:blur(22px) saturate(1.2);-webkit-backdrop-filter:blur(22px) saturate(1.2);
@@ -448,7 +450,7 @@ html[data-theme="amethyst"] .xj-music{
 }
 @keyframes xjMusicShine{0%,30%{left:-40%;opacity:0}45%{opacity:.9}70%,100%{left:120%;opacity:0}}
 .xj-music-btn{
-  position:relative;z-index:1;width:38px;height:38px;flex:0 0 38px;border:0;border-radius:14px;
+  position:relative;z-index:1;width:34px;height:34px;flex:0 0 34px;border:0;border-radius:12px;
   display:inline-flex;align-items:center;justify-content:center;background:rgba(255,255,255,.42);color:var(--mx-ico);
   cursor:pointer;transition:transform .16s var(--ease),background .16s
 }
@@ -458,27 +460,31 @@ html[data-theme="amethyst"] .xj-music-btn{background:rgba(255,255,255,.38)}
 .xj-music-btn .xj-fill{fill:currentColor;stroke:none}
 .xj-music-play{background:var(--mx-play-bg);box-shadow:inset 0 0 0 1px var(--mx-play-ring)}
 .xj-music-title{
-  position:relative;z-index:1;flex:1;min-width:0;overflow:hidden;white-space:nowrap;mask-image:linear-gradient(90deg,transparent,#000 7%,#000 93%,transparent)
+  position:relative;z-index:1;flex:1;min-width:0;overflow:hidden;
+  display:flex;flex-direction:column;gap:1px;padding-left:2px
 }
-.xj-music-title span{display:inline-block;font-size:12px;font-weight:600;letter-spacing:.15px;padding-left:4px}
+.xj-music-title b{font-size:12px;font-weight:600;line-height:1.25;letter-spacing:.1px;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.xj-music-title span{font-size:9.5px;line-height:1.2;color:var(--mx-sub);letter-spacing:.08em;
+  font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .xj-music.playing .xj-music-title.marquee span{animation:xjMusicTitle 12s linear infinite}
 @keyframes xjMusicTitle{0%,16%{transform:translateX(0)}82%,100%{transform:translateX(var(--scroll-x,0))}}
 .xj-music-index{position:relative;z-index:1;font-size:10px;color:var(--mx-sub);font-variant-numeric:tabular-nums;white-space:nowrap}
 .xj-music-expand{width:30px;flex-basis:30px;background:transparent}
 .xj-music-expand svg{transition:transform .22s var(--ease)}.xj-music.open .xj-music-expand svg{transform:rotate(180deg)}
 .xj-music-panel{
-  position:absolute;left:0;top:62px;width:min(310px,calc(100vw - 28px));max-height:min(440px,70dvh);
+  position:absolute;left:-16px;top:54px;width:calc(var(--music-w) + 32px);max-height:min(62dvh,430px);
   display:flex;flex-direction:column;padding:14px;border:1px solid var(--mx-pill-bd);border-radius:24px;
-  background:var(--mx-panel);
+  background:linear-gradient(160deg,var(--mx-panel-a,#fff),var(--mx-panel-b,#f7f6f3));
   box-shadow:inset 0 1px 0 rgba(255,255,255,.6),0 18px 46px var(--mx-glow);
   backdrop-filter:blur(26px) saturate(1.18);-webkit-backdrop-filter:blur(26px) saturate(1.18);
   opacity:0;visibility:hidden;transform:translateY(10px) scale(.97);transform-origin:top right;
   transition:opacity .2s var(--ease),transform .2s var(--ease),visibility .2s
 }
-.xj-music.panel-above-right .xj-music-panel{left:auto;right:0}
-.xj-music.panel-above-right .xj-music-panel{transform-origin:top left}
+.xj-music-panel{transform-origin:top left}
+.xj-music.panel-up .xj-music-panel{top:auto;bottom:54px;transform-origin:bottom left}
 .xj-music.open .xj-music-panel{opacity:1;visibility:visible;transform:translateY(0) scale(1)}
-.xj-music-head{display:flex;align-items:center;gap:8px;padding:1px 2px 10px}
+.xj-music-head{display:flex;align-items:center;gap:8px;padding:1px 2px 4px}
 .xj-music-head b{font-size:13px;letter-spacing:.4px}.xj-music-head span{font-size:10px;color:var(--mx-sub)}
 .xj-music-close{margin-left:auto;width:30px;height:30px;flex-basis:30px;background:transparent}
 .xj-music-now{display:flex;align-items:center;gap:10px;padding:11px 12px;border-radius:16px;background:rgba(255,255,255,.45);border:1px solid rgba(255,255,255,.65)}
@@ -491,20 +497,32 @@ html[data-theme="amethyst"] .xj-music-btn{background:rgba(255,255,255,.38)}
 .xj-music-wave{display:flex;align-items:center;gap:2px;height:20px}.xj-music-wave i{width:2px;height:5px;border-radius:3px;background:var(--mx-accent)}
 .xj-music.playing .xj-music-wave i{animation:xjMusicWave .8s ease-in-out infinite alternate}.xj-music.playing .xj-music-wave i:nth-child(2){animation-delay:.18s}.xj-music.playing .xj-music-wave i:nth-child(3){animation-delay:.36s}
 @keyframes xjMusicWave{from{height:4px}to{height:17px}}
-.xj-music-controls{display:flex;align-items:center;justify-content:center;gap:15px;padding:10px 0 6px}
+.xj-music-controls{display:flex;align-items:center;justify-content:center;gap:10px;padding:4px 0 6px}
+.xj-music-controls .xj-music-btn{background:transparent}
+.xj-music-controls .xj-music-play{background:var(--mx-play-bg);box-shadow:inset 0 0 0 1px var(--mx-play-ring)}
 .xj-music-controls .xj-music-play{width:44px;height:44px;flex-basis:44px;border-radius:16px}
 .xj-music-repeat.on{color:var(--mx-on);background:var(--mx-chip)}
 .xj-music-progress{display:flex;align-items:center;gap:7px;padding:0 3px 8px;color:var(--mx-sub);font-size:9px;font-variant-numeric:tabular-nums}
 .xj-music-progress input{flex:1;min-width:0;height:16px;accent-color:var(--mx-accent);cursor:pointer}
 .xj-music-list{overflow-y:auto;min-height:0;border-top:1px solid var(--mx-pill-bd);padding-top:6px;scrollbar-width:thin;scrollbar-color:var(--mx-accent) transparent}
 .xj-music-track{
-  width:100%;min-height:44px;display:flex;align-items:center;gap:9px;padding:7px 8px;border:0;border-radius:12px;
+  width:100%;min-height:42px;display:flex;align-items:center;gap:8px;padding:6px 6px;border:0;border-radius:12px;
   background:transparent;color:var(--mx-fg);text-align:left;cursor:pointer
 }
 .xj-music-track:hover{background:rgba(255,255,255,.45)}.xj-music-track.on{background:var(--mx-chip);color:var(--mx-on)}
-.xj-music-track-n{width:20px;font-size:10px;color:var(--mx-sub);text-align:center;font-variant-numeric:tabular-nums}
+.xj-music-track-n{width:18px;font-size:10px;color:var(--mx-sub);text-align:center;font-variant-numeric:tabular-nums}
 .xj-music-track-text{flex:1;min-width:0}.xj-music-track-text b,.xj-music-track-text span{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .xj-music-track-text b{font-size:11.5px;font-weight:600}.xj-music-track-text span{font-size:9.5px;color:var(--mx-sub);margin-top:2px}
+
+.xj-music-rowbtn{width:24px;height:24px;flex:0 0 24px;border:0;background:transparent;color:var(--mx-sub);
+  display:flex;align-items:center;justify-content:center;border-radius:9px;cursor:pointer;padding:0}
+.xj-music-rowbtn svg{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.xj-music-rowbtn .xj-fill{fill:currentColor;stroke:none}
+.xj-music-rowbtn.on{color:#c0392b}
+.xj-music-rowbtn:active{background:rgba(255,255,255,.65)}
+.xj-music-track .xj-music-rowbtn{opacity:.52}
+.xj-music-track:hover .xj-music-rowbtn,.xj-music-track.on .xj-music-rowbtn{opacity:1}
+.xj-music-track .xj-music-rowbtn.on{opacity:1}
 .xj-music-track-dot{width:5px;height:5px;border-radius:50%;background:currentColor;opacity:0}.xj-music-track.on .xj-music-track-dot{opacity:1;box-shadow:0 0 8px currentColor}
 .xj-music-error{padding:8px 4px 2px;color:var(--ov-danger,#a75366);font-size:10px;line-height:1.5}
 
@@ -520,7 +538,7 @@ html[data-theme="amethyst"] .xj-music-btn{background:rgba(255,255,255,.38)}
   .widget-area{margin-left:12px;margin-right:12px}.trace-card{margin-left:12px;margin-right:12px}
   #note-cards{padding-left:12px!important;padding-right:12px!important}
   .app-grid{padding-left:12px;padding-right:12px;column-gap:4px}
-  .xj-music{--music-w:224px}.xj-music-panel{width:calc(100vw - 24px)}
+  .xj-music{--music-w:200px}
   .app-body{padding-left:12px;padding-right:12px}
 }
 @media (prefers-reduced-motion:reduce){
@@ -824,3 +842,53 @@ html[data-theme="amethyst"] .xj-music-btn{background:rgba(255,255,255,.38)}
 .rp-state.done{color:rgba(255,255,255,.85)}
 .pc-state{margin-top:4px;font-size:10px;color:var(--hint);letter-spacing:.06em}
 .pc-state.done{color:var(--sub)}
+
+/* ===== 4.2：歌曲操作条（加入歌单 / 收藏 / 从列表移除） ===== */
+.xj-sheet{display:flex;flex-direction:column}
+.xj-sheet-song{padding:2px 4px 10px;border-bottom:1px solid var(--line);margin-bottom:6px}
+.xj-sheet-song b{display:block;font-size:14px;color:var(--text);font-weight:600;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.xj-sheet-song span{display:block;font-size:11px;color:var(--hint);margin-top:2px}
+.xj-sheet-item{display:flex;align-items:center;justify-content:space-between;gap:10px;
+  padding:13px 6px;font-size:14px;color:var(--text);cursor:pointer;border-radius:10px}
+.xj-sheet-item:active{background:var(--accent-softer)}
+.xj-sheet-item i{font-style:normal;font-size:11px;color:var(--hint)}
+.xj-sheet-item.danger{color:var(--danger)}
+.xj-sheet-item.accent{color:var(--sub)}
+.xj-sheet-empty{padding:14px 6px;font-size:12px;color:var(--hint);text-align:center}
+
+/* ===== 4.2：音乐页（去唱片图标、限宽居中、行内收藏/更多） ===== */
+.mu-hero{max-width:330px;margin:0 auto;padding:14px 15px 12px;gap:10px}
+.mu-hero-title{font-size:17px;font-weight:600;line-height:1.35}
+.mu-hero-artist{font-size:12px;margin-top:1px}
+.mu-controls{gap:14px;margin-top:2px}
+.mu-btn{width:36px;height:36px}
+.mu-btn.main{width:48px;height:48px}
+.mu-progress{gap:8px;font-size:10px;font-variant-numeric:tabular-nums;color:var(--hint)}
+
+.mu-toolbar{gap:7px}
+.mu-tool{font-size:12px;padding:9px 0;gap:5px}
+
+.mu-tabs{overflow-x:auto;scrollbar-width:none;padding-bottom:2px}
+.mu-tabs::-webkit-scrollbar{display:none}
+.mu-tab{flex-shrink:0;padding:5px 11px;font-size:11.5px}
+
+.mu-row{padding:10px 2px;gap:8px}
+.mu-ico{width:30px;height:30px;flex:0 0 30px;border:0;background:transparent;color:var(--hint);
+  display:flex;align-items:center;justify-content:center;border-radius:9px;cursor:pointer;padding:0}
+.mu-ico svg{width:16px;height:16px}
+.mu-ico.on{color:var(--danger)}
+.mu-ico:active{background:var(--accent-softer)}
+.mu-row .mu-ico{opacity:.55}
+.mu-row:hover .mu-ico,.mu-row.on .mu-ico{opacity:1}
+.mu-row .mu-ico.on{opacity:1}
+.mu-pl .mu-n{display:flex;align-items:center;justify-content:center}
+.mu-pl .mu-n svg{width:15px;height:15px;color:var(--sub)}
+
+.mu-pl-head{display:flex;align-items:center;gap:8px;margin:14px 0 4px}
+.mu-pl-head b{font-size:15px;font-weight:600;color:var(--text)}
+.mu-pl-head span{font-size:11px;color:var(--hint)}
+.mu-back{width:28px;height:28px;border:0;background:transparent;color:var(--sub);
+  font-size:20px;line-height:1;cursor:pointer;border-radius:8px;padding:0}
+.mu-pl-play{margin-left:auto;border:1px solid var(--line);background:var(--glass-strong);
+  color:var(--text);border-radius:16px;padding:5px 12px;font-size:11.5px;cursor:pointer}
