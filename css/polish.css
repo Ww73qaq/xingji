@@ -312,6 +312,13 @@ input[type=checkbox],input[type=radio]{accent-color:var(--primary)}
   background:var(--accent-softer);color:var(--sub);border-left:2px solid var(--primary);border-radius:9px
 }
 .msg-card,.msg-card-foot{background:var(--glass-strong)!important;border-color:var(--line)}
+/* 4.0：红包卡片配色修复——上面这条 .msg-card!important 在 polish.css 里后出现，
+   同特异度会盖掉 styles.css 的 .rp-card 红金渐变，只剩白底 + 白字（等于看不见）。
+   这里用更高特异度把红包渐变夺回来，墨白/紫晶两种主题下都保持“红包”观感。 */
+.msg-bubble.rp-card,.msg-row.me .msg-bubble.rp-card,.msg-row.other .msg-bubble.rp-card{
+  background:linear-gradient(135deg,#c0392b,#922b21)!important;color:#fff!important;border-color:transparent!important}
+.msg-bubble.rp-card .rp-amt{color:#fff!important}
+.msg-bubble.rp-card .rp-msg{color:rgba(255,255,255,.82)!important}
 .msg-card-title,.msg-loc-name{color:var(--text)}.msg-card-sub,.msg-card-foot{color:var(--sub)}
 .msg-card-foot{background:var(--accent-softer)!important}.msg-card-ico{background:var(--accent-soft);border-radius:10px}
 .msg-meta,.msg-sys,.msg-time{color:var(--sub)}

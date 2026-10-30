@@ -227,6 +227,32 @@ function callActionsHtml(){
     +'<div class="call-col"><button class="call-btn end" onclick="endCall(\'hangup\',\'me\')">'+IC_PHONE+'</button><span class="call-btn-label">挂断</span></div>'
     +'</div>';
 }
+/* 4.0：通话台词不再内置固定 10 句——
+   改为通话中实时从字卡库抽一张（优先口语/日常/关心类分组），连续不重复；
+   库里没有字卡时才退回极少量兜底句（只防空白，不构成固定文案池）。
+   v3.28.2 之前这里用的是 config.js 的 TALK_LINES（10 句写死），已移除。 */
+const CALL_FALLBACK_LINES=['嗯，我在。','你说。','……我听着。'];
+let callLineRecent=[];
+async function pickCallLine(){
+  try{
+    const cards=await dbGetAll('cards');
+    if(cards&&cards.length){
+      const prefer=['日常','日常关心','聊天杂谈','疑问互动','关心','想你','承诺真心','情绪安抚'];
+      const soft=cards.filter(c=>c&&c.text&&prefer.includes(c.group));
+      const src=soft.length>=8?soft:cards;
+      const fresh=src.filter(c=>c&&c.text&&!callLineRecent.includes(c.text));
+      const pool=fresh.length?fresh:src;
+      const pick=pool[Math.floor(Math.random()*pool.length)];
+      if(pick&&pick.text){
+        callLineRecent.push(pick.text);
+        if(callLineRecent.length>12)callLineRecent.shift();
+        return pick.text;
+      }
+    }
+  }catch(e){}
+  return CALL_FALLBACK_LINES[Math.floor(Math.random()*CALL_FALLBACK_LINES.length)];
+}
+
 /* 通话中 TA 说话：概率 + 最短/最长间隔的重复调度 */
 function scheduleCallTalk(){
   if(callTalkTimer){clearTimeout(callTalkTimer);callTalkTimer=null;}
@@ -238,7 +264,10 @@ function scheduleCallTalk(){
     callTalkTimer=null;
     if(!state.callActive||callMode!=='talk')return;
     if(Math.random()*100<prob){
-      pushReply(TALK_LINES[Math.floor(Math.random()*TALK_LINES.length)]);
+      /* 4.0：异步从字卡库抽台词；抽完再确认仍在通话中，避免挂断后补一句 */
+      pickCallLine().then(line=>{
+        if(line&&state.callActive&&callMode==='talk')pushReply(line);
+      }).catch(()=>{});
     }
     scheduleCallTalk();
   },(min+Math.random()*(max-min))*1000);

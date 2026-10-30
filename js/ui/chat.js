@@ -882,6 +882,30 @@ function doSendGift(name,icon){
   showToast('你的心意已送达');
 }
 let _cgImg='';
+/* 4.0：发红包——复用消息层已有的 redpacket 渲染（金色卡 + 金额 + 留言）；
+   发送后仍走统一下发通道，TA 会按「收到钱」的语境先道谢一句（见 engine money 意图）。 */
+function openRedPacket(){
+  showModal('发红包',
+    `<div style="font-size:12px;color:var(--hint);margin-bottom:4px">金额（元）</div>
+     <input class="textarea-full" id="rp-amount" type="text" inputmode="decimal" autocomplete="off" style="min-height:0;padding:9px 10px" placeholder="0.00">
+     <div style="font-size:12px;color:var(--hint);margin:10px 0 4px">留言</div>
+     <input class="textarea-full" id="rp-word" maxlength="20" style="min-height:0;padding:9px 10px" placeholder="恭喜发财，大吉大利">
+     <div style="font-size:11px;color:var(--hint);margin-top:8px">红包只是心意，不涉及真实支付。</div>`,
+    '<div class="modal-btn-row"><button class="modal-btn" onclick="closeModal()">取消</button><button class="modal-btn primary" onclick="doSendRedPacket()">塞进红包</button></div>');
+  setTimeout(()=>{const a=document.getElementById('rp-amount');if(a)a.focus();},120);
+}
+function doSendRedPacket(){
+  const a=document.getElementById('rp-amount'),w=document.getElementById('rp-word');
+  const raw=(a&&a.value||'').trim();
+  const num=Number(raw);
+  if(!raw||!Number.isFinite(num)||num<=0){showToast('先填一个金额');return;}
+  const amt=Math.min(9999,Math.max(0.01,num)).toFixed(2);
+  const word=(w&&w.value.trim())||'恭喜发财，大吉大利';
+  closeModal();
+  sendMessageObject({type:'redpacket',content:amt,sub:word});
+  showToast('红包已发出');
+}
+
 function addCustomGift(){
   showModal('自定义礼物',
     `<div style="font-size:12px;color:var(--hint);margin-bottom:4px">名称</div>

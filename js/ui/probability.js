@@ -22,6 +22,7 @@ const PROB_META={
   pokeReplyProb:{min:0,max:100,step:1,unit:'%',hint:'拍一拍'},
   quoteReplyProb:{min:0,max:100,step:5,unit:'%',hint:'引用你的话'},
   giftReplyProb:{min:0,max:100,step:1,unit:'%',hint:'送礼物'},
+  stickerReplyProb:{min:0,max:100,step:1,unit:'%',hint:'发表情包'},
   emojiCardProb:{min:0,max:100,step:5,unit:'%',hint:'颜文字字卡'},
   withdrawProb:{min:0,max:100,step:1,unit:'%',hint:'撤回概率'},
   withdrawReissueProb:{min:0,max:100,step:5,unit:'%',hint:'撤回后补发'},
@@ -135,6 +136,7 @@ function renderProbability(){
       ${_numRow('pokeReplyProb','拍一拍概率','')}
       ${_numRow('quoteReplyProb','引用概率','引你的话再回')}
       ${_numRow('giftReplyProb','礼物概率','')}
+      ${_numRow('stickerReplyProb','表情包概率','TA 从你导入的表情包里挑一张发给你')}
       ${_numRow('emojiCardProb','颜文字字卡概率','')}
       ${_switchRow('multiBubbleEnabled','分几次说','关掉后无论上面设几条都只回 1 条')}
       ${_switchRow('cardConcatEnabled','把话连成一句','关掉后一次只发一张字卡')}
@@ -213,7 +215,7 @@ function resetProb(){
     replyDelaySec:20,typingRatio:0.25,replyDelayMinSec:4,replyDelayMaxSec:9,
     multiBubbleEnabled:true,multiBubbleProb:30,maxBubbles:3,
     cardConcatEnabled:true,cardConcatProb:35,minCardsPerBubble:1,maxCardsPerBubble:3,
-    emojiReplyProb:15,pokeReplyProb:8,quoteReplyProb:20,giftReplyProb:5,
+    emojiReplyProb:15,pokeReplyProb:8,quoteReplyProb:20,giftReplyProb:5,stickerReplyProb:10,
     emojiCardProb:20,
     withdrawProb:12,withdrawReissueProb:80,
     readIgnoreEnabled:false,readIgnoreTier:'normal',readIgnoreProb:20,repeatExclude:5,customRatio:90,

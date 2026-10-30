@@ -106,6 +106,23 @@ async function _allPokeTexts(){
   Object.values(groups).forEach(arr=>{if(Array.isArray(arr))arr.forEach(t=>out.push(String(t)));});
   return out.filter(Boolean);
 }
+/* ---- 4.0：TA 发表情包——从「表情包管理」导入的 emojis 库里抽一张图片，
+   连续两次不重复；库里没有就跳过（不退回 emoji 文本，那是「微情绪」的活）。 ---- */
+let _lastTaStickerSrc='';
+async function _pickTaSticker(){
+  try{
+    const list=await dbGetAll('emojis');
+    if(!list||!list.length)return null;
+    const imgs=list.filter(e=>e&&e.src);
+    if(!imgs.length)return null;
+    const fresh=imgs.filter(e=>e.src!==_lastTaStickerSrc);
+    const pool=fresh.length?fresh:imgs;
+    const pick=pool[Math.floor(Math.random()*pool.length)];
+    if(pick&&pick.src){_lastTaStickerSrc=pick.src;return pick;}
+  }catch(e){}
+  return null;
+}
+
 /* ---- 礼物池（心意卡合并进礼物；v3.7.0：去掉 emoji 前缀只留名字，礼物图案仍由 GIFTS 渲染） ---- */
 const GIFT_REPLY_POOL=[
   '咖啡','鲜花','蛋糕','月亮','幸运','书','甜点','饮料','小礼物','花束'
@@ -201,6 +218,10 @@ function SYSTEM_TEXT_POOL(){
 function _detectIntent(context){
   const m=context.latestUserMsg;
   if(m&&(m.type==='poll'||m.type==='survey'))return 'poll-answer';
+  /* 4.0：红包/转账、礼物在落库后仍会被当作「最新一条」触发回复，
+     这里给出独立意图，避免回一句无关的日常字卡。 */
+  if(m&&(m.type==='redpacket'||m.type==='transfer'))return 'money';
+  if(m&&m.type==='gift')return 'gift-thanks';
   const t=(context.latestUserText||'').trim();
   if(!t)return 'random';
   if(/难过|伤心|委屈|哭|累|烦|焦虑|不安|害怕|孤独|失眠/.test(t))return 'comfort';
@@ -212,7 +233,11 @@ function _detectIntent(context){
 const INTENT_POOLS={
   comfort:['别难过，我陪着你。','没关系的。','你做得很好。','抱抱你。','有我在。','你已经很棒了。','想哭就哭吧。','我会一直在。','慢慢来，不急。','我在听。'],
   greeting:['晚安。','早安。','好梦。','晚安，做个好梦。','醒了记得找我。','今天也要元气满满。','睡个好觉。','夜深了，快睡吧。','早。','今天也要开心。'],
-  question:['嗯，我明白你的意思。','我觉得可以。','应该可以的。','可能要看情况。','我信你。','嗯，你说得对。','当然可以。','放心，没事的。','我觉得挺好。','那我们一起吧。']
+  question:['嗯，我明白你的意思。','我觉得可以。','应该可以的。','可能要看情况。','我信你。','嗯，你说得对。','当然可以。','放心，没事的。','我觉得挺好。','那我们一起吧。'],
+  /* 4.0：收红包/转账——克制地道谢，不夸张、不索要 */
+  money:['收到了。','不用给我这些。','我收下了。','你留着用吧。','……好，我记着。','谢谢。'],
+  /* 4.0：收礼物——轻一点的反应 */
+  'gift-thanks':['谢谢。','收下了。','你怎么知道我想要这个。','下次别破费了。','我很喜欢。']
 };
 
 /* ---- 构造一轮回复（多气泡 + 独立互动事件） ---- */
@@ -244,6 +269,8 @@ async function buildReply(context){
   const emojiRoll=_roll(_numCfg(p.emojiReplyProb,15));
   const pokeRoll=_roll(_numCfg(p.pokeReplyProb,8));
   const giftRoll=_roll(_numCfg(p.giftReplyProb,5));
+  /* 4.0：表情包概率（TA 从你导入的表情包里发一张图片，和「微情绪」是两件事） */
+  const stickerRoll=_roll(_numCfg(p.stickerReplyProb,10));
 
   for(let i=0;i<bubbleCount;i++){
     const bubbleUsed=new Set();
@@ -288,6 +315,19 @@ async function buildReply(context){
       bubbles.push({type:'gift',content:GIFT_REPLY_POOL[Math.floor(Math.random()*GIFT_REPLY_POOL.length)],cardIds:[],intent:'gift',proactive:context.source==='proactive'});
       extraInteractions++;
     }
+    if(stickerRoll&&extraInteractions<MAX_EXTRA){
+      const st=await _pickTaSticker();
+      if(st){
+        bubbles.push({type:'image',content:st.src,images:[st.src],sticker:1,cardIds:[],intent:'sticker',proactive:context.source==='proactive'});
+        extraInteractions++;
+      }
+    }
+  }
+
+  /* 4.0：刚收到红包/转账时，先给一句道谢（不占用字卡概率、也不进「额外互动」名额） */
+  if(!mustAnswer&&latest&&(latest.type==='redpacket'||latest.type==='transfer')&&!taOutputBlocked()){
+    const pool=INTENT_POOLS.money;
+    bubbles.unshift({type:'text',content:pool[Math.floor(Math.random()*pool.length)],cardIds:[],intent:'money',proactive:context.source==='proactive'});
   }
 
   /* v3.6.8：TA 记得——12% 概率前置一条「引用」气泡（最近礼物/便签/话题/心情/感应/待办/信/朋友圈）
@@ -533,7 +573,9 @@ async function executeReply(job){
       sender:'other',type:b.type,content:b.content,time:Date.now(),
       read:false,quote:b.quote||null,isPoke:b.isPoke||false,
       proactive:b.proactive||false,source:job.source,
-      replyRoundId:job.roundId,cardIds:b.cardIds||[]
+      replyRoundId:job.roundId,cardIds:b.cardIds||[],
+      /* 4.0：表情包气泡要带 images + sticker 标记，否则落库后渲染成空图片 */
+      ...(b.images?{images:b.images}:{}) ,...(b.sticker?{sticker:1}:{})
     };
     msg.id=await dbPut('messages',msg);
     _scheduler.lastTaReplyAt=Date.now();
@@ -625,7 +667,9 @@ window._resumeSendingJob=async function(job){
         sender:'other',type:b.type,content:b.content,time:Date.now(),
         read:false,quote:b.quote||null,isPoke:b.isPoke||false,
         proactive:b.proactive||false,source:job.source||'passive',
-        replyRoundId:job.roundId,cardIds:b.cardIds||[]
+        replyRoundId:job.roundId,cardIds:b.cardIds||[],
+        /* 4.0：表情包气泡带 images + sticker（续发路径同样要带） */
+        ...(b.images?{images:b.images}:{}) ,...(b.sticker?{sticker:1}:{})
       };
       msg.id=await dbPut('messages',msg);
       _scheduler.lastTaReplyAt=Date.now();

@@ -20,6 +20,8 @@ let state = {
     cardConcatEnabled:true, cardConcatProb:35, minCardsPerBubble:1, maxCardsPerBubble:3,
     // 独立互动概率（各自掷骰、可叠加，每轮最多 2 个额外互动；题目必答不走概率）
     emojiReplyProb:15, pokeReplyProb:8, quoteReplyProb:20, giftReplyProb:5,
+    // 4.0：TA 主动发表情包（图片）概率——与「微情绪」是两件事，表情包走你导入的图片库
+    stickerReplyProb:10,
     // v3.6.4：颜文字字卡独立概率（命中后本轮基础回复直接抽「颜文字」分组字卡）
     emojiCardProb:20,
     // 回复行为（v3.24.0：已读不回 = 唯一不回复机制；禁言已删）
