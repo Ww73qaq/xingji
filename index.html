@@ -27,9 +27,9 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'%3E%3Crect width='180' height='180' rx='40' fill='%23f7f6f3'/%3E%3Ctext x='90' y='122' font-size='96' text-anchor='middle' fill='%231a1a1a' font-family='serif'%3E%E2%97%86%3C/text%3E%3C/svg%3E">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23f7f6f3'/%3E%3Ctext x='32' y='45' font-size='34' text-anchor='middle' fill='%231a1a1a' font-family='serif'%3E%E2%97%86%3C/text%3E%3C/svg%3E">
-<link rel="stylesheet" href="js/vendor/fonts/lxgw-wenkai-regular.css?v=4.2.0">
-<link rel="stylesheet" href="css/styles.css?v=4.2.0">
-<link rel="stylesheet" href="css/polish.css?v=4.2.0">
+<link rel="stylesheet" href="js/vendor/fonts/lxgw-wenkai-regular.css?v=4.2.1">
+<link rel="stylesheet" href="css/styles.css?v=4.2.1">
+<link rel="stylesheet" href="css/polish.css?v=4.2.1">
 </head>
 <body>
 <div id="phone">
@@ -247,7 +247,7 @@
 
 <!-- MAILBOX -->
 <div id="app-mailbox" class="app-page">
-  <div class="app-header"><div class="back" onclick="goBack()">&#8249;</div><h1>信箱</h1><div class="chat-head-actions"><div class="act" onclick="writeLetterModal()" title="写信">&#9998;</div><div class="act" onclick="mailboxMore()" title="更多">&#8943;</div></div></div>
+  <div class="app-header"><div class="back" onclick="goBack()">&#8249;</div><h1>信箱</h1><div class="chat-head-actions"><div class="act" onclick="writeLetterModal()" title="写信"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3l4 4L7 21l-5 1 1-5z"/></svg></div><div class="act" onclick="mailboxMore()" title="更多">&#8943;</div></div></div>
   <div class="app-body" id="mailbox-body">
     <div class="tabs">
       <button class="tab active" onclick="switchMailboxTab('sent',this)">寄出的信</button>
@@ -255,6 +255,12 @@
     </div>
     <div id="mailbox-list"></div>
   </div>
+</div>
+
+<!-- LETTER READER（4.2：整页信纸，替代弹窗读信） -->
+<div id="app-letter" class="app-page">
+  <div class="app-header"><div class="back" onclick="goBack()">&#8249;</div><h1>信</h1><div class="act" id="letter-head-act" onclick="letterReply()" style="opacity:0">回复</div></div>
+  <div class="app-body" id="letter-body"></div>
 </div>
 
 <!-- DIARY -->
@@ -458,48 +464,48 @@
 
 </div>
 
-<script src="js/config.js?v=4.2.0"></script>
-<script src="js/utils.js?v=4.2.0"></script>
-<script src="js/db.js?v=4.2.0"></script>
-<script src="js/state.js?v=4.2.0"></script>
-<script src="js/modal.js?v=4.2.0"></script>
-<script src="js/nav.js?v=4.2.0"></script>
-<script src="js/features/theme-editor.js?v=4.2.0"></script>
-<script src="js/home.js?v=4.2.0"></script>
-<script src="js/ui/lock.js?v=4.2.0"></script>
-<script src="js/ui/version.js?v=4.2.0"></script>
-<script src="js/app-update.js?v=4.2.0"></script>
-<script src="js/app-notify.js?v=4.2.0"></script>
-<script src="js/ui/action-bar.js?v=4.2.0"></script>
-<script src="js/ui/chat.js?v=4.2.0"></script>
-<script src="js/features/poll.js?v=4.2.0"></script>
-<script src="js/features/call.js?v=4.2.0"></script>
-<script src="js/features/selector.js?v=4.2.0"></script>
-<script src="js/features/divination.js?v=4.2.0"></script>
-<script src="js/features/whereabouts.js?v=4.2.0"></script>
-<script src="js/features/music-app.js?v=4.2.0"></script>
-<script src="js/ui/moments.js?v=4.2.0"></script>
-<script src="js/ui/mailbox.js?v=4.2.0"></script>
-<script src="js/features/envelope.js?v=4.2.0"></script>
-<script src="js/ui/diary.js?v=4.2.0"></script>
-<script src="js/ui/profile.js?v=4.2.0"></script>
-<script src="js/features/mood.js?v=4.2.0"></script>
-<script src="js/features/stickers.js?v=4.2.0"></script>
-<script src="js/ui/memory.js?v=4.2.0"></script>
+<script src="js/config.js?v=4.2.1"></script>
+<script src="js/utils.js?v=4.2.1"></script>
+<script src="js/db.js?v=4.2.1"></script>
+<script src="js/state.js?v=4.2.1"></script>
+<script src="js/modal.js?v=4.2.1"></script>
+<script src="js/nav.js?v=4.2.1"></script>
+<script src="js/features/theme-editor.js?v=4.2.1"></script>
+<script src="js/home.js?v=4.2.1"></script>
+<script src="js/ui/lock.js?v=4.2.1"></script>
+<script src="js/ui/version.js?v=4.2.1"></script>
+<script src="js/app-update.js?v=4.2.1"></script>
+<script src="js/app-notify.js?v=4.2.1"></script>
+<script src="js/ui/action-bar.js?v=4.2.1"></script>
+<script src="js/ui/chat.js?v=4.2.1"></script>
+<script src="js/features/poll.js?v=4.2.1"></script>
+<script src="js/features/call.js?v=4.2.1"></script>
+<script src="js/features/selector.js?v=4.2.1"></script>
+<script src="js/features/divination.js?v=4.2.1"></script>
+<script src="js/features/whereabouts.js?v=4.2.1"></script>
+<script src="js/features/music-app.js?v=4.2.1"></script>
+<script src="js/ui/moments.js?v=4.2.1"></script>
+<script src="js/ui/mailbox.js?v=4.2.1"></script>
+<script src="js/features/envelope.js?v=4.2.1"></script>
+<script src="js/ui/diary.js?v=4.2.1"></script>
+<script src="js/ui/profile.js?v=4.2.1"></script>
+<script src="js/features/mood.js?v=4.2.1"></script>
+<script src="js/features/stickers.js?v=4.2.1"></script>
+<script src="js/ui/memory.js?v=4.2.1"></script>
 <!-- PDF.js 3.11.174（自托管经典 UMD 全局 pdfjsLib；defer=解析不阻塞、解析完成后才执行，因此 books.js 顶部不能再配置 workerSrc，改由 books.js 的 bkPdfWorkerSrc() 在使用前设置；worker 自托管于 js/vendor/pdf.worker.min.js） -->
 <script defer src="js/vendor/pdf.min.js"></script>
-<script src="js/features/books.js?v=4.2.0"></script>
-<script src="js/ui/companion.js?v=4.2.0"></script>
-<script src="js/ui/probability.js?v=4.2.0"></script>
-<script src="js/features/reply-library.js?v=4.2.0"></script>
-<script src="js/features/calendar.js?v=4.2.0"></script>
-<script src="js/features/group-chat.js?v=4.2.0"></script>
-<script src="js/ui/room.js?v=4.2.0"></script>
-<script src="js/ui/trace.js?v=4.2.0"></script>
-<script src="js/data/backup.js?v=4.2.0"></script>
-<script src="js/scheduler.js?v=4.2.0"></script>
-<script src="js/engine.js?v=4.2.0"></script>
-<script src="js/app.js?v=4.2.0"></script>
-<script src="js/features/music-player.js?v=4.2.0"></script>
+<script src="js/features/books.js?v=4.2.1"></script>
+<script src="js/ui/companion.js?v=4.2.1"></script>
+<script src="js/ui/probability.js?v=4.2.1"></script>
+<script src="js/features/reply-library.js?v=4.2.1"></script>
+<script src="js/features/calendar.js?v=4.2.1"></script>
+<script src="js/features/group-chat.js?v=4.2.1"></script>
+<script src="js/ui/room.js?v=4.2.1"></script>
+<script src="js/ui/trace.js?v=4.2.1"></script>
+<script src="js/data/backup.js?v=4.2.1"></script>
+<script src="js/scheduler.js?v=4.2.1"></script>
+<script src="js/engine.js?v=4.2.1"></script>
+<script src="js/app.js?v=4.2.1"></script>
+<script src="js/features/music-player.js?v=4.2.1"></script>
 </body>
 </html>

@@ -59,7 +59,57 @@ function mailboxMore(){
   renderMailboxData(list);
   showModal('信件数据',list.innerHTML,'<div class="modal-btn-row"><button class="modal-btn" onclick="closeModal()">取消</button></div>');
 }
-async function viewLetter(id){const letters=await dbGetAll('letters');const l=letters.find(x=>x.id===id);if(!l)return;const tid=l.threadId||('letter-'+(l.replyTo||l.id));const thread=letters.filter(x=>(x.threadId||('letter-'+(x.replyTo||x.id)))===tid).sort((a,b)=>a.time-b.time);for(const x of thread)if(x.sender==='other'&&!x.read){x.read=true;await dbPut('letters',x);}refreshAllBadges();   /* P1-19(v3.27.6)：不再把聊天角标覆盖成「仅信件未读」，统一走全量刷新 */const html=thread.map(x=>`<div class="letter-thread${x.sender==='me'?' mine':''}"><div class="lt-head">${esc(x.sender==='me'?state.me.name:state.other.name)}${x.status==='waiting'?' · 等待回信':''}</div><div class="lt-body">${esc(x.content)}</div><div class="lt-time">${fmtFull(x.time)}</div></div>`).join('');showModal('往来信件',html,(l.sender==='other'?'<div class="modal-btn-row"><button class="modal-btn" onclick="closeModal()">取消</button><button class="modal-btn primary" onclick="closeModal();replyLetter('+l.id+')">回复 TA</button></div>':'<div class="modal-btn-row"><button class="modal-btn" onclick="closeModal()">取消</button><button class="modal-btn primary" onclick="closeModal();editLetter('+l.id+')">修改这封信</button></div>'));}
+let _letterReadingId=null;   // 4.2：整页读信当前看的那封信
+async function viewLetter(id){
+  /* 4.2：改为整页信纸阅读（app-letter）；弹窗逻辑不再使用，但保留旧的降级能力 */
+  _letterReadingId=id;
+  openApp('letter');
+}
+function letterReply(){
+  if(_letterReadingId==null)return;
+  replyLetter(_letterReadingId);
+}
+function letterQuoteToChat(){
+  if(_letterReadingId==null)return;
+  (async()=>{
+    const l=(await dbGetAll('letters')).find(x=>x.id===_letterReadingId);
+    if(!l)return;
+    const line=String(l.content||'').replace(/\s+/g,' ').trim().slice(0,60);
+    goBack();
+    setTimeout(()=>{ if(typeof sendMessageObject==='function')sendMessageObject({type:'text',content:'「'+line+'」',quote:null}); },80);
+  })();
+}
+async function renderLetterPage(){
+  const body=document.getElementById('letter-body');
+  if(!body)return;
+  const id=_letterReadingId;
+  const letters=await dbGetAll('letters');
+  const l=letters.find(x=>x.id===id)||letters.find(x=>x.id===Number(id));
+  if(!l){body.innerHTML='<div class="empty">这封信找不到了</div>';return;}
+  const tid=l.threadId||('letter-'+(l.replyTo||l.id));
+  const thread=letters.filter(x=>(x.threadId||('letter-'+(x.replyTo||x.id)))===tid).sort((a,b)=>a.time-b.time);
+  for(const x of thread)if(x.sender==='other'&&!x.read){x.read=true;await dbPut('letters',x);}
+  refreshAllBadges();
+  const mine=l.sender==='me';
+  const act=document.getElementById('letter-head-act');
+  if(act){act.style.opacity=mine?'0':'1';act.textContent='回复';}
+  body.innerHTML=`
+    <div class="letter-paper">
+      <div class="lp-to">${esc(mine?'寄给 '+state.other.name:'From '+state.other.name)}</div>
+      ${thread.map(x=>`
+        <div class="lp-seg${x.sender==='me'?' mine':''}">
+          <div class="lp-seg-head"><span>${esc(x.sender==='me'?state.me.name:state.other.name)}</span><i>${fmtFull(x.time)}</i></div>
+          <div class="lp-seg-body">${esc(x.content)}</div>
+        </div>`).join('')}
+      <div class="lp-foot">星迹 · 信笺</div>
+    </div>
+    <div class="lp-actions">
+      ${mine
+        ?`<button class="btn-pill ghost" onclick="editLetter(${l.id})">修改这封信</button>`
+        :`<button class="btn-pill primary" onclick="replyLetter(${l.id})">回复 TA</button>`}
+      <button class="btn-pill ghost" onclick="letterQuoteToChat()">引用到聊天</button>
+    </div>`;
+}
 async function editLetter(id){
   const letters=await dbGetAll('letters');const l=letters.find(x=>x.id===id);if(!l||l.sender!=='me')return;
   showModal('编辑寄出的信',`<textarea class="textarea-full" id="letter-content" style="min-height:120px">${esc(l.content)}</textarea>`,'<div class="modal-btn-row"><button class="modal-btn" onclick="closeModal()">取消</button><button class="modal-btn primary" onclick="saveLetterEdit(${id})">保存修改</button></div>');

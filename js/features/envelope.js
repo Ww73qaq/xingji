@@ -55,7 +55,15 @@ async function taSendLetter(){
   }
   const picks=[];
   for(let i=0;i<n&&pool.length;i++){const t=pool.splice(Math.floor(Math.random()*pool.length),1)[0].text||'';if(t)picks.push(t);}
-  const lead=TA_LETTER_LEADS[Math.floor(Math.random()*TA_LETTER_LEADS.length)];
+  /* 4.2：时段感知开头——让「主动写信」像此刻的他，而不是随机凑一句 */
+  let lead=TA_LETTER_LEADS[Math.floor(Math.random()*TA_LETTER_LEADS.length)];
+  const h=new Date().getHours();
+  const timeLead=(h>=23||h<5)?'深夜了，你可能已经睡了。'
+    :(h<9?'早上醒得早，先给你写几句。'
+    :(h<13?'上午的光很安静，想跟你说说话。'
+    :(h<18?'下午我把自己晾在窗边，忽然想写信。'
+    :'天刚暗下来，灯还没全开，我写下这些。')));
+  if(Math.random()<0.6)lead=timeLead;
   const tail=TA_LETTER_TAILS[Math.floor(Math.random()*TA_LETTER_TAILS.length)];
   let content=(lead||'')+'\n\n';
   if(picks.length)content+=picks.join('\n')+'\n\n';

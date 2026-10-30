@@ -88,7 +88,7 @@ async function renderMoments(){
       <span class="mom-act ${m.likedByMe?'liked':''}" onclick="likeMoment('${m.id}',this)">${HEART_ICO}${likeByMe}${m.likes?`<i>${m.likes}</i>`:''}</span>
       <span class="mom-act" onclick="commentMoment('${m.id}')">${COMMENT_ICO}评论${(m.comments||[]).length?`<i>${m.comments.length}</i>`:''}</span>
     </div>
-    ${(m.comments||[]).map((c,ci)=>`<div class="moment-comment" onclick="replyMomentComment('${m.id}',${ci})" style="cursor:pointer;margin-left:${c.replyTo?'18px':'0'}"><b>${esc(c.name==='我'?(state.me.name||'我'):c.name)}</b>${c.replyTo?' <span style="color:var(--hint)">回复</span> <b>'+esc(c.replyTo.name||'')+'</b>':''}：${esc(c.text)}${c.card?'<span class="moment-reply-card"> · 字卡：'+esc(c.card)+'</span>':''}${c.smile?'<span class="moment-reply-card"> '+ICO.smile+'</span>':''}</div>`).join('')}
+    ${(m.comments||[]).map((c,ci)=>`<div class="moment-comment" onclick="replyMomentComment('${m.id}',${ci})" style="cursor:pointer;margin-left:${c.replyTo?'18px':'0'}"><b>${esc(c.name==='我'?(state.me.name||'我'):c.name)}</b>${c.replyTo?' <span style="color:var(--hint)">回复</span> <b>'+esc(c.replyTo.name||'')+'</b>':''}：${esc(c.text)}${c.card?'<span class="moment-reply-card"> · 字卡：'+esc(c.card)+'</span>':''}${c.smile?'<span class="moment-reply-card"> '+ICO.smile+'</span>':''}${c.sticker?'<img class="moment-reply-sticker" src="'+esc(c.sticker)+'" alt="" onclick="event.stopPropagation();openImageViewerFromUrl(this.src)">':''}</div>`).join('')}
     </div>`;
   }
   if(notifUnread>0){
@@ -275,7 +275,16 @@ async function processMomentReplies(){
     let cardText=null;
     if(!text){continue;}   // 字卡库为空 → 本条不回
     const target=Number.isInteger(x.replyToIndex)?mm.comments[x.replyToIndex]:null;
-    mm.comments.push({name:state.other.name,text:text,time:Date.now(),replyTo:target?{name:target.name,index:x.replyToIndex}:null,card:cardText,fromTa:true,read:false});
+    /* 4.2：TA 回评时 30% 附一张表情包贴纸（对标 mochi 的图片评论，1:1 小图） */
+    let sticker=null;
+    if(momentOptOn('emojiPack')&&Math.random()<0.3){
+      try{
+        const ems=(await dbGetAll('emojis'))||[];
+        const imgs=ems.filter(e=>e&&e.src);
+        if(imgs.length)sticker=imgs[Math.floor(Math.random()*imgs.length)].src;
+      }catch(_){}
+    }
+    mm.comments.push({name:state.other.name,text:text,time:Date.now(),replyTo:target?{name:target.name,index:x.replyToIndex}:null,card:cardText,sticker,fromTa:true,read:false});
     await dbPut('moments',mm);
     pushNotif({type:'comment',from:state.other.name,text:'回复了你的评论：'+text.slice(0,16),momentId:mm.id});
     notifySystem(`${state.other.name} 回复了你`,text.slice(0,50),()=>switchTab('moments'),'moments');
